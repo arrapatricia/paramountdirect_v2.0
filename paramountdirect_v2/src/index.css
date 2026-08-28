@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --color-paramount: #d0112b;
+  --font-sans: 'Montserrat', sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f9fafb;
+  margin: 0;
+}
+
+@import "tailwindcss";
+
+:root {
+  --color-paramount: #d0112b;
+  --font-sans: 'Montserrat', sans-serif;
+}
+
+* {
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
