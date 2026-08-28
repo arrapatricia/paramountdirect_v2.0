@@ -5,19 +5,6 @@
   --font-sans: 'Montserrat', sans-serif;
 }
 
-body {
-  font-family: var(--font-sans);
-  background-color: #f9fafb;
-  margin: 0;
-}
-
-@import "tailwindcss";
-
-:root {
-  --color-paramount: #d0112b;
-  --font-sans: 'Montserrat', sans-serif;
-}
-
 * {
   font-family: 'Montserrat', sans-serif !important;
 }
@@ -25,4 +12,25 @@ body {
 body {
   font-family: 'Montserrat', sans-serif;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
+  background-color: #f9fafb;
+}
+
+/* Disable expensive GPU backdrop filters that cause lag */
+.backdrop-blur-md,
+.backdrop-blur-xl,
+.backdrop-blur-2xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Eliminate layout-wide color transitions on theme switch */
+*, ::before, ::after {
+  transition-property: none !important;
+}
+
+/* Keep transitions strictly for interactive controls */
+button, a, input, select {
+  transition-property: color, background-color, border-color, transform, box-shadow !important;
+  transition-duration: 120ms !important;
 }
