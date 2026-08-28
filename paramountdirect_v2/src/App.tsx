@@ -8,6 +8,7 @@ import ApplicationScreening from './components/application_screening';
 import ApplicationDetail from './components/application_detail.tsx';
 import ProductEnrollment from './components/product_enrollment';
 import Maintenance from './components/maintenance';
+import AuditLogs from './components/audit_logs.tsx';
 import logoImg from './assets/logo.png';
 
 export default function App() {
@@ -100,9 +101,7 @@ export default function App() {
           )
         )}
         {activeTab === 'audit' && (
-          <div className="p-8 text-xs text-gray-400 font-['Montserrat']">
-            Audit Logs view coming soon...
-          </div>
+          <AuditLogs darkMode={darkMode} />
         )}
       </main>
     </div>
