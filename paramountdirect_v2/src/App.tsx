@@ -40,9 +40,10 @@ export default function App() {
     );
   }
 
+  // --- FIX: Rely on CSS dark:text classes instead of conflicting JS text color ---
   return (
-    <div className={`flex flex-col lg:flex-row h-screen overflow-hidden font-sans ${
-      darkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-gray-900'
+    <div className={`flex flex-col lg:flex-row h-screen overflow-hidden font-sans transition-colors duration-200 ${
+      darkMode ? 'bg-slate-950' : 'bg-gray-50'
     }`}>
       {/* Mobile Navigation Header */}
       <div className={`lg:hidden flex items-center justify-between px-4 py-3 border-b z-30 ${
@@ -77,8 +78,8 @@ export default function App() {
         activeSubTab={activeSubTab}
         setActiveSubTab={setActiveSubTab}
         onLogout={() => setIsAuthenticated(false)}
-        darkMode={darkMode}
-        setDarkMode={toggleDarkMode}
+        // darkMode={darkMode}
+        // setDarkMode={toggleDarkMode}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
@@ -98,7 +99,6 @@ export default function App() {
             />
           ) : (
             <ApplicationScreening
-              darkMode={darkMode}
               onSelectApplication={(id) => setSelectedAppId(id)}
             />
           )

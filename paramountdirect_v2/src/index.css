@@ -3,6 +3,7 @@
 :root {
   --color-paramount: #d0112b;
   --font-sans: 'Montserrat', sans-serif;
+  color-scheme: light;
 }
 
 * {
@@ -13,24 +14,23 @@ body {
   font-family: 'Montserrat', sans-serif;
   -webkit-font-smoothing: antialiased;
   margin: 0;
-  background-color: #f9fafb;
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
-/* Disable expensive GPU backdrop filters that cause lag */
-.backdrop-blur-md,
-.backdrop-blur-xl,
-.backdrop-blur-2xl {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+/* Force dark, crisp slate text everywhere */
+td, th, p, span, label, div, input, select {
+  color: #1e293b;
 }
 
-/* Eliminate layout-wide color transitions on theme switch */
-*, ::before, ::after {
-  transition-property: none !important;
+/* Primary buttons keep white text */
+.bg-\[\#d0112b\],
+.bg-\[\#d0112b\] *,
+button.bg-\[\#d0112b\],
+button.bg-\[\#d0112b\] * {
+  color: #ffffff !important;
 }
 
-/* Keep transitions strictly for interactive controls */
 button, a, input, select {
-  transition-property: color, background-color, border-color, transform, box-shadow !important;
-  transition-duration: 120ms !important;
+  transition: all 120ms ease-in-out;
 }

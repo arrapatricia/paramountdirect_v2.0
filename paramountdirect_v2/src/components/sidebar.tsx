@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
-  FileText, 
-  FileCheck, 
+  Search, 
+  CheckSquare, 
   ShieldCheck, 
-  LogOut, 
-  User, 
-  Sun, 
-  Moon, 
-  X, 
-  ChevronDown, 
-  ChevronLeft,
-  ChevronRight,
-  Package, 
-  Settings 
+  ChevronRight, 
+  ChevronLeft, 
+  LogOut 
 } from 'lucide-react';
-import logoImg from '../assets/logo.png';
+
+import pdLogoFullColor from '../assets/PD Logo_full color.png';
 
 interface SidebarProps {
   activeTab: string;
@@ -23,8 +17,6 @@ interface SidebarProps {
   activeSubTab: string;
   setActiveSubTab: (subTab: string) => void;
   onLogout: () => void;
-  darkMode: boolean;
-  setDarkMode: (mode: boolean) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -32,246 +24,147 @@ interface SidebarProps {
 export default function Sidebar({
   activeTab,
   setActiveTab,
-  activeSubTab,
-  setActiveSubTab,
   onLogout,
-  darkMode,
-  setDarkMode,
   isOpen,
-  onClose,
+  onClose
 }: SidebarProps) {
-  const [isDashboardOpen, setIsDashboardOpen] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const statsMenuItems = [
-    'MONTHLY APPLICATIONS',
-    'DAILY APPLICATIONS',
-    'QUOTATIONS',
-    'FOLLOW-UP CALLS',
-    'ADVERTISERS',
-    'SIGNED APPLICATION',
-    'C2C APPLICATION',
-    'CTPL APPLICATION',
-    'GTPP APPLICATION',
-    'OFW APPLICATION',
-    'KAAGAPAY APPLICATION',
-    'SCREENED APPLICATIONS',
-    'APPLICATION STATUSES',
-  ];
 
   return (
     <>
-      {/* Mobile Drawer Overlay */}
       {isOpen && (
         <div 
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-300"
         />
       )}
 
-      {/* Sidebar Main Container */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 p-4 flex flex-col justify-between border-r backdrop-blur-2xl transition-all duration-300 ease-in-out transform overflow-y-auto font-sans ${
-        isCollapsed ? 'w-20' : 'w-64'
-      } ${
-        isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      } ${
-        darkMode ? 'bg-slate-900/90 border-white/10 text-white' : 'bg-white/80 border-gray-200 text-gray-800'
-      }`}>
-        <div>
-          {/* Header, Logo, and Collapse Toggle */}
-          <div className="flex items-center justify-between mb-6 px-1">
+      {/* Main Sidebar - Locked Height & Smooth Collapse */}
+      <aside className={`
+        fixed lg:static top-0 left-0 h-screen max-h-screen z-50 flex flex-col justify-between p-4 font-['Montserrat'] bg-slate-100 text-slate-900 transition-all duration-300 overflow-hidden shrink-0
+        ${isCollapsed ? 'w-20' : 'w-72'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        
+        {/* Main Nav Container */}
+        <div className="p-4 rounded-3xl border border-slate-200/80 bg-white shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
+          
+          {/* Header Row with Centered Alignment */}
+          <div className={`flex items-center pb-4 mb-3 border-b border-slate-100 shrink-0 ${
+            isCollapsed ? 'justify-center' : 'justify-between'
+          }`}>
             {!isCollapsed && (
-              <img src={logoImg} alt="Paramount Direct" className="h-9 w-auto object-contain" />
+              <img 
+                src={pdLogoFullColor} 
+                alt="Paramount Direct" 
+                className="h-8 w-auto object-contain transition-all"
+              />
             )}
             
-            {/* Desktop Collapse Button */}
+            {/* Collapse / Expand Switch Button */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`hidden lg:flex p-1.5 rounded-xl border transition-colors cursor-pointer ${
-                darkMode ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'
-              } ${isCollapsed ? 'mx-auto' : ''}`}
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              className="p-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer flex-shrink-0"
+              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
               {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
-
-            {/* Mobile Close Button */}
-            <button onClick={onClose} className="lg:hidden p-1.5 rounded-xl text-gray-400 hover:text-white">
-              <X className="h-5 w-5" />
             </button>
           </div>
 
           {!isCollapsed && (
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-3 mb-2 font-['Montserrat']">
+            <h2 className="text-xs font-extrabold text-slate-900 px-2 mb-3 shrink-0">
               Main Menu
-            </p>
+            </h2>
           )}
 
-          <nav className="space-y-1">
-            {/* Collapsible Dashboard */}
-            <div>
-              <button
-                onClick={() => {
-                  setActiveTab('dashboard');
-                  if (isCollapsed) {
-                    setIsCollapsed(false);
-                    setIsDashboardOpen(true);
-                  } else {
-                    setIsDashboardOpen(!isDashboardOpen);
-                  }
-                }}
-                title={isCollapsed ? "Dashboard" : ""}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 cursor-pointer font-['Montserrat'] ${
-                  activeTab === 'dashboard'
-                    ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/30'
-                    : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <div className={`flex items-center space-x-3 ${isCollapsed ? 'mx-auto' : ''}`}>
-                  <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-                  {!isCollapsed && <span>Dashboard</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${isDashboardOpen ? 'rotate-180' : ''}`} />
-                )}
-              </button>
-
-              {/* Statistics Accordion Sub-Menu */}
-              {!isCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  isDashboardOpen ? 'max-h-[600px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'
-                }`}>
-                  <div className="ml-3 border-l-2 border-[#d0112b]/30 pl-2 space-y-0.5">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-gray-400 px-2.5 py-1 font-['Montserrat']">
-                      STATISTICS
-                    </div>
-                    {statsMenuItems.map((item) => {
-                      const isSubActive = activeTab === 'dashboard' && activeSubTab === item;
-                      return (
-                        <button
-                          key={item}
-                          onClick={() => {
-                            setActiveTab('dashboard');
-                            setActiveSubTab(item);
-                            onClose();
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[10px] font-bold tracking-tight transition-all duration-200 cursor-pointer font-['Montserrat'] ${
-                            isSubActive
-                              ? 'bg-[#d0112b] text-white shadow-sm'
-                              : darkMode ? 'text-red-400 hover:bg-white/5' : 'text-red-600 hover:bg-red-50'
-                          }`}
-                        >
-                          {item}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Product Enrollment */}
+          {/* Navigation Links */}
+          <nav className="space-y-1.5 flex-1 overflow-y-auto pr-0.5">
             <button
-              onClick={() => { setActiveTab('enrollment'); onClose(); }}
-              title={isCollapsed ? "Product Enrollment" : ""}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition-all duration-200 font-['Montserrat'] ${
-                activeTab === 'enrollment' ? 'bg-[#d0112b] text-white shadow-md' : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'
+              onClick={() => setActiveTab('dashboard')}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
+                activeTab === 'dashboard'
+                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                  : 'text-slate-700 hover:bg-slate-100'
               }`}
+              title="Dashboard"
             >
-              <Package className={`h-4 w-4 flex-shrink-0 ${isCollapsed ? 'mx-auto' : ''}`} />
-              {!isCollapsed && <span>Product Enrollment</span>}
+              <div className="flex items-center space-x-3">
+                <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+                {!isCollapsed && <span>Dashboard</span>}
+              </div>
+              {!isCollapsed && <ChevronRight className="h-4 w-4" />}
             </button>
 
-            {/* Maintenance */}
             <button
-              onClick={() => { setActiveTab('maintenance'); onClose(); }}
-              title={isCollapsed ? "Maintenance" : ""}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition-all duration-200 font-['Montserrat'] ${
-                activeTab === 'maintenance' ? 'bg-[#d0112b] text-white shadow-md' : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'
+              onClick={() => setActiveTab('inquiry')}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
+                activeTab === 'inquiry'
+                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                  : 'text-slate-700 hover:bg-slate-100'
               }`}
+              title="Application Inquiry"
             >
-              <Settings className={`h-4 w-4 flex-shrink-0 ${isCollapsed ? 'mx-auto' : ''}`} />
-              {!isCollapsed && <span>Maintenance</span>}
-            </button>
-
-            {/* Application Inquiry */}
-            <button
-              onClick={() => { setActiveTab('inquiry'); onClose(); }}
-              title={isCollapsed ? "Application Inquiry" : ""}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition-all duration-200 font-['Montserrat'] ${
-                activeTab === 'inquiry' ? 'bg-[#d0112b] text-white shadow-md' : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FileText className={`h-4 w-4 flex-shrink-0 ${isCollapsed ? 'mx-auto' : ''}`} />
+              <Search className="h-4 w-4 flex-shrink-0" />
               {!isCollapsed && <span>Application Inquiry</span>}
             </button>
 
-            {/* Application Screening */}
             <button
-              onClick={() => { setActiveTab('screening'); onClose(); }}
-              title={isCollapsed ? "Application Screening" : ""}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition-all duration-200 font-['Montserrat'] ${
-                activeTab === 'screening' ? 'bg-[#d0112b] text-white shadow-md' : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'
+              onClick={() => setActiveTab('screening')}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
+                activeTab === 'screening'
+                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                  : 'text-slate-700 hover:bg-slate-100'
               }`}
+              title="Application Screening"
             >
-              <FileCheck className={`h-4 w-4 flex-shrink-0 ${isCollapsed ? 'mx-auto' : ''}`} />
+              <CheckSquare className="h-4 w-4 flex-shrink-0" />
               {!isCollapsed && <span>Application Screening</span>}
             </button>
 
-            {/* Audit Logs */}
             <button
-              onClick={() => { setActiveTab('audit'); onClose(); }}
-              title={isCollapsed ? "Audit Logs" : ""}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition-all duration-200 font-['Montserrat'] ${
-                activeTab === 'audit' ? 'bg-[#d0112b] text-white shadow-md' : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-100'
+              onClick={() => setActiveTab('audit')}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
+                activeTab === 'audit'
+                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                  : 'text-slate-700 hover:bg-slate-100'
               }`}
+              title="Audit Logs"
             >
-              <ShieldCheck className={`h-4 w-4 flex-shrink-0 ${isCollapsed ? 'mx-auto' : ''}`} />
+              <ShieldCheck className="h-4 w-4 flex-shrink-0" />
               {!isCollapsed && <span>Audit Logs</span>}
             </button>
           </nav>
         </div>
 
-        {/* Footer Actions */}
-        <div className="space-y-2 pt-4">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            title={isCollapsed ? (darkMode ? "Light Theme" : "Dark Theme") : ""}
-            className={`w-full flex items-center justify-between p-3 rounded-2xl border text-xs font-semibold transition-all duration-200 font-['Montserrat'] ${
-              darkMode ? 'bg-white/5 border-white/10 text-yellow-400 hover:bg-white/10' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <span className={`flex items-center space-x-2 ${isCollapsed ? 'mx-auto' : ''}`}>
-              {darkMode ? <Sun className="h-4 w-4 flex-shrink-0" /> : <Moon className="h-4 w-4 flex-shrink-0" />}
-              {!isCollapsed && (
-                <span className={darkMode ? 'text-white' : 'text-gray-800'}>
-                  {darkMode ? 'Light Theme' : 'Dark Theme'}
-                </span>
-              )}
-            </span>
-          </button>
-
-          <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all duration-200 ${
-            darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100 shadow-sm'
-          }`}>
-            <div className="flex items-center space-x-2.5">
-              <div className={`p-1.5 rounded-xl bg-red-100 text-[#d0112b] ${isCollapsed ? 'mx-auto' : ''}`}>
-                <User className="h-4 w-4 flex-shrink-0" />
-              </div>
-              {!isCollapsed && (
-                <div className="text-left font-['Montserrat']">
-                  <p className="text-xs font-bold leading-none">Olivia Rodrigo</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">olivia@paramount.com.ph</p>
-                </div>
-              )}
+        {/* Profile Footer Box */}
+        <div className="mt-3 p-2.5 rounded-2xl border border-slate-200/80 bg-white flex items-center justify-between shadow-sm shrink-0">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-full bg-red-100 text-[#d0112b] flex items-center justify-center font-bold text-xs flex-shrink-0">
+              JD
             </div>
             {!isCollapsed && (
-              <button onClick={onLogout} className="text-gray-400 hover:text-[#d0112b] p-1 cursor-pointer transition-colors">
-                <LogOut className="h-4 w-4" />
-              </button>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  Juan Dela Cruz
+                </p>
+                <p className="text-[10px] text-slate-500 truncate">
+                  juan.delacruz@paramount.com.ph
+                </p>
+              </div>
             )}
           </div>
+
+          {!isCollapsed && (
+            <button
+              onClick={onLogout}
+              className="p-1 rounded-lg text-slate-600 hover:text-[#d0112b] cursor-pointer"
+              title="Log out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
         </div>
+
       </aside>
     </>
   );
