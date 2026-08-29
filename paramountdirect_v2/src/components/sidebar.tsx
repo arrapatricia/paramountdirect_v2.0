@@ -6,7 +6,10 @@ import {
   ShieldCheck, 
   ChevronRight, 
   ChevronLeft, 
-  LogOut 
+  ChevronDown,
+  ChevronUp,
+  LogOut, 
+  Settings
 } from 'lucide-react';
 
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
@@ -24,11 +27,20 @@ interface SidebarProps {
 export default function Sidebar({
   activeTab,
   setActiveTab,
+  activeSubTab,
+  setActiveSubTab,
   onLogout,
   isOpen,
   onClose
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+
+  const maintenanceSubTabs = [
+    'Marketing Dashboard',
+    'CMS (Website Content)',
+    'Branch Directory'
+  ];
 
   return (
     <>
@@ -120,6 +132,56 @@ export default function Sidebar({
               <CheckSquare className="h-4 w-4 flex-shrink-0" />
               {!isCollapsed && <span>Application Screening</span>}
             </button>
+
+            {/* Maintenance Accordion Menu */}
+            <div className="space-y-1">
+              <button
+                onClick={() => {
+                  if (isCollapsed) setIsCollapsed(false);
+                  setIsMaintenanceOpen(!isMaintenanceOpen);
+                  if (activeTab !== 'maintenance') {
+                    setActiveTab('maintenance');
+                    setActiveSubTab('Marketing Dashboard'); // Default sub-tab
+                  }
+                }}
+                className={`w-full flex items-center justify-between p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
+                  activeTab === 'maintenance'
+                    ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+                title="Maintenance"
+              >
+                <div className="flex items-center space-x-3">
+                  <Settings className="h-4 w-4 flex-shrink-0" />
+                  {!isCollapsed && <span>Maintenance</span>}
+                </div>
+                {!isCollapsed && (
+                  isMaintenanceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+
+              {/* Maintenance Sub-Tabs */}
+              {isMaintenanceOpen && !isCollapsed && (
+                <div className="ml-4 pl-3 border-l-2 border-slate-200 space-y-1 mt-2">
+                  {maintenanceSubTabs.map((subTab) => (
+                    <button
+                      key={subTab}
+                      onClick={() => {
+                        setActiveTab('maintenance');
+                        setActiveSubTab(subTab);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                        activeTab === 'maintenance' && activeSubTab === subTab
+                          ? 'bg-[#d0112b] text-white'
+                          : 'text-slate-600 hover:text-[#d0112b] hover:bg-slate-50'
+                      }`}
+                    >
+                      {subTab}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => setActiveTab('audit')}
