@@ -2,26 +2,28 @@ import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   Search, 
-  CheckSquare, 
-  ShieldCheck, 
+  ClipboardCheck, 
+  Wrench, 
+  FileText, 
+  ChevronDown, 
   ChevronRight, 
-  ChevronLeft, 
-  ChevronDown,
-  ChevronUp,
+  ChevronLeft,
   LogOut, 
-  Settings
+  Building2, 
+  Globe, 
+  BarChart3 
 } from 'lucide-react';
 
-import pdLogoFullColor from '../assets/PD Logo_full color.png';
+import logoImg from '../assets/PD Logo_full color.png';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  activeSubTab: string;
-  setActiveSubTab: (subTab: string) => void;
+  activeSubTab?: string;
+  setActiveSubTab?: (subTab: string) => void;
   onLogout: () => void;
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export default function Sidebar({
@@ -30,201 +32,202 @@ export default function Sidebar({
   activeSubTab,
   setActiveSubTab,
   onLogout,
-  isOpen,
+  isOpen = false,
   onClose
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
 
-  const maintenanceSubTabs = [
-    'Marketing Dashboard',
-    'CMS (Website Content)',
-    'Branch Directory'
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'inquiry', label: 'Application Inquiry', icon: Search },
+    { id: 'screening', label: 'Application Screening', icon: ClipboardCheck },
+  ];
+
+  const maintenanceSubItems = [
+    { id: 'branch', label: 'Branch Directory', icon: Building2 },
+    { id: 'marketing', label: 'Marketing Dashboard', icon: BarChart3 },
+    { id: 'cms', label: 'CMS (Website Content)', icon: Globe },
   ];
 
   return (
     <>
+      {/* Mobile Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={onClose}
+          onClick={onClose} 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
         />
       )}
 
-      {/* Main Sidebar - Locked Height & Smooth Collapse */}
       <aside className={`
-        fixed lg:static top-0 left-0 h-screen max-h-screen z-50 flex flex-col justify-between p-4 font-['Montserrat'] bg-slate-100 text-slate-900 transition-all duration-300 overflow-hidden shrink-0
-        ${isCollapsed ? 'w-20' : 'w-72'}
+        fixed lg:static top-0 left-0 h-screen z-50 overflow-hidden
+        bg-white border-r border-slate-200 
+        flex flex-col justify-between p-4 transition-all duration-300 ease-in-out font-sans
+        ${isCollapsed ? 'w-20' : 'w-64'}
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         
-        {/* Main Nav Container */}
-        <div className="p-4 rounded-3xl border border-slate-200/80 bg-white shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
-          
-          {/* Header Row with Centered Alignment */}
-          <div className={`flex items-center pb-4 mb-3 border-b border-slate-100 shrink-0 ${
-            isCollapsed ? 'justify-center' : 'justify-between'
-          }`}>
-            {!isCollapsed && (
+        {/* Header & Logo */}
+        <div>
+          <div className="flex items-center justify-between h-12 mb-6">
+            <div className="flex items-center space-x-2 overflow-hidden">
               <img 
-                src={pdLogoFullColor} 
+                src={logoImg} 
                 alt="Paramount Direct" 
-                className="h-8 w-auto object-contain transition-all"
+                className={`transition-all duration-300 object-contain ${
+                  isCollapsed ? 'h-7 max-w-[50px]' : 'h-8 max-w-[150px]'
+                }`} 
               />
-            )}
-            
-            {/* Collapse / Expand Switch Button */}
+            </div>
+
+            {/* Desktop Collapse Toggle */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer flex-shrink-0"
-              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              className="hidden lg:flex p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 cursor-pointer transition-colors flex-shrink-0"
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
           </div>
 
+          {/* Section Heading */}
           {!isCollapsed && (
-            <h2 className="text-xs font-extrabold text-slate-900 px-2 mb-3 shrink-0">
+            <p className="text-[10px] font-black uppercase text-slate-400 px-3 mb-2 tracking-wider whitespace-nowrap">
               Main Menu
-            </h2>
+            </p>
           )}
 
           {/* Navigation Links */}
-          <nav className="space-y-1.5 flex-1 overflow-y-auto pr-0.5">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
-                activeTab === 'dashboard'
-                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-              title="Dashboard"
-            >
-              <div className="flex items-center space-x-3">
-                <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-                {!isCollapsed && <span>Dashboard</span>}
-              </div>
-              {!isCollapsed && <ChevronRight className="h-4 w-4" />}
-            </button>
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
 
-            <button
-              onClick={() => setActiveTab('inquiry')}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
-                activeTab === 'inquiry'
-                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-              title="Application Inquiry"
-            >
-              <Search className="h-4 w-4 flex-shrink-0" />
-              {!isCollapsed && <span>Application Inquiry</span>}
-            </button>
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (onClose) onClose();
+                  }}
+                  title={isCollapsed ? item.label : undefined}
+                  className={`
+                    w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
+                    ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
+                    ${isActive 
+                      ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20' 
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }
+                  `}
+                >
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                </button>
+              );
+            })}
 
-            <button
-              onClick={() => setActiveTab('screening')}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
-                activeTab === 'screening'
-                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-              title="Application Screening"
-            >
-              <CheckSquare className="h-4 w-4 flex-shrink-0" />
-              {!isCollapsed && <span>Application Screening</span>}
-            </button>
-
-            {/* Maintenance Accordion Menu */}
-            <div className="space-y-1">
+            {/* Maintenance Accordion */}
+            <div>
               <button
                 onClick={() => {
                   if (isCollapsed) setIsCollapsed(false);
+                  setActiveTab('maintenance');
                   setIsMaintenanceOpen(!isMaintenanceOpen);
-                  if (activeTab !== 'maintenance') {
-                    setActiveTab('maintenance');
-                    setActiveSubTab('Marketing Dashboard'); // Default sub-tab
-                  }
                 }}
-                className={`w-full flex items-center justify-between p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
-                  activeTab === 'maintenance'
-                    ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-                title="Maintenance"
+                title={isCollapsed ? "Maintenance" : undefined}
+                className={`
+                  w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100
+                  ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-3'}
+                  ${activeTab === 'maintenance' ? 'bg-slate-100 text-slate-900' : ''}
+                `}
               >
-                <div className="flex items-center space-x-3">
-                  <Settings className="h-4 w-4 flex-shrink-0" />
-                  {!isCollapsed && <span>Maintenance</span>}
+                <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+                  <Wrench className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                  {!isCollapsed && <span className="truncate">Maintenance</span>}
                 </div>
                 {!isCollapsed && (
-                  isMaintenanceOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isMaintenanceOpen ? 'rotate-180' : ''}`} />
                 )}
               </button>
 
-              {/* Maintenance Sub-Tabs */}
+              {/* Maintenance Sub-menu */}
               {isMaintenanceOpen && !isCollapsed && (
-                <div className="ml-4 pl-3 border-l-2 border-slate-200 space-y-1 mt-2">
-                  {maintenanceSubTabs.map((subTab) => (
-                    <button
-                      key={subTab}
-                      onClick={() => {
-                        setActiveTab('maintenance');
-                        setActiveSubTab(subTab);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
-                        activeTab === 'maintenance' && activeSubTab === subTab
-                          ? 'bg-[#d0112b] text-white'
-                          : 'text-slate-600 hover:text-[#d0112b] hover:bg-slate-50'
-                      }`}
-                    >
-                      {subTab}
-                    </button>
-                  ))}
+                <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3">
+                  {maintenanceSubItems.map((sub) => {
+                    const isSubActive = activeTab === 'maintenance' && activeSubTab === sub.id;
+
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => {
+                          setActiveTab('maintenance');
+                          if (setActiveSubTab) setActiveSubTab(sub.id);
+                          if (onClose) onClose();
+                        }}
+                        className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors block truncate cursor-pointer ${
+                          isSubActive 
+                            ? 'text-[#d0112b] bg-red-50 font-bold' 
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                        }`}
+                      >
+                        {sub.label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
+            {/* Audit Logs */}
             <button
-              onClick={() => setActiveTab('audit')}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} p-2.5 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
-                activeTab === 'audit'
-                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-              title="Audit Logs"
+              onClick={() => {
+                setActiveTab('audit');
+                if (onClose) onClose();
+              }}
+              title={isCollapsed ? "Audit Logs" : undefined}
+              className={`
+                w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
+                ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
+                ${activeTab === 'audit' 
+                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20' 
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }
+              `}
             >
-              <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-              {!isCollapsed && <span>Audit Logs</span>}
+              <FileText className={`w-5 h-5 flex-shrink-0 ${activeTab === 'audit' ? 'text-white' : 'text-slate-500'}`} />
+              {!isCollapsed && <span className="truncate">Audit Logs</span>}
             </button>
           </nav>
         </div>
 
-        {/* Profile Footer Box */}
-        <div className="mt-3 p-2.5 rounded-2xl border border-slate-200/80 bg-white flex items-center justify-between shadow-sm shrink-0">
-          <div className="flex items-center space-x-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-red-100 text-[#d0112b] flex items-center justify-center font-bold text-xs flex-shrink-0">
+        {/* Bottom User Section */}
+        <div className="border-t border-slate-100 pt-4">
+          <div className={`
+            flex items-center rounded-2xl bg-slate-50 border border-slate-100 transition-all
+            ${isCollapsed ? 'p-2 justify-center' : 'p-2.5 space-x-3'}
+          `}>
+            <div className="w-8 h-8 rounded-xl bg-red-100 text-[#d0112b] font-black flex items-center justify-center text-xs flex-shrink-0">
               JD
             </div>
+
             {!isCollapsed && (
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate">
-                  Juan Dela Cruz
-                </p>
-                <p className="text-[10px] text-slate-500 truncate">
-                  juan.delacruz@paramount.com.ph
-                </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-800 truncate">Juan Dela Cruz</p>
+                <p className="text-[10px] text-slate-400 truncate">juan.delacruz@paramount.com.ph</p>
               </div>
             )}
-          </div>
 
-          {!isCollapsed && (
-            <button
-              onClick={onLogout}
-              className="p-1 rounded-lg text-slate-600 hover:text-[#d0112b] cursor-pointer"
-              title="Log out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          )}
+            {!isCollapsed && (
+              <button
+                onClick={onLogout}
+                className="p-1.5 text-slate-400 hover:text-[#d0112b] rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                title="Log Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
       </aside>

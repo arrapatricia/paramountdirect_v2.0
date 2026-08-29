@@ -55,7 +55,7 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeSubTab, setActiveSubTab] = useState('MONTHLY APPLICATIONS');
+  const [activeSubTab, setActiveSubTab] = useState('branch');
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -137,7 +137,24 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'maintenance' && <Maintenance />}
+        
+        {/* Restored Application Inquiry Route */}
+        {activeTab === 'inquiry' && (
+          selectedApp ? renderApplicationDetail() : (
+            <ApplicationInquiry 
+              data={screeningData} 
+              onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })} 
+            />
+          )
+        )}
+
+        {activeTab === 'maintenance' && (
+          <Maintenance 
+            activeSubTab={activeSubTab} 
+            setActiveSubTab={setActiveSubTab} 
+          />
+        )}
+
         {activeTab === 'screening' && (
           selectedApp ? renderApplicationDetail() : (
             <ApplicationScreening 
@@ -146,6 +163,8 @@ export default function App() {
             />
           )
         )}
+
+        {activeTab === 'audit' && <AuditLogs />}
       </main>
     </div>
   );

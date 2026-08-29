@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, CheckSquare, Square, X, CheckCircle2, XCircle, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, CheckSquare, Square, X, CheckCircle2, XCircle, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 
 interface Props {
@@ -41,10 +41,9 @@ export default function ApplicationScreening({ data, onSelectApplication }: Prop
     
     let matchesDate = true;
     if (fromDate || toDate) {
-      // Extract MM/DD/YYYY from "MM/DD/YYYY at HH:MM PM"
       const datePart = item.dateReceived.split(' at ')[0];
       const [mm, dd, yyyy] = datePart.split('/');
-      const itemDateStr = `${yyyy}-${mm}-${dd}`; // Convert to YYYY-MM-DD for standard JS comparison
+      const itemDateStr = `${yyyy}-${mm}-${dd}`;
 
       if (fromDate && itemDateStr < fromDate) matchesDate = false;
       if (toDate && itemDateStr > toDate) matchesDate = false;
@@ -114,9 +113,11 @@ export default function ApplicationScreening({ data, onSelectApplication }: Prop
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900">
+      
+      {/* Updated Header with Matching Sidebar Icon */}
       <div className="flex justify-between items-center border-b pb-4 border-slate-200">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-[#d0112b]" />
+        <div className="flex items-center space-x-2.5">
+          <ClipboardCheck className="h-6 w-6 text-[#d0112b]" />
           <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
             APPLICATION SCREENING
           </h1>
