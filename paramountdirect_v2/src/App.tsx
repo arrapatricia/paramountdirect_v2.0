@@ -8,9 +8,8 @@ import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
 import ApplicationDetailLifeAccident from './components/application_detail_lifeaccident';
 import ApplicationDetailComprehensive from './components/application_detail_comprehensive';
-import ProductEnrollment from './components/product_enrollment';
+import PaymentTransactions from './components/payment_transactions';
 import Maintenance from './components/maintenance';
-import AuditLogs from './components/audit_logs';
 import logoImg from './assets/logo.png';
 
 export interface ScreeningItem {
@@ -110,6 +109,8 @@ export default function App() {
 
   return (
     <div className={`flex flex-col lg:flex-row h-screen overflow-hidden font-sans transition-colors duration-200 ${darkMode ? 'bg-slate-950' : 'bg-gray-50'}`}>
+      
+      {/* Mobile Top Header */}
       <div className={`lg:hidden flex items-center justify-between px-4 py-3 border-b z-30 ${darkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center space-x-3">
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 cursor-pointer">
@@ -122,11 +123,12 @@ export default function App() {
         </button>
       </div>
 
+      {/* Main Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={(tab) => { 
           setActiveTab(tab); 
-          setSelectedApp(null); // Resets detail view on menu click
+          setSelectedApp(null); // Resets detail view on menu navigation
         }} 
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
@@ -135,10 +137,11 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)} 
       />
 
+      {/* Primary Main Content View */}
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'dashboard' && <Dashboard />}
         
-        {/* Restored Application Inquiry Route */}
+        {/* Application Inquiry */}
         {activeTab === 'inquiry' && (
           selectedApp ? renderApplicationDetail() : (
             <ApplicationInquiry 
@@ -148,6 +151,10 @@ export default function App() {
           )
         )}
 
+        {/* Payment Transactions & Ledger */}
+        {activeTab === 'payments' && <PaymentTransactions />}
+
+        {/* Maintenance / Admin Configurations */}
         {activeTab === 'maintenance' && (
           <Maintenance 
             activeSubTab={activeSubTab} 
@@ -155,6 +162,7 @@ export default function App() {
           />
         )}
 
+        {/* Application Screening */}
         {activeTab === 'screening' && (
           selectedApp ? renderApplicationDetail() : (
             <ApplicationScreening 
@@ -163,8 +171,6 @@ export default function App() {
             />
           )
         )}
-
-        {activeTab === 'audit' && <AuditLogs />}
       </main>
     </div>
   );

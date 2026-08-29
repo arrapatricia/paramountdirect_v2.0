@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, ChevronDown, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface Props {
   applicationId: string;
@@ -16,7 +16,7 @@ export default function ApplicationDetailLifeAccident({
   onUpdateStatus, 
   onBack 
 }: Props) {
-  // Map Plan Code to Product Name
+  // Map Plan Code to Life & Accident Product Name
   const productNames: Record<string, string> = {
     'GLP': 'Guaranteed Life Plan',
     'GLA': 'Golden Life Advantage Plan',
@@ -29,6 +29,12 @@ export default function ApplicationDetailLifeAccident({
   const [savedStatus, setSavedStatus] = useState(initialStatus);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusOptions = ['For Verification', 'For Evaluation', 'Paid', 'Issued'];
+
+  // Notification Prompt State
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   // Edit Mode Tracking
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -58,6 +64,43 @@ export default function ApplicationDetailLifeAccident({
   };
 
   const toggleEdit = (section: string) => setEditingSection(editingSection === section ? null : section);
+
+  // Immediate Status Update & Notification Trigger Handler
+  const handleSelectStatus = (newStatus: string) => {
+    setStatus(newStatus);
+    setIsStatusMenuOpen(false);
+
+    const simulateError = false; // Set to true to simulate issuance error
+
+    if (newStatus === 'Issued') {
+      if (simulateError) {
+        setNotification({
+          type: 'error',
+          message: 'There is an error upon issuance of application.'
+        });
+        return;
+      }
+
+      setSavedStatus('Issued');
+      onUpdateStatus('Issued');
+      setNotification({
+        type: 'success',
+        message: 'The application has been successfully issued and transmitted to iPeak'
+      });
+    } else {
+      setSavedStatus(newStatus);
+      onUpdateStatus(newStatus);
+      setNotification({
+        type: 'info',
+        message: `The application is updated to ${newStatus}`
+      });
+    }
+
+    // Auto-dismiss banner after 5 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
 
   // Helper for dynamic input styling
   const getInputProps = (section: string, defaultValue: string, placeholder?: string) => ({
@@ -93,10 +136,35 @@ export default function ApplicationDetailLifeAccident({
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800">
       
-      {/* Header */}
+      {/* Top Notification Banner Prompt */}
+      {notification && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold shadow-md animate-fadeIn ${
+          notification.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
+            : notification.type === 'error'
+            ? 'bg-rose-50 border-rose-300 text-rose-800'
+            : 'bg-blue-50 border-blue-300 text-blue-800'
+        }`}>
+          <div className="flex items-center space-x-2.5">
+            {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+            {notification.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
+            {notification.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="cursor-pointer p-1 rounded-lg hover:bg-black/5">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Top Navigation & Status Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div className="flex items-center space-x-4">
-          <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors">
+          <button 
+            onClick={onBack}
+            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors"
+            title="Back to Screening List"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -115,54 +183,53 @@ export default function ApplicationDetailLifeAccident({
           </div>
         </div>
 
-        {/* Status Actions */}
-        <div className="flex items-center space-x-3">
-          {status !== savedStatus && savedStatus !== 'Issued' && (
-            <button 
-              onClick={() => {
-                setSavedStatus(status);
-                onUpdateStatus(status);
-              }} 
-              className="flex items-center space-x-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-sm cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" /><span>Save & Continue</span>
-            </button>
-          )}
+        {/* Current Status Dropdown */}
+        <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Current Status:</span>
+          
+          {savedStatus === 'Issued' ? (
+            <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700">
+              <span>Issued</span>
+              <Lock className="w-3.5 h-3.5" />
+            </span>
+          ) : (
+            <div className="relative">
+              <button 
+                onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)} 
+                className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer transition-all"
+              >
+                <span>{status}</span>
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              </button>
 
-          <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-            <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Current Status:</span>
-            
-            {savedStatus === 'Issued' ? (
-              <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700">
-                <span>Issued</span>
-                <Lock className="w-3.5 h-3.5" />
-              </span>
-            ) : (
-              <div className="relative">
-                <button onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)} className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer">
-                  <span>{status}</span><ChevronDown className="w-4 h-4 text-slate-500" />
-                </button>
-                {isStatusMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1">
-                    <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1">
-                      Update Status To:
-                    </div>
-                    {statusOptions.map((opt) => (
-                      <button key={opt} onClick={() => { setStatus(opt); setIsStatusMenuOpen(false); }} className={`w-full text-left px-4 py-2 text-xs font-bold ${status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50'}`}>
-                        {opt}
-                      </button>
-                    ))}
+              {isStatusMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1">
+                  <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1">
+                    Update Status To:
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  {statusOptions.map((opt) => (
+                    <button 
+                      key={opt} 
+                      onClick={() => handleSelectStatus(opt)} 
+                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
+                        status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt}</span>
+                      {status === opt && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Main Form Content */}
       <div className="space-y-6 pb-20">
         
-        {/* General Details */}
+        {/* 1. General Details */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl text-xs">
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">Campaign Source</label><select {...getSelectProps('general')}><option>Telemarketing</option></select></div><div className="hidden md:block"></div>
@@ -172,7 +239,7 @@ export default function ApplicationDetailLifeAccident({
           <EditButton section="general" />
         </div>
 
-        {/* Personal Information */}
+        {/* 2. Personal Information */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Personal Information</h2>
           <div className="space-y-4 text-xs max-w-4xl">
@@ -198,7 +265,7 @@ export default function ApplicationDetailLifeAccident({
           <EditButton section="personal" />
         </div>
 
-        {/* Contact Information */}
+        {/* 3. Contact Information */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Contact Information</h2>
           <div className="space-y-4 text-xs max-w-4xl">
@@ -227,7 +294,7 @@ export default function ApplicationDetailLifeAccident({
           <EditButton section="contact" />
         </div>
 
-        {/* Beneficiaries */}
+        {/* 4. Beneficiaries */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Beneficiaries</h2>
           <div className="space-y-4 text-xs max-w-5xl">
@@ -249,7 +316,7 @@ export default function ApplicationDetailLifeAccident({
           <EditButton section="beneficiaries" />
         </div>
 
-        {/* Non-forfeiture Options */}
+        {/* 5. Non-forfeiture Options */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Non-forfeiture Options</h2>
           <div className="space-y-4 text-xs max-w-4xl">
@@ -263,7 +330,7 @@ export default function ApplicationDetailLifeAccident({
           <EditButton section="forfeiture" />
         </div>
 
-        {/* Declaration on Existing Policies */}
+        {/* 6. Declaration on Existing Policies */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Declaration on Existing Policy(ies)</h2>
           <div className="space-y-4 text-xs max-w-4xl">
@@ -277,25 +344,7 @@ export default function ApplicationDetailLifeAccident({
           <EditButton section="declaration" />
         </div>
 
-        {/* Additional Benefit */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Additional Benefit</h2>
-          <div className="space-y-4 text-xs max-w-4xl text-slate-500 leading-relaxed">
-            <h3 className="font-semibold text-slate-700 uppercase">LIFELINE RESCUE'S EMERGENCY QUICK RESPONSE PROGRAM (EQRP)</h3>
-            <p>
-              Lifeline RESCUE is the acknowledge leader in emergency ambulance service...
-            </p>
-            <div className="flex items-center justify-center pt-2">
-              <label className="flex items-center space-x-2 text-slate-700 font-medium">
-                <input type="checkbox" className="w-3.5 h-3.5 border-gray-300 rounded" disabled={editingSection !== 'benefit'} />
-                <span>Protect my whole household for 1 year (Php 700.00) <span className="text-slate-400 font-normal">- For clients within Metro Manila Only</span></span>
-              </label>
-            </div>
-          </div>
-          <EditButton section="benefit" />
-        </div>
-
-        {/* Payor Information */}
+        {/* 7. Payor Information */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Payor Information</h2>
           <div className="space-y-4 text-xs max-w-4xl">

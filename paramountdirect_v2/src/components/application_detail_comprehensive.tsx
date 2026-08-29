@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface Props {
   applicationId: string;
@@ -31,16 +31,17 @@ export default function ApplicationDetailComprehensive({
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusOptions = ['For Verification', 'For Evaluation', 'Paid', 'Issued'];
 
+  // Notification Prompt State
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
+
   // Edit Mode Tracking
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
   // Date Tracking
   const [birthdate, setBirthdate] = useState('1994-01-08');
-
-  // PH Geo Mock State
-  const [region, setRegion] = useState('NCR');
-  const [city, setCity] = useState('Makati City');
-  const [barangay, setBarangay] = useState('San Lorenzo');
 
   // Calculate Age dynamically
   const calculateAge = (dobString: string) => {
@@ -56,7 +57,43 @@ export default function ApplicationDetailComprehensive({
 
   const toggleEdit = (section: string) => setEditingSection(editingSection === section ? null : section);
 
-  // Helper for dynamic input styling based on edit state
+  // Immediate Status Update & Notification Trigger Handler
+  const handleSelectStatus = (newStatus: string) => {
+    setStatus(newStatus);
+    setIsStatusMenuOpen(false);
+
+    const simulateError = false; // Toggle to true to test issuance error prompt
+
+    if (newStatus === 'Issued') {
+      if (simulateError) {
+        setNotification({
+          type: 'error',
+          message: 'There is an error upon issuance of application.'
+        });
+        return;
+      }
+
+      setSavedStatus('Issued');
+      onUpdateStatus('Issued');
+      setNotification({
+        type: 'success',
+        message: 'The application has been successfully issued and transmitted to iPeak'
+      });
+    } else {
+      setSavedStatus(newStatus);
+      onUpdateStatus(newStatus);
+      setNotification({
+        type: 'info',
+        message: `The application is updated to ${newStatus}`
+      });
+    }
+
+    // Auto-dismiss banner after 5 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
+
   const getInputProps = (section: string, defaultValue: string, placeholder?: string) => ({
     defaultValue,
     placeholder,
@@ -90,6 +127,27 @@ export default function ApplicationDetailComprehensive({
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800">
       
+      {/* Top Dynamic Status Notification Prompt Banner */}
+      {notification && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold shadow-md animate-fadeIn ${
+          notification.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
+            : notification.type === 'error'
+            ? 'bg-rose-50 border-rose-300 text-rose-800'
+            : 'bg-blue-50 border-blue-300 text-blue-800'
+        }`}>
+          <div className="flex items-center space-x-2.5">
+            {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+            {notification.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
+            {notification.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="cursor-pointer p-1 rounded-lg hover:bg-black/5">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div className="flex items-center space-x-4">
@@ -112,48 +170,46 @@ export default function ApplicationDetailComprehensive({
           </div>
         </div>
 
-        {/* Status Actions */}
-        <div className="flex items-center space-x-3">
-          {status !== savedStatus && savedStatus !== 'Issued' && (
-            <button 
-              onClick={() => {
-                setSavedStatus(status);
-                onUpdateStatus(status);
-              }} 
-              className="flex items-center space-x-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-sm cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" /><span>Save & Continue</span>
-            </button>
-          )}
+        {/* Current Status Dropdown */}
+        <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Current Status:</span>
+          
+          {savedStatus === 'Issued' ? (
+            <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700">
+              <span>Issued</span>
+              <Lock className="w-3.5 h-3.5" />
+            </span>
+          ) : (
+            <div className="relative">
+              <button 
+                onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)} 
+                className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer transition-all"
+              >
+                <span>{status}</span>
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              </button>
 
-          <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-            <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Current Status:</span>
-            
-            {savedStatus === 'Issued' ? (
-              <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700">
-                <span>Issued</span>
-                <Lock className="w-3.5 h-3.5" />
-              </span>
-            ) : (
-              <div className="relative">
-                <button onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)} className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer">
-                  <span>{status}</span><ChevronDown className="w-4 h-4 text-slate-500" />
-                </button>
-                {isStatusMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1">
-                    <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1">
-                      Update Status To:
-                    </div>
-                    {statusOptions.map((opt) => (
-                      <button key={opt} onClick={() => { setStatus(opt); setIsStatusMenuOpen(false); }} className={`w-full text-left px-4 py-2 text-xs font-bold ${status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50'}`}>
-                        {opt}
-                      </button>
-                    ))}
+              {isStatusMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1">
+                  <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1">
+                    Update Status To:
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  {statusOptions.map((opt) => (
+                    <button 
+                      key={opt} 
+                      onClick={() => handleSelectStatus(opt)} 
+                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
+                        status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt}</span>
+                      {status === opt && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -198,7 +254,7 @@ export default function ApplicationDetailComprehensive({
           <EditButton section="personal" />
         </div>
         
-        {/* Employment Information (Comprehensive Specific) */}
+        {/* Employment Information */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Employment Information</h2>
           <div className="space-y-4 text-xs max-w-4xl">
@@ -256,7 +312,7 @@ export default function ApplicationDetailComprehensive({
           <EditButton section="forfeiture" />
         </div>
 
-        {/* Benefits Table (Static) */}
+        {/* Benefits Table */}
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Benefits Included</h2>
           <div className="border border-slate-200 rounded overflow-hidden text-xs max-w-2xl">

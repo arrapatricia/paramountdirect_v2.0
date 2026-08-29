@@ -3,6 +3,7 @@ import {
   LayoutDashboard, 
   Search, 
   ClipboardCheck, 
+  CreditCard,
   Wrench, 
   FileText, 
   ChevronDown, 
@@ -42,6 +43,7 @@ export default function Sidebar({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'inquiry', label: 'Application Inquiry', icon: Search },
     { id: 'screening', label: 'Application Screening', icon: ClipboardCheck },
+    { id: 'payments', label: 'Payment Transactions', icon: CreditCard },
   ];
 
   const maintenanceSubItems = [

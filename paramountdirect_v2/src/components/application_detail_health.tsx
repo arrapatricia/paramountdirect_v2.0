@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface Props {
   applicationId: string;
@@ -16,7 +16,6 @@ export default function ApplicationDetailHealth({
   onUpdateStatus, 
   onBack 
 }: Props) {
-  // Map Plan Code to Product Name
   const productNames: Record<string, string> = {
     'HCP': 'HealthCare Cash Plan',
     'HIP': 'Hospital Income Benefit Plan',
@@ -25,19 +24,20 @@ export default function ApplicationDetailHealth({
   };
   const productName = productNames[planCode] || 'Health Plan';
 
-  // Status Tracking
   const [status, setStatus] = useState(initialStatus);
   const [savedStatus, setSavedStatus] = useState(initialStatus);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusOptions = ['For Verification', 'For Evaluation', 'Paid', 'Issued'];
 
-  // Edit Mode Tracking
-  const [editingSection, setEditingSection] = useState<string | null>(null);
+  // Notification Banner State
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
-  // Date and Age Tracking
+  const [editingSection, setEditingSection] = useState<string | null>(null);
   const [birthdate, setBirthdate] = useState('2007-02-01');
 
-  // Philippine Geo Tracking
   const [region, setRegion] = useState('NCR');
   const [city, setCity] = useState('Pasay City');
   const [barangay, setBarangay] = useState('Barangay 101');
@@ -46,7 +46,6 @@ export default function ApplicationDetailHealth({
   const phCities = ['Pasay City', 'Makati City', 'Manila City', 'Quezon City'];
   const phBarangays = ['Barangay 101', 'Barangay 102', 'Barangay 103'];
 
-  // Calculate Age dynamically
   const calculateAge = (dobString: string) => {
     if (!dobString) return '--';
     const dob = new Date(dobString);
@@ -60,11 +59,44 @@ export default function ApplicationDetailHealth({
   };
 
   const toggleEdit = (section: string) => {
-    if (editingSection === section) {
-      setEditingSection(null);
+    setEditingSection(editingSection === section ? null : section);
+  };
+
+  // Immediate Status Update & Banner Trigger Handler
+  const handleSelectStatus = (newStatus: string) => {
+    setStatus(newStatus);
+    setIsStatusMenuOpen(false);
+
+    const simulateError = false; // Toggle to true to test error banner
+
+    if (newStatus === 'Issued') {
+      if (simulateError) {
+        setNotification({
+          type: 'error',
+          message: 'There is an error upon issuance of application.'
+        });
+        return;
+      }
+
+      setSavedStatus('Issued');
+      onUpdateStatus('Issued');
+      setNotification({
+        type: 'success',
+        message: 'The application has been successfully issued and transmitted to iPeak'
+      });
     } else {
-      setEditingSection(section);
+      setSavedStatus(newStatus);
+      onUpdateStatus(newStatus);
+      setNotification({
+        type: 'info',
+        message: `The application is updated to ${newStatus}`
+      });
     }
+
+    // Auto-dismiss banner after 5 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
   };
 
   const getInputProps = (section: string, defaultValue: string, placeholder?: string) => {
@@ -110,7 +142,28 @@ export default function ApplicationDetailHealth({
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800">
       
-      {/* Top Navigation & Status Actions */}
+      {/* Top Banner Alert Prompt */}
+      {notification && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold shadow-md animate-fadeIn ${
+          notification.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
+            : notification.type === 'error'
+            ? 'bg-rose-50 border-rose-300 text-rose-800'
+            : 'bg-blue-50 border-blue-300 text-blue-800'
+        }`}>
+          <div className="flex items-center space-x-2.5">
+            {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+            {notification.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
+            {notification.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="cursor-pointer p-1 rounded-lg hover:bg-black/5">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div className="flex items-center space-x-4">
           <button 
@@ -136,66 +189,46 @@ export default function ApplicationDetailHealth({
           </div>
         </div>
 
-        {/* Update Status Workflow */}
-        <div className="flex items-center space-x-3">
+        {/* Current Status Dropdown */}
+        <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Current Status:</span>
           
-          {/* Save & Continue Button - Appears only if status changed and not issued */}
-          {status !== savedStatus && savedStatus !== 'Issued' && (
-            <button
-              onClick={() => {
-                setSavedStatus(status);
-                onUpdateStatus(status);
-              }}
-              className="flex items-center space-x-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-sm animate-fadeIn cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Save & Continue</span>
-            </button>
-          )}
+          {savedStatus === 'Issued' ? (
+            <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700">
+              <span>Issued</span>
+              <Lock className="w-3.5 h-3.5" />
+            </span>
+          ) : (
+            <div className="relative">
+              <button 
+                onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer transition-all"
+              >
+                <span>{status}</span>
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              </button>
 
-          <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-            <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Current Status:</span>
-            
-            {savedStatus === 'Issued' ? (
-              <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700">
-                <span>Issued</span>
-                <Lock className="w-3.5 h-3.5" />
-              </span>
-            ) : (
-              <div className="relative">
-                <button 
-                  onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-                  className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer transition-all"
-                >
-                  <span>{status}</span>
-                  <ChevronDown className="w-4 h-4 text-slate-500" />
-                </button>
-
-                {isStatusMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1">
-                    <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1">
-                      Update Status To:
-                    </div>
-                    {statusOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => {
-                          setStatus(opt);
-                          setIsStatusMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                          status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{opt}</span>
-                        {status === opt && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      </button>
-                    ))}
+              {isStatusMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1">
+                  <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1">
+                    Update Status To:
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  {statusOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => handleSelectStatus(opt)}
+                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
+                        status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt}</span>
+                      {status === opt && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -260,7 +293,6 @@ export default function ApplicationDetailHealth({
               </div>
             </div>
 
-            {/* Birthdate & Auto-Age Field */}
             <div className="flex items-center">
               <label className="w-40 font-semibold text-slate-700">Birthdate</label>
               <div className="flex-1 flex items-center space-x-4">
@@ -305,7 +337,6 @@ export default function ApplicationDetailHealth({
         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Contact Information</h2>
           <div className="space-y-4 text-xs max-w-4xl">
-            
             <div className="flex items-start">
               <label className="w-40 font-semibold text-slate-700 mt-2">Address</label>
               <div className="flex-1 space-y-3">
@@ -315,7 +346,6 @@ export default function ApplicationDetailHealth({
                   <input type="text" {...getInputProps('contact', '', 'Building Name (Optional)')} />
                 </div>
                 
-                {/* PH Geo Address Selectors */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <select 
                     value={barangay} 
@@ -343,16 +373,6 @@ export default function ApplicationDetailHealth({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <input type="text" {...getInputProps('contact', '1300')} placeholder="Zip Code" />
                 </div>
-                <div className="flex flex-col space-y-2 mt-2">
-                  <label className="flex items-center space-x-2 text-slate-700">
-                    <input type="radio" checked={!editingSection} onChange={() => {}} disabled={editingSection !== 'contact'} className="w-3.5 h-3.5 accent-[#008cb4]" />
-                    <span>Mail to this address</span>
-                  </label>
-                  <label className="flex items-center space-x-2 text-slate-700">
-                    <input type="radio" disabled={editingSection !== 'contact'} className="w-3.5 h-3.5 accent-[#008cb4]" />
-                    <span>Mail to a different address</span>
-                  </label>
-                </div>
               </div>
             </div>
 
@@ -378,116 +398,6 @@ export default function ApplicationDetailHealth({
             </div>
           </div>
           <EditButton section="contact" />
-        </div>
-
-        {/* 4. Persons to be Insured */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Persons to be Insured</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            
-            <div className="flex items-center text-slate-500 font-semibold">
-              <div className="w-40"></div>
-              <div className="flex-1 px-1">Full Name</div>
-              <div className="w-48 px-1">Birthdate</div>
-            </div>
-
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700">Spouse</label>
-              <div className="flex-1 px-1">
-                <input type="text" {...getInputProps('insured', '', 'Full Name')} />
-              </div>
-              <div className="w-48 px-1">
-                <input type="date" {...getInputProps('insured', '', 'mm/dd/yyyy')} className={getInputProps('insured', '').className.replace('w-full', 'w-full')} />
-              </div>
-            </div>
-
-            <div className="flex items-center relative">
-              <label className="w-40 font-semibold text-slate-700">Child</label>
-              <div className="flex-1 px-1">
-                <input type="text" {...getInputProps('insured', 'PARAMOUNT LIFE & GENERAL INSURANCE CORP')} />
-              </div>
-              <div className="w-48 px-1 flex items-center relative">
-                <input type="date" {...getInputProps('insured', '2026-05-05')} />
-                <button className={`absolute -right-6 text-gray-400 hover:text-red-500 cursor-pointer ${editingSection === 'insured' ? 'block' : 'hidden'}`}>
-                  <X className="w-4 h-4 bg-gray-300 text-white rounded-sm" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center pt-2">
-              <div className="w-40"></div>
-              <div className="flex-1 pr-6">
-                <button 
-                  disabled={editingSection !== 'insured'}
-                  className={`w-full font-bold py-2 rounded flex items-center justify-center space-x-1 transition-colors ${
-                    editingSection === 'insured' ? 'bg-gray-200 hover:bg-gray-300 text-slate-700 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <Plus className="w-4 h-4 font-bold" />
-                  <span>ADD CHILD</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <EditButton section="insured" />
-        </div>
-
-        {/* 5. Additional Benefit */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Additional Benefit</h2>
-          <div className="space-y-4 text-xs max-w-4xl text-slate-500 leading-relaxed">
-            <h3 className="font-semibold text-slate-700 uppercase">LIFELINE RESCUE'S EMERGENCY QUICK RESPONSE PROGRAM (EQRP)</h3>
-            <p>
-              Lifeline RESCUE is the acknowledge leader in emergency ambulance service, with its team of paramedics and nurses extensively trained by US RESCUE 911. And if you want your whole household, your family and your house help-including your guests and visitors to be covered by Lifeline Rescue's EQRP ambulance service, simply pay P700 and your membership will be valid for one (1) year. <a href="#" className="text-[#008cb4] hover:underline">Learn more about our Lifeline Rescue's Emergency Quick Responce Program (EQRP).</a>
-            </p>
-            
-            <div className="flex items-center justify-center pt-2">
-              <label className="flex items-center space-x-2 text-slate-700 font-medium">
-                <input type="checkbox" className="w-3.5 h-3.5 border-gray-300 rounded" disabled={editingSection !== 'benefit'} />
-                <span>Protect my whole household for 1 year (Php 700.00) <span className="text-slate-400 font-normal">- For clients within Metro Manila Only</span></span>
-              </label>
-            </div>
-          </div>
-          <EditButton section="benefit" />
-        </div>
-
-        {/* 6. Payor Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Payor Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            
-            <div className="flex items-center mb-4">
-              <div className="w-40"></div>
-              <label className="flex items-center space-x-2 text-slate-700 font-medium">
-                <input type="checkbox" defaultChecked disabled={editingSection !== 'payor'} className="w-3.5 h-3.5 accent-[#008cb4] rounded" />
-                <span>Is Payor the same with the Insured?</span>
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700">Name</label>
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" {...getInputProps('payor', 'Paramount')} />
-                <input type="text" {...getInputProps('payor', 'Life & General Insurance')} />
-                <input type="text" {...getInputProps('payor', 'Corp')} />
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700">Contact Number</label>
-              <div className="w-48">
-                <input type="text" {...getInputProps('payor', '09123213123')} />
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700">Email Address</label>
-              <div className="w-72">
-                <input type="text" {...getInputProps('payor', 'jeoffrey.balaga@paramount.com.ph')} />
-              </div>
-            </div>
-          </div>
-          <EditButton section="payor" />
         </div>
 
       </div>
