@@ -10,6 +10,8 @@ import ApplicationDetailLifeAccident from './components/application_detail_lifea
 import ApplicationDetailComprehensive from './components/application_detail_comprehensive';
 import PaymentTransactions from './components/payment_transactions';
 import Maintenance from './components/maintenance';
+import UserManagement from './components/user_management';
+import RoleAccessMaintenance from './components/role_access_maintenance';
 import logoImg from './assets/logo.png';
 
 export interface ScreeningItem {
@@ -54,7 +56,7 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeSubTab, setActiveSubTab] = useState('branch');
+  const [activeSubTab, setActiveSubTab] = useState('users');
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -154,12 +156,18 @@ export default function App() {
         {/* Payment Transactions & Ledger */}
         {activeTab === 'payments' && <PaymentTransactions />}
 
-        {/* Maintenance / Admin Configurations */}
+        {/* Maintenance Sub-module Views */}
         {activeTab === 'maintenance' && (
-          <Maintenance 
-            activeSubTab={activeSubTab} 
-            setActiveSubTab={setActiveSubTab} 
-          />
+          activeSubTab === 'users' ? (
+            <UserManagement />
+          ) : activeSubTab === 'roles' ? (
+            <RoleAccessMaintenance />
+          ) : (
+            <Maintenance 
+              activeSubTab={activeSubTab} 
+              setActiveSubTab={setActiveSubTab} 
+            />
+          )
         )}
 
         {/* Application Screening */}

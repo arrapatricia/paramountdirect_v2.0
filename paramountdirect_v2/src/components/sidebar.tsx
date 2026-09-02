@@ -12,7 +12,9 @@ import {
   LogOut, 
   Building2, 
   Globe, 
-  BarChart3 
+  BarChart3,
+  Users,
+  FolderTree
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -47,6 +49,8 @@ export default function Sidebar({
   ];
 
   const maintenanceSubItems = [
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'roles', label: 'Role Access Matrix', icon: FolderTree },
     { id: 'branch', label: 'Branch Directory', icon: Building2 },
     { id: 'marketing', label: 'Marketing Dashboard', icon: BarChart3 },
     { id: 'cms', label: 'CMS (Website Content)', icon: Globe },
@@ -157,6 +161,7 @@ export default function Sidebar({
               {isMaintenanceOpen && !isCollapsed && (
                 <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3">
                   {maintenanceSubItems.map((sub) => {
+                    const SubIcon = sub.icon;
                     const isSubActive = activeTab === 'maintenance' && activeSubTab === sub.id;
 
                     return (
@@ -167,13 +172,14 @@ export default function Sidebar({
                           if (setActiveSubTab) setActiveSubTab(sub.id);
                           if (onClose) onClose();
                         }}
-                        className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors block truncate cursor-pointer ${
+                        className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
                           isSubActive 
                             ? 'text-[#d0112b] bg-red-50 font-bold' 
                             : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        {sub.label}
+                        <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
+                        <span className="truncate">{sub.label}</span>
                       </button>
                     );
                   })}
