@@ -43,7 +43,13 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
   ];
   const plan = plans[i % plans.length];
   const day = 27 - (i % 5);
-  
+  const screeners = ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'];
+  // Offset by the plan cycle count so screeners rotate across every plan type
+  // instead of each plan permanently pinning to one screener (plans.length is
+  // a multiple of screeners.length, so `i % screeners.length` alone would be
+  // fully determined by `i % plans.length`).
+  const screenerIndex = (i + Math.floor(i / plans.length)) % screeners.length;
+
   return {
     id: `3920${(i + 1).toString().padStart(2, '0')}`,
     payor: ['Christian Bukid', 'Eleonora Sunga', 'Karlo Bautista', 'Lorena Tanguan', 'Juan Dela Cruz'][i % 5],
@@ -53,7 +59,7 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
     source: ['Google', 'Email Newsletter', 'Pd Site', 'Facebook'][i % 4],
     dateReceived: `08/${day.toString().padStart(2, '0')}/2026 at 12:${i.toString().padStart(2, '0')} PM`,
     dateScreened: i % 2 === 0 ? '08/28/2026' : '-',
-    screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+    screenedBy: screeners[screenerIndex],
     status: i < 25 ? 'Received' : (i < 35 ? 'For Verification' : 'Issued')
   };
 });
