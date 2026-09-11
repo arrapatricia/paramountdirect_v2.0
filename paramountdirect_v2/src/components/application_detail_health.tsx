@@ -42,6 +42,9 @@ export default function ApplicationDetailHealth({
   const [city, setCity] = useState('Pasay City');
   const [barangay, setBarangay] = useState('Barangay 101');
 
+  const [insuredOption, setInsuredOption] = useState<'Individual' | 'Married Couple' | 'Family'>('Individual');
+  const [isPayorSameAsInsured, setIsPayorSameAsInsured] = useState(true);
+
   const phRegions = ['NCR', 'Region III', 'Region IV-A'];
   const phCities = ['Pasay City', 'Makati City', 'Manila City', 'Quezon City'];
   const phBarangays = ['Barangay 101', 'Barangay 102', 'Barangay 103'];
@@ -250,10 +253,25 @@ export default function ApplicationDetailHealth({
             <div className="hidden md:block"></div>
             
             <div className="flex items-center">
+              <label className="w-40 font-semibold text-slate-700">Insured Option</label>
+              <select
+                value={insuredOption}
+                onChange={(e) => setInsuredOption(e.target.value as typeof insuredOption)}
+                {...getSelectProps('general')}
+              >
+                <option>Individual</option>
+                <option>Married Couple</option>
+                <option>Family</option>
+              </select>
+            </div>
+            <div className="hidden md:block"></div>
+
+            <div className="flex items-center">
               <label className="w-40 font-semibold text-slate-700">Plan</label>
               <select {...getSelectProps('general')}>
-                <option>Plan 500 - Family</option>
-                <option>Plan 1000 - Family</option>
+                <option>Plan 500 - {insuredOption}</option>
+                <option>Plan 1000 - {insuredOption}</option>
+                <option>Plan 2000 - {insuredOption}</option>
               </select>
             </div>
             <div className="hidden md:block"></div>
@@ -398,6 +416,95 @@ export default function ApplicationDetailHealth({
             </div>
           </div>
           <EditButton section="contact" />
+        </div>
+
+        {/* 4. Other Information: Persons to be Insured (Married Couple / Family only) */}
+        {insuredOption !== 'Individual' && (
+          <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Persons to be Insured</h2>
+            <div className="space-y-4 text-xs max-w-5xl">
+              {insuredOption === 'Family' && (
+                <div className="flex items-center space-x-4 mb-2">
+                  <label className="font-semibold text-slate-700">Do you have a legal spouse that you want to include in the coverage?</label>
+                  <select {...getSelectProps('otherInfo')} className={`${getSelectProps('otherInfo').className} max-w-[100px]`}>
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </div>
+              )}
+              <div className="flex items-center text-slate-500 font-semibold">
+                <div className="flex-1 px-1">Full Name</div><div className="w-48 px-1">Birthdate</div><div className="w-48 px-1">Relationship</div>
+              </div>
+              <div className="flex items-center">
+                <div className="flex-1 px-1"><input type="text" {...getInputProps('otherInfo', '')} placeholder="Full Name" /></div>
+                <div className="w-48 px-1"><input type="date" {...getInputProps('otherInfo', '')} /></div>
+                <div className="w-48 px-1">
+                  <select {...getSelectProps('otherInfo')}>
+                    <option>Spouse</option>
+                    <option>Child</option>
+                  </select>
+                </div>
+              </div>
+              {insuredOption === 'Family' && (
+                <div className="pt-2">
+                  <button disabled={editingSection !== 'otherInfo'} className={`w-full font-bold py-2 rounded flex items-center justify-center space-x-1 transition-colors ${editingSection === 'otherInfo' ? 'bg-gray-200 hover:bg-gray-300 text-slate-700 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                    <Plus className="w-4 h-4" /><span>ADD CHILD</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            <EditButton section="otherInfo" />
+          </div>
+        )}
+
+        {/* 5. Payor Information */}
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Payor Information</h2>
+          <div className="space-y-4 text-xs max-w-4xl">
+            <div className="flex items-center mb-4">
+              <div className="w-40"></div>
+              <label className="flex items-center space-x-2 text-slate-700 font-medium">
+                <input
+                  type="checkbox"
+                  checked={isPayorSameAsInsured}
+                  onChange={(e) => setIsPayorSameAsInsured(e.target.checked)}
+                  disabled={editingSection !== 'payor'}
+                  className="w-3.5 h-3.5 accent-[#008cb4] rounded"
+                />
+                <span>Is Payor the same with the Insured?</span>
+              </label>
+            </div>
+            {!isPayorSameAsInsured && (
+              <>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Name</label>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" {...getInputProps('payor', '', 'First Name')} />
+                    <input type="text" {...getInputProps('payor', '', 'Middle Name (Optional)')} />
+                    <input type="text" {...getInputProps('payor', '', 'Last Name')} />
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Contact Number</label>
+                  <div className="w-48"><input type="text" {...getInputProps('payor', '')} /></div>
+                </div>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Email Address</label>
+                  <div className="w-72"><input type="text" {...getInputProps('payor', '')} /></div>
+                </div>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Relationship</label>
+                  <select {...getSelectProps('payor')} className={`${getSelectProps('payor').className} max-w-xs`}>
+                    <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
+                    <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
+                    <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
+                    <option>Nephew</option><option>Niece</option><option>Other</option>
+                    <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+          <EditButton section="payor" />
         </div>
 
       </div>

@@ -43,6 +43,9 @@ export default function ApplicationDetailComprehensive({
   // Date Tracking
   const [birthdate, setBirthdate] = useState('1994-01-08');
 
+  const [hasOtherLifeInsurance, setHasOtherLifeInsurance] = useState(false);
+  const [isPayorSameAsInsured, setIsPayorSameAsInsured] = useState(true);
+
   // Calculate Age dynamically
   const calculateAge = (dobString: string) => {
     if (!dobString) return '--';
@@ -262,7 +265,13 @@ export default function ApplicationDetailComprehensive({
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">Specific duties</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Teacher')} /></div></div>
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">Office address</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Sta. Ana Manila')} /></div></div>
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">Zipcode</label><div className="w-48"><input type="text" {...getInputProps('employment', '1009')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">Office Tel. No.</label><div className="w-48"><input type="text" {...getInputProps('employment', '(000) 000-0000')} /></div></div>
+            <div className="flex items-center">
+              <label className="w-40 font-semibold text-slate-700">Office Tel. No.</label>
+              <div className="flex items-center space-x-2">
+                <input type="text" {...getInputProps('employment', '000')} placeholder="Area Code" className={`${getInputProps('employment','').className} w-20`} />
+                <input type="text" {...getInputProps('employment', '0000000')} placeholder="Phone number" className={`${getInputProps('employment','').className} w-32`} />
+              </div>
+            </div>
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">Source of Funds</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Salary')} /></div></div>
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">TIN</label><div className="w-48"><input type="text" {...getInputProps('employment', '125447555844799929')} /></div></div>
             <div className="flex items-center"><label className="w-40 font-semibold text-slate-700">GSIS / SSS</label><div className="w-48"><input type="text" {...getInputProps('employment', '484948982')} /></div></div>
@@ -281,7 +290,11 @@ export default function ApplicationDetailComprehensive({
               <div className="flex-1 px-1"><input type="text" {...getInputProps('beneficiaries', 'TEST TORIBIO')} /></div>
               <div className="w-48 px-1">
                 <select {...getSelectProps('beneficiaries')}>
-                  <option>Child</option><option>Spouse</option><option>Parent</option>
+                  <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
+                  <option>Cousin</option><option>Granddaughter</option><option>Grandparent</option>
+                  <option>Grandson</option><option>In-Law</option><option>Nephew</option>
+                  <option>Niece</option><option>Parent</option><option>Sibling</option>
+                  <option>Spouse</option><option>Uncle</option>
                 </select>
               </div>
               <div className="w-48 px-1"><input type="date" {...getInputProps('beneficiaries', '')} /></div>
@@ -303,13 +316,42 @@ export default function ApplicationDetailComprehensive({
             <p className="text-slate-600 font-medium mb-2">If premium is unpaid on expiry of grace period, apply cash value, if any, to effect:</p>
             <select {...getSelectProps('forfeiture')} className={`${getSelectProps('forfeiture').className} max-w-xs`}>
               <option>Paid-up Insurance</option>
-              <option>Extended Term Insurance</option>
-              <option>Premium Loan</option>
               <option>Automatic Payment of Premium</option>
               <option>Cash Surrender</option>
             </select>
           </div>
           <EditButton section="forfeiture" />
+        </div>
+
+        {/* Declaration on Existing Policies */}
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Declaration on Existing Policy(ies)</h2>
+          <div className="space-y-4 text-xs max-w-4xl">
+            <div className="flex items-center space-x-4">
+              <label className="font-semibold text-slate-700">Do you have other life insurance policies inforce with other insurance companies?</label>
+              <select
+                value={hasOtherLifeInsurance ? 'Yes' : 'No'}
+                onChange={(e) => setHasOtherLifeInsurance(e.target.value === 'Yes')}
+                {...getSelectProps('declaration')}
+                className={`${getSelectProps('declaration').className} max-w-[100px]`}
+              >
+                <option>No</option><option>Yes</option>
+              </select>
+            </div>
+            {hasOtherLifeInsurance && (
+              <div className="flex items-start">
+                <label className="w-40 font-semibold text-slate-700 mt-2">If yes, please provide details</label>
+                <div className="flex-1">
+                  <textarea
+                    {...getInputProps('declaration', '')}
+                    rows={2}
+                    className={getInputProps('declaration', '').className}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <EditButton section="declaration" />
         </div>
 
         {/* Benefits Table */}
@@ -321,6 +363,57 @@ export default function ApplicationDetailComprehensive({
             <div className="flex border-b border-slate-200 bg-slate-50"><div className="flex-1 p-3 font-semibold text-slate-700">Accidental Death Benefit</div><div className="w-40 p-3 text-right font-bold">100,000.00</div></div>
             <div className="flex"><div className="flex-1 p-3 font-semibold text-slate-700">Waiver of Premium</div><div className="w-40 p-3 text-right font-bold">Yes</div></div>
           </div>
+        </div>
+
+        {/* Payor Information */}
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Payor Information</h2>
+          <div className="space-y-4 text-xs max-w-4xl">
+            <div className="flex items-center mb-4">
+              <div className="w-40"></div>
+              <label className="flex items-center space-x-2 text-slate-700 font-medium">
+                <input
+                  type="checkbox"
+                  checked={isPayorSameAsInsured}
+                  onChange={(e) => setIsPayorSameAsInsured(e.target.checked)}
+                  disabled={editingSection !== 'payor'}
+                  className="w-3.5 h-3.5 accent-[#008cb4] rounded"
+                />
+                <span>Is Payor the same with the Insured?</span>
+              </label>
+            </div>
+            {!isPayorSameAsInsured && (
+              <>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Name</label>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" {...getInputProps('payor', '', 'First Name')} />
+                    <input type="text" {...getInputProps('payor', '', 'Middle Name (Optional)')} />
+                    <input type="text" {...getInputProps('payor', '', 'Last Name')} />
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Contact Number</label>
+                  <div className="w-48"><input type="text" {...getInputProps('payor', '')} /></div>
+                </div>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Email Address</label>
+                  <div className="w-72"><input type="text" {...getInputProps('payor', '')} /></div>
+                </div>
+                <div className="flex items-center">
+                  <label className="w-40 font-semibold text-slate-700">Relationship</label>
+                  <select {...getSelectProps('payor')} className={`${getSelectProps('payor').className} max-w-xs`}>
+                    <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
+                    <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
+                    <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
+                    <option>Nephew</option><option>Niece</option><option>Other</option>
+                    <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+          <EditButton section="payor" />
         </div>
 
       </div>
