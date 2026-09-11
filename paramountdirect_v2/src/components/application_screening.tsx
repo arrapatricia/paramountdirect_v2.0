@@ -5,12 +5,13 @@ import type { ScreeningItem } from '../App';
 interface Props {
   data: ScreeningItem[];
   onSelectApplication?: (id: string, planCode: string) => void;
+  currentUser?: string;
 }
 
-const CURRENT_LOGGED_USER = 'Oliver Rodrigo';
 const ITEMS_PER_PAGE = 20;
 
-export default function ApplicationScreening({ data, onSelectApplication }: Props) {
+export default function ApplicationScreening({ data, onSelectApplication, currentUser = 'Juan Dela Cruz' }: Props) {
+  const CURRENT_LOGGED_USER = currentUser;
   // Component State
   const [activeTab, setActiveTab] = useState<string>('Received');
   const [searchTerm, setSearchTerm] = useState('');

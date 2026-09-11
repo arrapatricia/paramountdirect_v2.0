@@ -27,6 +27,8 @@ interface SidebarProps {
   onLogout: () => void;
   isOpen?: boolean;
   onClose?: () => void;
+  currentUserName?: string;
+  currentUserEmail?: string;
 }
 
 export default function Sidebar({
@@ -36,8 +38,17 @@ export default function Sidebar({
   setActiveSubTab,
   onLogout,
   isOpen = false,
-  onClose
+  onClose,
+  currentUserName = 'Juan Dela Cruz',
+  currentUserEmail = 'juan.delacruz@paramount.com.ph'
 }: SidebarProps) {
+  const userInitials = currentUserName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0])
+    .join('')
+    .toUpperCase();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
 
@@ -216,13 +227,13 @@ export default function Sidebar({
             ${isCollapsed ? 'p-2 justify-center' : 'p-2.5 space-x-3'}
           `}>
             <div className="w-8 h-8 rounded-xl bg-red-100 text-[#d0112b] font-black flex items-center justify-center text-xs flex-shrink-0">
-              JD
+              {userInitials}
             </div>
 
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-800 truncate">Juan Dela Cruz</p>
-                <p className="text-[10px] text-slate-400 truncate">juan.delacruz@paramount.com.ph</p>
+                <p className="text-xs font-bold text-slate-800 truncate">{currentUserName}</p>
+                <p className="text-[10px] text-slate-400 truncate">{currentUserEmail}</p>
               </div>
             )}
 

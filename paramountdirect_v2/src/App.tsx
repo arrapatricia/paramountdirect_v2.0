@@ -14,6 +14,11 @@ import UserManagement from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
 import logoImg from './assets/logo.png';
 
+const CURRENT_USER = {
+  name: 'Juan Dela Cruz',
+  email: 'juan.delacruz@paramount.com.ph'
+};
+
 export interface ScreeningItem {
   id: string;
   payor: string;
@@ -134,9 +139,11 @@ export default function App() {
         }} 
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
-        onLogout={() => setIsAuthenticated(false)} 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
+        onLogout={() => setIsAuthenticated(false)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        currentUserName={CURRENT_USER.name}
+        currentUserEmail={CURRENT_USER.email}
       />
 
       {/* Primary Main Content View */}
@@ -173,9 +180,10 @@ export default function App() {
         {/* Application Screening */}
         {activeTab === 'screening' && (
           selectedApp ? renderApplicationDetail() : (
-            <ApplicationScreening 
-              data={screeningData} 
-              onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })} 
+            <ApplicationScreening
+              data={screeningData}
+              onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })}
+              currentUser={CURRENT_USER.name}
             />
           )
         )}
