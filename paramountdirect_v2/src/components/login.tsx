@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Sun, Moon, AlertCircle } from 'lucide-react';
 import ForgotPassword from './forgot_password';
+import { login as apiLogin, ApiError } from '../api/client';
 
 // Import light and dark logos
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
@@ -20,27 +21,27 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setIsSubmitting(true);
 
-    if (email !== 'admin@paramount.com.ph' && email !== 'noaccess@paramount.com.ph') {
-      setErrorMessage('Error: Invalid username or account does not exist.');
-      return;
+    try {
+      // Authenticates against the FastAPI backend (POST /api/auth/login).
+      // On success the JWT is stored by the API client.
+      await apiLogin(email, password);
+      onLoginSuccess();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErrorMessage(`Error: ${err.message}`);
+      } else {
+        setErrorMessage('Error: Unable to reach the server. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (email === 'noaccess@paramount.com.ph') {
-      setErrorMessage('Error: Access denied. Your account lacks system authorization.');
-      return;
-    }
-
-    if (password !== 'admin123') {
-      setErrorMessage('Error: Incorrect password. Please try again.');
-      return;
-    }
-
-    onLoginSuccess();
   };
 
   // Render Forgot Password component when triggered
@@ -130,7 +131,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
                     ? 'bg-slate-800/80 border border-slate-700 text-white placeholder-gray-500 focus:bg-slate-800'
                     : 'bg-slate-50 border border-slate-200 text-gray-900 placeholder-gray-400 focus:bg-white'
                 }`}
-                placeholder="admin@paramount.com.ph"
+                placeholder="admin@paramountdirect.example.com"
               />
             </div>
           </div>
@@ -182,9 +183,10 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
 
           <button
             type="submit"
-            className="w-full py-3 px-4 rounded-2xl font-semibold text-sm text-white bg-[#d0112b] hover:bg-[#b00e24] focus:outline-none focus:ring-2 focus:ring-[#d0112b] focus:ring-offset-2 shadow-lg shadow-[#d0112b]/30 cursor-pointer transition-all"
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 rounded-2xl font-semibold text-sm text-white bg-[#d0112b] hover:bg-[#b00e24] focus:outline-none focus:ring-2 focus:ring-[#d0112b] focus:ring-offset-2 shadow-lg shadow-[#d0112b]/30 cursor-pointer transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Sign In
+            {isSubmitting ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
       </div>
