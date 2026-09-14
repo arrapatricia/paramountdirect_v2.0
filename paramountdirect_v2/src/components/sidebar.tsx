@@ -153,9 +153,10 @@ export default function Sidebar({
                         !isBuilt
                           ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-dashed border-slate-200'
                           : isActive
-                          ? 'bg-[#d0112b] text-white shadow-sm cursor-pointer'
+                          ? 'text-white shadow-sm cursor-pointer'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer'
                       }`}
+                      style={isBuilt && isActive ? { backgroundColor: product === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
                     >
                       {product === 'OFW' && <Plane className="w-3 h-3 flex-shrink-0" />}
                       <span className="truncate">{product}</span>
@@ -190,11 +191,12 @@ export default function Sidebar({
                   className={`
                     w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
                     ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
-                    ${isActive 
-                      ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20' 
+                    ${isActive
+                      ? 'text-white shadow-md'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }
                   `}
+                  style={isActive ? { backgroundColor: activeProduct === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
                 >
                   <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                   {!isCollapsed && <span className="truncate">{item.label}</span>}

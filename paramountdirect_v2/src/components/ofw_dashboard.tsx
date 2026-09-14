@@ -27,12 +27,12 @@ const YTD_ISSUED = { y2025: 1520, y2026: 1790 };
 // Type of Package, as asked on the actual application form.
 const COVERAGE_TYPE_BY_YEAR: Record<string, { label: string; count: number; color: string }[]> = {
   '2026': [
-    { label: 'Land-based', count: 1720, color: '#d0112b' },
-    { label: 'Sea-based', count: 430, color: '#008cb4' },
+    { label: 'Land-based', count: 1720, color: '#002f6c' },
+    { label: 'Sea-based', count: 430, color: '#49b1ea' },
   ],
   '2025': [
-    { label: 'Land-based', count: 1590, color: '#d0112b' },
-    { label: 'Sea-based', count: 250, color: '#008cb4' },
+    { label: 'Land-based', count: 1590, color: '#002f6c' },
+    { label: 'Sea-based', count: 250, color: '#49b1ea' },
   ],
 };
 
@@ -120,7 +120,7 @@ export default function OfwDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Total Premium Collected (YTD)</h3>
-          <p className="text-xl font-black text-[#d0112b]">{usd(premiumYtd2026)}</p>
+          <p className="text-xl font-black text-[#002f6c]">{usd(premiumYtd2026)}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{premiumYoyPct.toFixed(1)}%</span>
@@ -135,7 +135,7 @@ export default function OfwDashboard() {
             <span className="text-xs font-bold text-slate-400">/ {usd(ANNUAL_TARGET)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-3">
-            <div className="h-full rounded-full bg-[#d0112b]" style={{ width: `${attainmentPct}%` }} />
+            <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${attainmentPct}%` }} />
           </div>
           <p className="text-[10px] font-bold text-slate-400 mt-2">{attainmentPct}% of target attained &middot; 8.5 of 12 months in</p>
         </div>
@@ -190,7 +190,7 @@ export default function OfwDashboard() {
                     <button
                       key={year}
                       onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#d0112b]"
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#002f6c]"
                     >
                       {year}
                     </button>
@@ -233,8 +233,8 @@ export default function OfwDashboard() {
             </div>
             <div className="flex items-center space-x-4 text-[10px] font-bold text-slate-500">
               <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-slate-300" /><span>2025</span></span>
-              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#d0112b]" /><span>2026</span></span>
-              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#d0112b] opacity-40" /><span>2026 (MTD)</span></span>
+              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c]" /><span>2026</span></span>
+              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] opacity-40" /><span>2026 (MTD)</span></span>
             </div>
           </div>
 
@@ -249,7 +249,7 @@ export default function OfwDashboard() {
                   />
                   {m.y2026 !== null && (
                     <div
-                      className={`w-full max-w-[10px] rounded-t bg-[#d0112b] ${i === CURRENT_MONTH_INDEX ? 'opacity-40' : ''}`}
+                      className={`w-full max-w-[10px] rounded-t bg-[#002f6c] ${i === CURRENT_MONTH_INDEX ? 'opacity-40' : ''}`}
                       style={{ height: `${(m.y2026 / maxMonthly) * 100}%` }}
                       title={`2026: ${usd(m.y2026)}${i === CURRENT_MONTH_INDEX ? ' (month-to-date)' : ''}`}
                     />
@@ -286,7 +286,7 @@ export default function OfwDashboard() {
                   <span className="font-black text-slate-900">{e.count.toLocaleString()} <span className="text-slate-400 font-semibold">({((e.count / employmentTotal) * 100).toFixed(0)}%)</span></span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-[#008cb4]" style={{ width: `${(e.count / employmentTotal) * 100}%` }} />
+                  <div className="h-full rounded-full bg-[#49b1ea]" style={{ width: `${(e.count / employmentTotal) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -313,7 +313,7 @@ export default function OfwDashboard() {
                   <span className="font-black text-slate-900">{c.applications.toLocaleString()}</span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-[#d0112b]" style={{ width: `${(c.applications / maxCountryApplications) * 100}%` }} />
+                  <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxCountryApplications) * 100}%` }} />
                 </div>
               </div>
             ))}
