@@ -26,7 +26,7 @@ export type ProductLine = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
 // Only PD Life and OFW have real pages built so far - CTPL and GTP are
 // scaffolded in User Management / Role Access Maintenance but don't have
 // dashboards yet, so their pills are shown but not selectable.
-const BUILT_PRODUCT_LINES: ProductLine[] = ['PD Life', 'OFW', 'CTPL'];
+const BUILT_PRODUCT_LINES: ProductLine[] = ['PD Life', 'OFW', 'CTPL', 'GTP'];
 
 interface SidebarProps {
   activeTab: string;
@@ -80,7 +80,10 @@ export default function Sidebar({
       { id: 'ctpl-dashboard', label: 'CTPL Dashboard', icon: LayoutDashboard },
       { id: 'ctpl-applications', label: 'CTPL Applications', icon: ClipboardCheck },
     ],
-    'GTP': [],
+    'GTP': [
+      { id: 'gtp-dashboard', label: 'GTP Dashboard', icon: LayoutDashboard },
+      { id: 'gtp-applications', label: 'GTP Applications', icon: ClipboardCheck },
+    ],
   };
   const navItems = navItemsByProduct[activeProduct];
 
@@ -165,6 +168,7 @@ export default function Sidebar({
                     >
                       {product === 'OFW' && <Plane className="w-3 h-3 flex-shrink-0" />}
                       {product === 'CTPL' && <Car className="w-3 h-3 flex-shrink-0" />}
+                      {product === 'GTP' && <Plane className="w-3 h-3 flex-shrink-0 rotate-45" />}
                       <span className="truncate">{product}</span>
                     </button>
                   );

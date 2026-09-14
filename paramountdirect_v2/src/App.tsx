@@ -11,6 +11,10 @@ import CtplDashboard from './components/ctpl_dashboard';
 import CtplApplicationList from './components/ctpl_application_list';
 import CtplCreateApplication from './components/ctpl_create_application';
 import type { CtplApplication } from './components/ctpl_types';
+import GtpDashboard from './components/gtp_dashboard';
+import GtpApplicationList from './components/gtp_application_list';
+import GtpCreateApplication from './components/gtp_create_application';
+import type { GtpApplication } from './components/gtp_types';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -169,6 +173,47 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_
   };
 });
 
+const GTP_MOCK_TRAVELERS = [
+  { firstName: 'Camille', surname: 'Reyes', destinations: ['Japan'], type: 'Individual' as const, plan: 'Single Trip' as const },
+  { firstName: 'Miguel', surname: 'Torres', destinations: ['United States'], type: 'Family' as const, plan: 'Multi-Trip 90' as const },
+  { firstName: 'Angelica', surname: 'Santos', destinations: ['Hong Kong'], type: 'Individual' as const, plan: 'Single Trip' as const },
+  { firstName: 'Paolo', surname: 'Villanueva', destinations: ['South Korea'], type: 'Individual' as const, plan: 'Multi-Trip 180' as const },
+  { firstName: 'Bianca', surname: 'Gomez', destinations: ['France', 'Italy'], type: 'Family' as const, plan: 'Single Trip' as const },
+  { firstName: 'Diego', surname: 'Ramos', destinations: ['Thailand'], type: 'Individual' as const, plan: 'Single Trip' as const },
+];
+
+const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, i) => {
+  const traveler = GTP_MOCK_TRAVELERS[i % GTP_MOCK_TRAVELERS.length];
+  const statuses = ['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
+  const status = statuses[i % statuses.length];
+  const isSchengenDestination = traveler.destinations.some((d) => ['France', 'Italy'].includes(d));
+  const day = 27 - (i % 5);
+  const days = 7 + (i % 3) * 3;
+
+  return {
+    id: `GTP1${(1000 + i).toString()}`,
+    travelType: 'International' as const,
+    destinations: traveler.destinations,
+    departureDate: '10/01/2026',
+    returnDate: `10/${(1 + days).toString().padStart(2, '0')}/2026`,
+    daysOfTravel: days,
+    applicationType: traveler.type,
+    travelerFirstName: traveler.firstName,
+    travelerSurname: traveler.surname,
+    birthdate: '1992-06-15',
+    email: `${traveler.firstName.toLowerCase()}.${traveler.surname.toLowerCase()}@example.com`,
+    mobileNumber: '09171234567',
+    planVariant: traveler.plan,
+    cruiseCoverage: i % 6 === 0,
+    hazardousSportsCoverage: i % 7 === 0,
+    isSchengenDestination,
+    premium: `₱${(days * 55).toFixed(2)}`,
+    dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
+    status,
+    screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+  };
+});
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
@@ -183,6 +228,8 @@ export default function App() {
   const [isCreatingOfwApp, setIsCreatingOfwApp] = useState(false);
   const [ctplApplications, setCtplApplications] = useState<CtplApplication[]>(initialCtplMockData);
   const [isCreatingCtplApp, setIsCreatingCtplApp] = useState(false);
+  const [gtpApplications, setGtpApplications] = useState<GtpApplication[]>(initialGtpMockData);
+  const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -254,6 +301,7 @@ export default function App() {
           setSelectedApp(null); // Resets detail view on menu navigation
           setIsCreatingOfwApp(false);
           setIsCreatingCtplApp(false);
+          setIsCreatingGtpApp(false);
         }}
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
@@ -304,6 +352,25 @@ export default function App() {
             <CtplApplicationList
               data={ctplApplications}
               onCreateNew={() => setIsCreatingCtplApp(true)}
+            />
+          )
+        )}
+
+        {/* GTP Dashboard */}
+        {activeTab === 'gtp-dashboard' && <GtpDashboard />}
+
+        {/* GTP Applications */}
+        {activeTab === 'gtp-applications' && (
+          isCreatingGtpApp ? (
+            <GtpCreateApplication
+              currentUser={CURRENT_USER.name}
+              onBack={() => setIsCreatingGtpApp(false)}
+              onCreate={(app) => setGtpApplications(prev => [app, ...prev])}
+            />
+          ) : (
+            <GtpApplicationList
+              data={gtpApplications}
+              onCreateNew={() => setIsCreatingGtpApp(true)}
             />
           )
         )}
