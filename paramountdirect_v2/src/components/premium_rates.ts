@@ -37,9 +37,10 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   { id: 'pdlife-PHP', product: 'PD Life', key: 'PHP', label: 'PrimeHealth Cash Plan (PHP)', amount: 620, currency: 'PHP', unit: 'flat' },
   { id: 'pdlife-DRE', product: 'PD Life', key: 'DRE', label: 'Dream College Plan (DRE)', amount: 750, currency: 'PHP', unit: 'flat' },
 
-  // OFW - flat premium by coverage type
-  { id: 'ofw-land', product: 'OFW', key: 'Land-based', label: 'Land-based coverage', amount: 42, currency: 'USD', unit: 'flat' },
-  { id: 'ofw-sea', product: 'OFW', key: 'Sea-based', label: 'Sea-based coverage', amount: 58, currency: 'USD', unit: 'flat' },
+  // OFW - flat daily rate over the exact contract duration (per Paramount's
+  // own OFW premium computation sheet: $0.0954/day, e.g. a 268-day contract
+  // comes out to $25.57), same rate regardless of land/sea coverage type.
+  { id: 'ofw-daily-rate', product: 'OFW', key: 'dailyRate', label: 'Daily premium rate (applies to every day of the contract)', amount: 0.0954, currency: 'USD', unit: 'per day' },
 
   // CTPL - flat premium by policy type + vehicle type
   { id: 'ctpl-car', product: 'CTPL', key: 'Private Car|Car', label: 'Private Car - Car', amount: 606, currency: 'PHP', unit: 'flat' },

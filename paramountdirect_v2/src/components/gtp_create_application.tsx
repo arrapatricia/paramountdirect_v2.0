@@ -50,7 +50,6 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   const [planVariant, setPlanVariant] = useState<typeof GTP_PLAN_VARIANTS[number]>('Single Trip');
   const [cruiseCoverage, setCruiseCoverage] = useState(false);
   const [hazardousSportsCoverage, setHazardousSportsCoverage] = useState(false);
-  const [schengenAcknowledged, setSchengenAcknowledged] = useState(false);
 
   const age = calculateAge(birthdate);
   const daysOfTravel = calculateDays(departureDate, returnDate);
@@ -71,8 +70,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   const canSubmit =
     travelerFirstName && travelerSurname && birthdate && email && mobileNumber &&
     departureDate && returnDate && destinations.length > 0 &&
-    !isSeniorApplicant &&
-    (!isSchengenDestination || schengenAcknowledged);
+    !isSeniorApplicant;
 
   const toggleDestination = (country: string) => {
     setDestinations((prev) => prev.includes(country) ? prev.filter((d) => d !== country) : [...prev, country]);
@@ -263,17 +261,13 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
           </div>
 
           {isSchengenDestination && (
-            <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-xs space-y-2 dark:bg-amber-950/30 dark:border-amber-800">
+            <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-xs dark:bg-emerald-950/30 dark:border-emerald-800">
               <div className="flex items-start space-x-2">
-                <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="font-semibold text-amber-800 dark:text-amber-300">
-                  SCHENGEN requires €30,000 or ₱2.5M coverage for medical emergencies. Make sure this application is compliant before proceeding.
+                <ShieldAlert className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5 dark:text-emerald-400" />
+                <p className="font-semibold text-emerald-800 dark:text-emerald-300">
+                  Schengen destination selected — the required €30,000 / ₱2.5M medical emergency coverage is automatically applied to this application. No further action needed.
                 </p>
               </div>
-              <label className="flex items-center space-x-2 pl-6 cursor-pointer">
-                <input type="checkbox" checked={schengenAcknowledged} onChange={(e) => setSchengenAcknowledged(e.target.checked)} className="accent-[#002f6c]" />
-                <span className="font-bold text-amber-800 dark:text-amber-300">Coverage amount confirmed compliant.</span>
-              </label>
             </div>
           )}
         </div>

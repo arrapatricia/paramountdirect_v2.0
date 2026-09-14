@@ -70,7 +70,14 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const allDocsUploaded = documents.passport && documents.visa && documents.employmentContract && documents.medicalCertificate;
   const documentsUploadedCount = [documents.passport, documents.visa, documents.employmentContract, documents.medicalCertificate].filter(Boolean).length;
 
-  const premiumValue = getPremiumRate(rates, 'OFW', coverageType, coverageType === 'Sea-based' ? 58 : 42);
+  // Real rate card is a flat daily rate over the contract's exact duration
+  // (verified against Paramount's own OFW premium computation sheet), not a
+  // flat amount per coverage type.
+  const contractDays = contractStart && contractEnd
+    ? Math.max(0, Math.round((new Date(contractEnd).getTime() - new Date(contractStart).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const dailyRate = getPremiumRate(rates, 'OFW', 'dailyRate', 0.0954);
+  const premiumValue = Number((contractDays * dailyRate).toFixed(2));
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<OfwApplication | null>(null);

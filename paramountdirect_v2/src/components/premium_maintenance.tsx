@@ -11,7 +11,7 @@ const PRODUCTS: PremiumProduct[] = ['PD Life', 'OFW', 'CTPL', 'GTP'];
 
 const UNIT_LABEL: Record<PremiumRate['unit'], string> = {
   'flat': 'Flat premium',
-  'per day': 'Per day of travel',
+  'per day': 'Per day',
   'add-on': 'Add-on fee',
 };
 
