@@ -15,6 +15,11 @@ import GtpDashboard from './components/gtp_dashboard';
 import GtpApplicationList from './components/gtp_application_list';
 import GtpCreateApplication from './components/gtp_create_application';
 import { GTP_STATUSES, type GtpApplication } from './components/gtp_types';
+import LifeApplicationsOverview from './components/life_applications_overview';
+import LifeFollowupCalls from './components/life_followup_calls';
+import LifeSignedApplications from './components/life_signed_applications';
+import LifeScreenedApplications from './components/life_screened_applications';
+import LifeApplicationStatuses from './components/life_application_statuses';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -323,6 +328,14 @@ export default function App() {
       {/* Primary Main Content View */}
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'dashboard' && <Dashboard />}
+
+        {/* Life Statistics */}
+        {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" />}
+        {activeTab === 'life-daily' && <LifeApplicationsOverview period="Daily" />}
+        {activeTab === 'life-followup-calls' && <LifeFollowupCalls />}
+        {activeTab === 'life-signed' && <LifeSignedApplications />}
+        {activeTab === 'life-screened' && <LifeScreenedApplications />}
+        {activeTab === 'life-application-statuses' && <LifeApplicationStatuses />}
 
         {/* OFW Dashboard */}
         {activeTab === 'ofw-dashboard' && <OfwDashboard />}
