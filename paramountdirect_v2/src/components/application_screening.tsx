@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, CheckSquare, Square, X, CheckCircle2, XCircle, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react';
+import { Search, CheckSquare, Square, X, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 
 interface Props {
@@ -109,6 +109,21 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
       case 'Paid': return 'bg-indigo-100 text-indigo-800 border-indigo-300';
       case 'Issued': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
       default: return 'bg-slate-100 text-slate-700 border-slate-300';
+    }
+  };
+
+  // Every application is now transmitted to iPeak regardless of status, so
+  // the old "Transmitted to iPeak" column no longer carries information -
+  // tint the row by status instead, using the same color family as the
+  // Status badge so the queue is scannable at a glance.
+  const getRowTintStyle = (status: string) => {
+    switch (status) {
+      case 'Received': return 'bg-[#d0112b]/[0.03] hover:bg-[#d0112b]/[0.06]';
+      case 'For Verification': return 'bg-amber-50/60 hover:bg-amber-50';
+      case 'For Evaluation': return 'bg-purple-50/60 hover:bg-purple-50';
+      case 'Paid': return 'bg-indigo-50/60 hover:bg-indigo-50';
+      case 'Issued': return 'bg-emerald-50/60 hover:bg-emerald-50';
+      default: return 'hover:bg-slate-50';
     }
   };
 
@@ -272,7 +287,6 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                 <th className="py-3 px-2">Date Received</th>
                 <th className="py-3 px-2">Date Screened</th>
                 <th className="py-3 px-2">Screened By</th>
-                <th className="py-3 px-2 text-center">Transmitted to iPeak</th>
                 <th className="py-3 px-2 text-center">Status</th>
                 <th className="py-3 px-2 text-center">Action</th>
               </tr>
@@ -280,7 +294,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
             <tbody className="divide-y divide-slate-200">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-8 text-center text-slate-400 font-bold">
+                  <td colSpan={11} className="py-8 text-center text-slate-400 font-bold">
                     No applications match the current filters.
                   </td>
                 </tr>
@@ -290,7 +304,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                   const isLockedByOther = row.screenedBy !== CURRENT_LOGGED_USER && !isIssued;
 
                   return (
-                    <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={row.id} className={`transition-colors ${getRowTintStyle(row.status)}`}>
                       <td className="py-3.5 px-2">
                         <button onClick={() => handleSelectItem(row.id)} className="cursor-pointer">
                           {selectedItems.includes(row.id) ? (
@@ -317,17 +331,6 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                           {isLockedByOther ? <Lock className="h-3 w-3 text-amber-600" /> : <UserCheck className="h-3.5 w-3.5 text-[#d0112b]" />}
                           <span>{row.screenedBy}</span>
                         </div>
-                      </td>
-                      <td className="py-3.5 px-2 text-center">
-                        {isIssued ? (
-                          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-300">
-                            <CheckCircle2 className="h-3.5 w-3.5" /><span>Yes</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-300">
-                            <XCircle className="h-3.5 w-3.5" /><span>No</span>
-                          </span>
-                        )}
                       </td>
                       <td className="py-3.5 px-2 text-center">
                         <div className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${getStatusBadgeStyle(row.status)}`}>
