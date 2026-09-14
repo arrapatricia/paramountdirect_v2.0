@@ -170,10 +170,13 @@ function PdLifeCategoryForm({
   const [awareOfImpairment, setAwareOfImpairment] = useState(false);
   const [medicalDetails, setMedicalDetails] = useState('');
 
-  const [submitted, setSubmitted] = useState(false);
 
   const age = calculateAge(owner.birthdate);
   const planName = planOptions.find((p) => p.code === planCode)?.name ?? planOptions[0].name;
+  const premiumValue = getPremiumRate(rates, 'PD Life', planCode, 500);
+
+  const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
+  const [submittedApp, setSubmittedApp] = useState<PdLifeApplication | null>(null);
 
   const canSubmit =
     owner.firstName && owner.lastName && owner.birthdate && owner.placeOfBirth &&
@@ -191,12 +194,8 @@ function PdLifeCategoryForm({
   const updateBeneficiary = (idx: number, patch: Partial<Beneficiary>) =>
     setBeneficiaries((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-
+  const buildApplication = (): PdLifeApplication => {
     const fullName = `${owner.firstName} ${owner.lastName}`;
-    const premiumValue = getPremiumRate(rates, 'PD Life', planCode, 500);
 
     const baseDetails = { policyOwner: owner, contact, payor: payorInfo };
     const categoryDetails =
@@ -216,7 +215,7 @@ function PdLifeCategoryForm({
             },
           };
 
-    const newApp: PdLifeApplication = {
+    return {
       id: `3920${Math.floor(10 + Math.random() * 89)}`,
       payor: fullName,
       planCode,
@@ -230,33 +229,82 @@ function PdLifeCategoryForm({
       planCategory: category,
       details: { ...baseDetails, category: categoryDetails } as PdLifeApplication['details'],
     };
-
-    onCreate(newApp);
-    setSubmitted(true);
-    setTimeout(() => onFinish(), 1200);
   };
+
+  const handleReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setStep('review');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleConfirmSubmit = () => {
+    const newApp = buildApplication();
+    onCreate(newApp);
+    setSubmittedApp(newApp);
+    setStep('confirmed');
+  };
+
+  if (step === 'confirmed' && submittedApp) {
+    return (
+      <div className="p-4 md:p-8 max-w-[700px] mx-auto font-sans text-slate-800 dark:text-slate-200">
+        <div className={`${cardClass} text-center py-12`}>
+          <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+          <h1 className="text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white">Application Submitted</h1>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2">
+            {submittedApp.payor}'s {category} application has been added to the screening queue.
+          </p>
+          <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
+            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
+            <span>Plan <span className="font-black text-slate-900 dark:text-white">{submittedApp.planDesc} ({submittedApp.planCode})</span></span>
+            <span>Premium <span className="font-black text-[#d0112b]">{submittedApp.premium}</span></span>
+          </div>
+          <div className="mt-8">
+            <button onClick={onFinish} className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
+              Back to Screening
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1000px] mx-auto font-sans text-slate-800 dark:text-slate-200">
-      {submitted && (
-        <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center space-x-3">
-          <CheckCircle2 className="w-5 h-5 text-white" />
-          <span>Application submitted and added to the screening queue.</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center space-x-4 border-b border-slate-200 pb-4 dark:border-slate-800">
-        <button onClick={onBackToCategories} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+        <button onClick={step === 'review' ? () => setStep('form') : onBackToCategories} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-xl font-black uppercase tracking-wider text-[#d0112b] font-['Montserrat']">New {category} Application</h1>
-          <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-500">Based on the {category} application forms at paramountdirectdev.herokuapp.com</p>
+        <div className="flex-1">
+          <h1 className="text-xl font-black uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
+            {step === 'review' ? 'Review Application' : `New ${category} Application`}
+          </h1>
+          <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-500">
+            {step === 'review' ? 'Check the details below before submitting.' : `Based on the ${category} application forms at paramountdirectdev.herokuapp.com`}
+          </p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">Estimated Premium</p>
+          <p className="text-xl font-black text-[#d0112b]">₱{premiumValue.toFixed(2)}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 pb-10">
+      {step === 'review' ? (
+        <PdLifeReviewSummary
+          category={category}
+          planCode={planCode}
+          planName={planName}
+          premiumValue={premiumValue}
+          source={source}
+          owner={owner}
+          contact={contact}
+          payorInfo={payorInfo}
+          onEdit={() => setStep('form')}
+          onConfirm={handleConfirmSubmit}
+        />
+      ) : (
+      <form onSubmit={handleReview} className="space-y-6 pb-10">
         {/* Campaign Source */}
         <div className={cardClass}>
           <h2 className={sectionHeadingClass}>How did you learn about Paramount Life &amp; General Insurance Corp.?</h2>
@@ -570,10 +618,96 @@ function PdLifeCategoryForm({
             disabled={!canSubmit}
             className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            Submit Application
+            Review Application
           </button>
         </div>
       </form>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Read-only summary shown before the application is actually created - lets
+// the user double-check everything (including the premium) instead of the
+// form silently submitting straight to the queue.
+// ---------------------------------------------------------------------------
+
+function PdLifeReviewSummary({
+  category, planCode, planName, premiumValue, source, owner, contact, payorInfo, onEdit, onConfirm,
+}: {
+  category: PdLifePlanCategory;
+  planCode: string;
+  planName: string;
+  premiumValue: number;
+  source: string;
+  owner: PolicyOwnerInfo;
+  contact: ContactInfo;
+  payorInfo: PayorInfo;
+  onEdit: () => void;
+  onConfirm: () => void;
+}) {
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+      <span className="text-slate-500 dark:text-slate-400 font-semibold">{label}</span>
+      <span className="text-slate-900 dark:text-white font-bold text-right">{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 pb-10">
+      <div className={cardClass}>
+        <h2 className={sectionHeadingClass}>Plan &amp; Source</h2>
+        <div className="text-xs">
+          {row('Plan Category', category)}
+          {row('Plan', `${planName} (${planCode})`)}
+          {row('Referral Source', source)}
+          {row('Estimated Premium', <span className="text-[#d0112b]">₱{premiumValue.toFixed(2)}</span>)}
+        </div>
+      </div>
+
+      <div className={cardClass}>
+        <h2 className={sectionHeadingClass}>Policy Owner</h2>
+        <div className="text-xs">
+          {row('Name', `${owner.title} ${owner.firstName} ${owner.middleName} ${owner.lastName}`.replace(/\s+/g, ' ').trim())}
+          {row('Gender', owner.gender)}
+          {row('Birthdate', owner.birthdate || '-')}
+          {row('Place of Birth', owner.placeOfBirth || '-')}
+          {row('Nationality', owner.nationality)}
+        </div>
+      </div>
+
+      <div className={cardClass}>
+        <h2 className={sectionHeadingClass}>Contact Information</h2>
+        <div className="text-xs">
+          {row('Address', [contact.houseNumber, contact.street, contact.building].filter(Boolean).join(', ') || '-')}
+          {row('City / Region', `${contact.city}, ${contact.region}`)}
+          {row('Mobile Number', contact.mobileNumber || '-')}
+          {row('Email', contact.email || '-')}
+        </div>
+      </div>
+
+      <div className={cardClass}>
+        <h2 className={sectionHeadingClass}>Payor</h2>
+        <div className="text-xs">
+          {payorInfo.sameAsInsured
+            ? row('Payor', 'Same as Insured')
+            : (<>
+                {row('Name', payorInfo.name || '-')}
+                {row('Contact Number', payorInfo.contactNumber || '-')}
+                {row('Relationship to Insured', payorInfo.relationship)}
+              </>)}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-3 pt-2">
+        <button type="button" onClick={onEdit} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+          Back to Edit
+        </button>
+        <button type="button" onClick={onConfirm} className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
+          Confirm &amp; Submit
+        </button>
+      </div>
     </div>
   );
 }
