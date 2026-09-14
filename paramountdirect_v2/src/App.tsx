@@ -22,6 +22,8 @@ import LifeScreenedApplications from './components/life_screened_applications';
 import LifeApplicationStatuses from './components/life_application_statuses';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
+import PdLifeCreateApplication from './components/pdlife_create_application';
+import type { PdLifeApplication } from './components/pdlife_types';
 import ApplicationDetailHealth from './components/application_detail_health';
 import ApplicationDetailLifeAccident from './components/application_detail_lifeaccident';
 import ApplicationDetailComprehensive from './components/application_detail_comprehensive';
@@ -241,6 +243,7 @@ export default function App() {
   const [isCreatingCtplApp, setIsCreatingCtplApp] = useState(false);
   const [gtpApplications, setGtpApplications] = useState<GtpApplication[]>(initialGtpMockData);
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
+  const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -313,6 +316,7 @@ export default function App() {
           setIsCreatingOfwApp(false);
           setIsCreatingCtplApp(false);
           setIsCreatingGtpApp(false);
+          setIsCreatingPdLifeApp(false);
         }}
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
@@ -425,11 +429,18 @@ export default function App() {
 
         {/* Application Screening */}
         {activeTab === 'screening' && (
-          selectedApp ? renderApplicationDetail() : (
+          selectedApp ? renderApplicationDetail() : isCreatingPdLifeApp ? (
+            <PdLifeCreateApplication
+              currentUser={CURRENT_USER.name}
+              onBack={() => setIsCreatingPdLifeApp(false)}
+              onCreate={(app: PdLifeApplication) => setScreeningData(prev => [app, ...prev])}
+            />
+          ) : (
             <ApplicationScreening
               data={screeningData}
               onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })}
               currentUser={CURRENT_USER.name}
+              onCreateNew={() => setIsCreatingPdLifeApp(true)}
             />
           )
         )}

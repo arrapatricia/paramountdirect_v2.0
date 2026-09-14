@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { Search, CheckSquare, Square, X, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react';
+import { Search, CheckSquare, Square, X, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck, UserPlus } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 
 interface Props {
   data: ScreeningItem[];
   onSelectApplication?: (id: string, planCode: string) => void;
   currentUser?: string;
+  onCreateNew?: () => void;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-export default function ApplicationScreening({ data, onSelectApplication, currentUser = 'Juan Dela Cruz' }: Props) {
+export default function ApplicationScreening({ data, onSelectApplication, currentUser = 'Juan Dela Cruz', onCreateNew }: Props) {
   const CURRENT_LOGGED_USER = currentUser;
   // Component State
   const [activeTab, setActiveTab] = useState<string>('Received');
@@ -132,13 +133,23 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
     <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100">
 
       {/* Updated Header with Matching Sidebar Icon */}
-      <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
+      <div className="flex flex-wrap justify-between items-center gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
         <div className="flex items-center space-x-2.5">
           <ClipboardCheck className="h-6 w-6 text-[#d0112b]" />
           <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
             APPLICATION SCREENING
           </h1>
         </div>
+
+        {onCreateNew && (
+          <button
+            onClick={onCreateNew}
+            className="flex items-center space-x-2 bg-[#d0112b] hover:bg-[#a80d22] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>New Application</span>
+          </button>
+        )}
       </div>
 
       {accessWarning && (
