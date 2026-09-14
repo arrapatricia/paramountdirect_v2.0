@@ -73,6 +73,7 @@ export default function Sidebar({
     ],
     'OFW': [
       { id: 'ofw-dashboard', label: 'OFW Dashboard', icon: LayoutDashboard },
+      { id: 'ofw-applications', label: 'OFW Applications', icon: ClipboardCheck },
     ],
     'CTPL': [],
     'GTP': [],

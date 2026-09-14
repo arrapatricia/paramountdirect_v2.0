@@ -4,6 +4,9 @@ import Login from './components/login';
 import Sidebar, { type ProductLine } from './components/sidebar';
 import Dashboard from './components/dashboard';
 import OfwDashboard from './components/ofw_dashboard';
+import OfwApplicationList from './components/ofw_application_list';
+import OfwCreateApplication from './components/ofw_create_application';
+import type { OfwApplication } from './components/ofw_types';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -65,6 +68,63 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
   };
 });
 
+const OFW_MOCK_APPLICANTS = [
+  { firstName: 'Rosalinda', lastName: 'Gomez', occupation: 'Household/Domestic Worker', coverage: 'Land-based' as const, country: 'Saudi Arabia' },
+  { firstName: 'Marlon', lastName: 'Reyes', occupation: 'Construction Worker', coverage: 'Land-based' as const, country: 'United Arab Emirates' },
+  { firstName: 'Cristina', lastName: 'Villanueva', occupation: 'Service Worker', coverage: 'Land-based' as const, country: 'Qatar' },
+  { firstName: 'Bayani', lastName: 'Ramos', occupation: 'Seafarers', coverage: 'Sea-based' as const, country: 'Hong Kong' },
+  { firstName: 'Precious', lastName: 'Manalo', occupation: 'Medical Professional', coverage: 'Land-based' as const, country: 'Singapore' },
+  { firstName: 'Domingo', lastName: 'Cruz', occupation: 'Maritime Professional', coverage: 'Sea-based' as const, country: 'Kuwait' },
+  { firstName: 'Jocelyn', lastName: 'Ferrer', occupation: 'Household/Domestic Worker', coverage: 'Land-based' as const, country: 'Ukraine' },
+  { firstName: 'Ramil', lastName: 'Torres', occupation: 'Factory Worker', coverage: 'Land-based' as const, country: 'Israel' },
+];
+
+const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, i) => {
+  const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
+  const statuses = ['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
+  const status = statuses[i % statuses.length];
+  const isConflictZone = ['Ukraine', 'Israel', 'Yemen', 'Syria'].includes(applicant.country);
+  const day = 27 - (i % 5);
+
+  return {
+    id: `OFW1${(1000 + i).toString()}`,
+    lastName: applicant.lastName,
+    firstName: applicant.firstName,
+    middleName: 'Santos',
+    gender: (i % 2 === 0 ? 'Male' : 'Female') as 'Male' | 'Female',
+    civilStatus: 'Single' as const,
+    birthdate: '1990-05-15',
+    placeOfBirth: 'Manila',
+    phAddress: '123 Rizal Street',
+    phCity: 'Manila City',
+    phone: '09171234567',
+    email: `${applicant.firstName.toLowerCase()}.${applicant.lastName.toLowerCase()}@example.com`,
+    referralSource: ['Facebook', 'Google', 'Paramount Website', 'POEA/POLO', 'Referral'][i % 5],
+    natureOfEmployment: (i % 3 === 0 ? 'Balik-Manggagawa' : 'Direct-hired') as 'Direct-hired' | 'Balik-Manggagawa',
+    coverageType: applicant.coverage,
+    occupation: applicant.occupation,
+    passportNumber: `P${1000000 + i}`,
+    salaryAmount: 500 + i * 25,
+    salaryCurrency: 'USD' as const,
+    employerName: `${applicant.country} Manpower Services`,
+    employerCountry: applicant.country,
+    contractStart: '2026-01-01',
+    contractEnd: '2028-01-01',
+    insuranceStart: '2026-01-01',
+    isConflictZone,
+    documents: {
+      passport: i % 4 !== 0 ? 'Uploaded' as const : 'Missing' as const,
+      visa: i % 5 !== 0 ? 'Uploaded' as const : 'Missing' as const,
+      employmentContract: 'Uploaded' as const,
+      medicalCertificate: i % 3 !== 0 ? 'Uploaded' as const : 'Missing' as const,
+    },
+    premium: applicant.coverage === 'Sea-based' ? '$58.00' : '$42.00',
+    dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
+    status,
+    screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+  };
+});
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
@@ -75,6 +135,8 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [screeningData, setScreeningData] = useState<ScreeningItem[]>(initialMockData);
+  const [ofwApplications, setOfwApplications] = useState<OfwApplication[]>(initialOfwMockData);
+  const [isCreatingOfwApp, setIsCreatingOfwApp] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -141,10 +203,11 @@ export default function App() {
       {/* Main Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
-        setActiveTab={(tab) => { 
-          setActiveTab(tab); 
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
           setSelectedApp(null); // Resets detail view on menu navigation
-        }} 
+          setIsCreatingOfwApp(false);
+        }}
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
         onLogout={() => setIsAuthenticated(false)}
@@ -162,6 +225,22 @@ export default function App() {
 
         {/* OFW Dashboard */}
         {activeTab === 'ofw-dashboard' && <OfwDashboard />}
+
+        {/* OFW Applications */}
+        {activeTab === 'ofw-applications' && (
+          isCreatingOfwApp ? (
+            <OfwCreateApplication
+              currentUser={CURRENT_USER.name}
+              onBack={() => setIsCreatingOfwApp(false)}
+              onCreate={(app) => setOfwApplications(prev => [app, ...prev])}
+            />
+          ) : (
+            <OfwApplicationList
+              data={ofwApplications}
+              onCreateNew={() => setIsCreatingOfwApp(true)}
+            />
+          )
+        )}
 
         {/* Application Inquiry */}
         {activeTab === 'inquiry' && (
