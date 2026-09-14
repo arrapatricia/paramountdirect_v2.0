@@ -149,8 +149,10 @@ export default function Sidebar({
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         
-        {/* Header & Logo */}
-        <div>
+        {/* Header & Logo + Navigation - scrolls independently so tall menus
+            (Statistics + Maintenance both expanded) don't get clipped on
+            short screens; the user section below stays pinned. */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5">
           <div className="flex items-center justify-between h-12 mb-6">
             <div className="flex items-center space-x-2 overflow-hidden">
               <img 
@@ -394,7 +396,7 @@ export default function Sidebar({
         </div>
 
         {/* Bottom User Section */}
-        <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
+        <div className="flex-shrink-0 border-t border-slate-100 pt-4 dark:border-slate-800">
           <div className={`
             flex items-center rounded-2xl bg-slate-50 border border-slate-100 transition-all dark:bg-slate-800/60 dark:border-slate-700
             ${isCollapsed ? 'p-2 justify-center' : 'p-2.5 space-x-3'}
