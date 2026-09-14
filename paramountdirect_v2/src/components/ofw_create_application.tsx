@@ -31,8 +31,8 @@ const PREMIUM_BY_COVERAGE: Record<'Land-based' | 'Sea-based', number> = {
   'Sea-based': 58,
 };
 
-const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent';
-const labelClass = 'text-xs font-bold text-slate-700 block mb-1';
+const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:bg-slate-800 dark:border-slate-700 dark:text-white';
+const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
 
 export default function OfwCreateApplication({ onCreate, onBack, currentUser }: Props) {
   const [referralSource, setReferralSource] = useState('Facebook');
@@ -120,10 +120,10 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
     <div>
       <label className={labelClass}>{label}</label>
       <label className={`flex items-center space-x-2 px-3 py-2.5 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
-        documents[docKey] ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:border-[#49b1ea]'
+        documents[docKey] ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30' : 'border-slate-200 bg-slate-50 hover:border-[#49b1ea] dark:border-slate-700 dark:bg-slate-800'
       }`}>
-        {documents[docKey] ? <FileCheck2 className="w-4 h-4 text-emerald-600 flex-shrink-0" /> : <UploadCloud className="w-4 h-4 text-slate-400 flex-shrink-0" />}
-        <span className={`text-xs font-semibold truncate ${documents[docKey] ? 'text-emerald-700' : 'text-slate-500'}`}>
+        {documents[docKey] ? <FileCheck2 className="w-4 h-4 text-emerald-600 flex-shrink-0 dark:text-emerald-400" /> : <UploadCloud className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+        <span className={`text-xs font-semibold truncate ${documents[docKey] ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'}`}>
           {documents[docKey]?.name || 'Choose file (PDF, JPEG, PNG, GIF)'}
         </span>
         <input type="file" accept=".pdf,.jpeg,.jpg,.png,.gif" className="hidden" onChange={handleFileChange(docKey)} />
@@ -132,7 +132,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
   );
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1000px] mx-auto font-sans text-slate-800">
+    <div className="p-4 md:p-8 space-y-6 max-w-[1000px] mx-auto font-sans text-slate-800 dark:text-slate-200">
 
       {submitted && (
         <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center space-x-3">
@@ -142,36 +142,36 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
       )}
 
       {/* Header */}
-      <div className="flex items-center space-x-4 border-b border-slate-200 pb-4">
-        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors">
+      <div className="flex items-center space-x-4 border-b border-slate-200 pb-4 dark:border-slate-800">
+        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
           <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] font-['Montserrat']">
             NEW OFW APPLICATION
           </h1>
-          <p className="text-xs font-bold text-slate-500 mt-1">Based on the OFW Compulsory Insurance form at ofwinsurance.ph</p>
+          <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-500">Based on the OFW Compulsory Insurance form at ofwinsurance.ph</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 pb-10">
 
         {/* Referral */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">How did you learn about Paramount Life &amp; General Insurance Corp.?</h2>
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">How did you learn about Paramount Life &amp; General Insurance Corp.?</h2>
           <div className="flex flex-wrap gap-3 text-xs">
             {['Facebook', 'Google', 'Paramount Website', 'POEA/POLO', 'Referral', 'Others'].map((src) => (
-              <label key={src} className={`flex items-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer ${referralSource === src ? 'border-[#49b1ea] bg-[#ebf3fc]' : 'border-slate-200 bg-slate-50'}`}>
+              <label key={src} className={`flex items-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer ${referralSource === src ? 'border-[#49b1ea] bg-[#ebf3fc] dark:bg-[#49b1ea]/10' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'}`}>
                 <input type="radio" name="referral" checked={referralSource === src} onChange={() => setReferralSource(src)} className="accent-[#002f6c]" />
-                <span className="font-semibold text-slate-700">{src}</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{src}</span>
               </label>
             ))}
           </div>
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Personal Information</h2>
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">Personal Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div><label className={labelClass}>Last Name</label><input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>First Name</label><input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} /></div>
@@ -189,7 +189,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
               <label className={labelClass}>Gender</label>
               <div className="flex space-x-3 pt-2">
                 {(['Male', 'Female'] as const).map((g) => (
-                  <label key={g} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700">
+                  <label key={g} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <input type="radio" checked={gender === g} onChange={() => setGender(g)} className="accent-[#002f6c]" /><span>{g}</span>
                   </label>
                 ))}
@@ -213,14 +213,14 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
         </div>
 
         {/* Employment Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Employment Information</h2>
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">Employment Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Nature of Employment</label>
               <div className="flex flex-col space-y-1.5 pt-1">
                 {(['Direct-hired', 'Balik-Manggagawa'] as const).map((n) => (
-                  <label key={n} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700">
+                  <label key={n} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <input type="radio" checked={natureOfEmployment === n} onChange={() => setNatureOfEmployment(n)} className="accent-[#002f6c]" /><span>{n}</span>
                   </label>
                 ))}
@@ -230,7 +230,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
               <label className={labelClass}>Type of Package</label>
               <div className="flex flex-col space-y-1.5 pt-1">
                 {(['Land-based', 'Sea-based'] as const).map((t) => (
-                  <label key={t} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700">
+                  <label key={t} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <input type="radio" checked={coverageType === t} onChange={() => setCoverageType(t)} className="accent-[#002f6c]" /><span>{t}</span>
                   </label>
                 ))}
@@ -267,24 +267,24 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
           </div>
 
           {isConflictZone && (
-            <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-xs space-y-2">
+            <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-xs space-y-2 dark:bg-amber-950/30 dark:border-amber-800">
               <div className="flex items-start space-x-2">
-                <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="font-semibold text-amber-800">
+                <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5 dark:text-amber-400" />
+                <p className="font-semibold text-amber-800 dark:text-amber-300">
                   Ang bansang pinili ay kasalukuyang nasa listahan ng mga countries with ongoing conflict. Some benefits may be limited, ngunit mahalaga pa rin sa amin ang iyong proteksyon.
                 </p>
               </div>
               <label className="flex items-center space-x-2 pl-6 cursor-pointer">
                 <input type="checkbox" checked={conflictAcknowledged} onChange={(e) => setConflictAcknowledged(e.target.checked)} className="accent-[#002f6c]" />
-                <span className="font-bold text-amber-800">I understand and would like to proceed.</span>
+                <span className="font-bold text-amber-800 dark:text-amber-300">I understand and would like to proceed.</span>
               </label>
             </div>
           )}
         </div>
 
         {/* Documents */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Required Documents</h2>
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">Required Documents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DocUploadField label="Passport" docKey="passport" />
             <DocUploadField label="Working Visa" docKey="visa" />
@@ -292,12 +292,12 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
             <DocUploadField label="Medical Certificate" docKey="medicalCertificate" />
           </div>
           {!allDocsUploaded && (
-            <p className="text-[10px] font-semibold text-slate-400 mt-3">Documents can be uploaded later during screening if not available now.</p>
+            <p className="text-[10px] font-semibold text-slate-400 mt-3 dark:text-slate-500">Documents can be uploaded later during screening if not available now.</p>
           )}
         </div>
 
-        <div className="flex justify-end space-x-3 pt-2">
-          <button type="button" onClick={onBack} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer">
+        <div className="flex flex-wrap justify-end gap-3 pt-2">
+          <button type="button" onClick={onBack} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
             Cancel
           </button>
           <button

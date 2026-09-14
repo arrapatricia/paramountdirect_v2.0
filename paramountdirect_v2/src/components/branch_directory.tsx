@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  Search, 
-  Plus, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Printer, 
-  Globe, 
-  Edit3, 
-  Trash2, 
-  X, 
-  CheckCircle2, 
+import {
+  Building2,
+  Search,
+  Plus,
+  MapPin,
+  Phone,
+  Mail,
+  Printer,
+  Globe,
+  Edit3,
+  Trash2,
+  X,
+  CheckCircle2,
   Filter,
   ExternalLink
 } from 'lucide-react';
@@ -102,7 +102,7 @@ export default function BranchDirectory() {
   });
 
   const filteredBranches = branches.filter((b) => {
-    const matchesSearch = 
+    const matchesSearch =
       b.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.province.toLowerCase().includes(searchTerm.toLowerCase());
@@ -158,19 +158,19 @@ export default function BranchDirectory() {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900">
-      
+    <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100">
+
       {/* Header Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-red-50 text-[#d0112b] rounded-2xl border border-red-100">
+          <div className="p-2.5 bg-red-50 text-[#d0112b] rounded-2xl border border-red-100 dark:bg-red-950/30 dark:border-red-900">
             <Building2 className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
               BRANCH DIRECTORY
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium dark:text-slate-400">
               Manage physical office locations, regional contact details, and division assignments
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function BranchDirectory() {
 
         <button
           onClick={handleOpenAdd}
-          className="flex items-center space-x-2 bg-[#d0112b] hover:bg-[#b00e24] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-red-200 cursor-pointer"
+          className="flex items-center space-x-2 bg-[#d0112b] hover:bg-[#b00e24] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-red-200 dark:shadow-red-950/40 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Branch</span>
@@ -186,9 +186,9 @@ export default function BranchDirectory() {
       </div>
 
       {/* Filter and View Bar */}
-      <div className="p-4 rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-wrap items-center justify-between gap-4 dark:bg-slate-900 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          
+
           {/* Search Input */}
           <div className="relative">
             <input
@@ -196,18 +196,18 @@ export default function BranchDirectory() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search City, Address, Province..."
-              className="w-64 pl-9 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4]"
+              className="w-64 max-w-full pl-9 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
           </div>
 
           {/* Division Filter */}
           <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase">Division:</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase dark:text-slate-400">Division:</span>
             <select
               value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             >
               <option value="All">All Divisions</option>
               <option value="LIFE">Life</option>
@@ -217,11 +217,11 @@ export default function BranchDirectory() {
 
           {/* Status Filter */}
           <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase">Status:</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase dark:text-slate-400">Status:</span>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             >
               <option value="All">All Status</option>
               <option value="Active">Active</option>
@@ -232,11 +232,11 @@ export default function BranchDirectory() {
         </div>
 
         {/* View Toggle */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
           <button
             onClick={() => setViewMode('grid')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             Grid Cards
@@ -244,7 +244,7 @@ export default function BranchDirectory() {
           <button
             onClick={() => setViewMode('table')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             Table View
@@ -256,39 +256,39 @@ export default function BranchDirectory() {
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBranches.map((branch) => (
-            <div 
-              key={branch.id} 
-              className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between"
+            <div
+              key={branch.id}
+              className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between dark:bg-slate-900 dark:border-slate-800"
             >
               <div>
                 {/* Top Badge & Division */}
                 <div className="flex justify-between items-start mb-4">
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide uppercase ${
-                    branch.division === 'LIFE' 
-                      ? 'bg-red-50 text-[#d0112b] border border-red-100' 
-                      : 'bg-blue-50 text-[#008cb4] border border-blue-100'
+                    branch.division === 'LIFE'
+                      ? 'bg-red-50 text-[#d0112b] border border-red-100 dark:bg-red-950/30 dark:border-red-900'
+                      : 'bg-blue-50 text-[#008cb4] border border-blue-100 dark:bg-blue-950/30 dark:border-blue-900'
                   }`}>
                     {branch.division}
                   </span>
-                  
+
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      branch.status === 'Active' 
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                        : 'bg-slate-100 text-slate-500 border border-slate-200'
+                      branch.status === 'Active'
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
                     }`}>
                       {branch.status}
                     </span>
-                    <button 
+                    <button
                       onClick={() => handleOpenEdit(branch)}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors dark:hover:bg-slate-800 dark:text-slate-500 dark:hover:text-slate-200"
                       title="Edit Branch"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDelete(branch.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors dark:hover:bg-red-950/30 dark:text-slate-500 dark:hover:text-red-400"
                       title="Delete Branch"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -297,26 +297,26 @@ export default function BranchDirectory() {
                 </div>
 
                 {/* Branch Location Title */}
-                <h3 className="text-base font-bold text-slate-900 mb-1">
+                <h3 className="text-base font-bold text-slate-900 mb-1 dark:text-white">
                   {branch.city}
                 </h3>
-                <p className="text-xs text-slate-500 font-semibold mb-4 uppercase tracking-wide">
+                <p className="text-xs text-slate-500 font-semibold mb-4 uppercase tracking-wide dark:text-slate-400">
                   {branch.province} • {branch.region}
                 </p>
 
                 {/* Contact Details List */}
-                <div className="space-y-2.5 text-xs text-slate-600 border-t border-slate-100 pt-4">
+                <div className="space-y-2.5 text-xs text-slate-600 border-t border-slate-100 pt-4 dark:text-slate-400 dark:border-slate-800">
                   <div className="flex items-start space-x-2.5">
-                    <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5 dark:text-slate-500" />
                     <span>{branch.address}, {branch.barangay ? `${branch.barangay}, ` : ''}{branch.zipcode}</span>
                   </div>
                   <div className="flex items-center space-x-2.5">
-                    <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="font-semibold text-slate-800">{branch.telephone} {branch.mobile ? `/ ${branch.mobile}` : ''}</span>
+                    <Phone className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{branch.telephone} {branch.mobile ? `/ ${branch.mobile}` : ''}</span>
                   </div>
                   {branch.email && (
                     <div className="flex items-center space-x-2.5">
-                      <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <Mail className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
                       <span className="text-[#008cb4] font-medium">{branch.email}</span>
                     </div>
                   )}
@@ -324,14 +324,14 @@ export default function BranchDirectory() {
               </div>
 
               {/* Card Footer */}
-              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center text-[11px] text-slate-400 font-medium">
+              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center text-[11px] text-slate-400 font-medium dark:border-slate-800 dark:text-slate-500">
                 <span className="flex items-center space-x-1">
                   <Globe className="w-3.5 h-3.5" />
                   <span>{branch.website}</span>
                 </span>
-                <a 
+                <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(`${branch.address} ${branch.city}`)}`}
-                  target="_blank" 
+                  target="_blank"
                   rel="noreferrer"
                   className="flex items-center space-x-1 text-[#008cb4] hover:underline font-bold"
                 >
@@ -344,10 +344,10 @@ export default function BranchDirectory() {
         </div>
       ) : (
         /* Legacy Table Layout (Modernized) */
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-x-auto">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-x-auto dark:bg-slate-900 dark:border-slate-800">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider">
+              <tr className="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider dark:border-slate-800 dark:text-slate-400">
                 <th className="py-3 px-3">Division</th>
                 <th className="py-3 px-3">Region / Province</th>
                 <th className="py-3 px-3">City / Address</th>
@@ -356,41 +356,41 @@ export default function BranchDirectory() {
                 <th className="py-3 px-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredBranches.map((branch) => (
-                <tr key={branch.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={branch.id} className="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/60">
                   <td className="py-4 px-3 font-bold">
                     <span className={`px-2 py-1 rounded-md text-[10px] ${
-                      branch.division === 'LIFE' ? 'bg-red-50 text-[#d0112b]' : 'bg-blue-50 text-[#008cb4]'
+                      branch.division === 'LIFE' ? 'bg-red-50 text-[#d0112b] dark:bg-red-950/30' : 'bg-blue-50 text-[#008cb4] dark:bg-blue-950/30'
                     }`}>
                       {branch.division}
                     </span>
                   </td>
                   <td className="py-4 px-3">
-                    <p className="font-bold text-slate-800">{branch.region}</p>
-                    <p className="text-slate-400 text-[10px]">{branch.province}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{branch.region}</p>
+                    <p className="text-slate-400 text-[10px] dark:text-slate-500">{branch.province}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <p className="font-bold text-slate-900">{branch.city}</p>
-                    <p className="text-slate-500 max-w-xs truncate">{branch.address}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{branch.city}</p>
+                    <p className="text-slate-500 max-w-xs truncate dark:text-slate-400">{branch.address}</p>
                   </td>
                   <td className="py-4 px-3 space-y-0.5">
-                    <p className="font-semibold text-slate-800">{branch.telephone}</p>
-                    <p className="text-slate-400 text-[10px]">{branch.email || 'No email registered'}</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">{branch.telephone}</p>
+                    <p className="text-slate-400 text-[10px] dark:text-slate-500">{branch.email || 'No email registered'}</p>
                   </td>
                   <td className="py-4 px-3">
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                      branch.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                      branch.status === 'Active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                     }`}>
                       {branch.status}
                     </span>
                   </td>
                   <td className="py-4 px-3 text-center">
                     <div className="flex items-center justify-center space-x-2">
-                      <button onClick={() => handleOpenEdit(branch)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#d0112b] hover:text-white transition-colors">
+                      <button onClick={() => handleOpenEdit(branch)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#d0112b] hover:text-white transition-colors dark:bg-slate-800">
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(branch.id)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white transition-colors">
+                      <button onClick={() => handleDelete(branch.id)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-600 hover:text-white transition-colors dark:bg-slate-800">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -406,32 +406,32 @@ export default function BranchDirectory() {
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onClick={() => setIsDrawerOpen(false)} />
-          
-          <div className="relative w-full max-w-xl bg-white h-full shadow-2xl z-10 flex flex-col justify-between font-sans">
-            
+
+          <div className="relative w-full max-w-xl bg-white h-full shadow-2xl z-10 flex flex-col justify-between font-sans dark:bg-slate-900">
+
             {/* Drawer Header */}
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50 dark:border-slate-800 dark:bg-slate-800/60">
               <div className="flex items-center space-x-2">
                 <Building2 className="w-5 h-5 text-[#d0112b]" />
-                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">
+                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide dark:text-white">
                   {editingBranch ? 'Edit Branch Location' : 'Add New Branch'}
                 </h2>
               </div>
-              <button onClick={() => setIsDrawerOpen(false)} className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200">
+              <button onClick={() => setIsDrawerOpen(false)} className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Form Fields */}
             <form id="branch-form" onSubmit={handleSave} className="p-6 overflow-y-auto flex-1 space-y-4 text-xs">
-              
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Division</label>
-                  <select 
-                    value={formData.division} 
+                  <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Division</label>
+                  <select
+                    value={formData.division}
                     onChange={(e) => setFormData({ ...formData, division: e.target.value as 'LIFE' | 'NON-LIFE' })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   >
                     <option value="LIFE">LIFE</option>
                     <option value="NON-LIFE">NON-LIFE</option>
@@ -439,11 +439,11 @@ export default function BranchDirectory() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Status</label>
-                  <select 
-                    value={formData.status} 
+                  <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Status</label>
+                  <select
+                    value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -452,121 +452,121 @@ export default function BranchDirectory() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Street Address</label>
-                <input 
-                  type="text" 
+                <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Street Address</label>
+                <input
+                  type="text"
                   required
-                  value={formData.address || ''} 
+                  value={formData.address || ''}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Unit No., Building, Street Name"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Region</label>
-                  <input 
-                    type="text" 
+                  <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Region</label>
+                  <input
+                    type="text"
                     required
-                    value={formData.region || ''} 
+                    value={formData.region || ''}
                     onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                     placeholder="e.g. NCR, Region III"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Province</label>
-                  <input 
-                    type="text" 
+                  <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Province</label>
+                  <input
+                    type="text"
                     required
-                    value={formData.province || ''} 
+                    value={formData.province || ''}
                     onChange={(e) => setFormData({ ...formData, province: e.target.value })}
                     placeholder="e.g. Pampanga"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">City / Municipality</label>
-                  <input 
-                    type="text" 
+                  <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">City / Municipality</label>
+                  <input
+                    type="text"
                     required
-                    value={formData.city || ''} 
+                    value={formData.city || ''}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="e.g. Makati City"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Zipcode</label>
-                  <input 
-                    type="text" 
+                  <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Zipcode</label>
+                  <input
+                    type="text"
                     required
-                    value={formData.zipcode || ''} 
+                    value={formData.zipcode || ''}
                     onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
                     placeholder="e.g. 1229"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                   />
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-3">
-                <h4 className="font-bold text-slate-900 mb-2 uppercase text-[10px] tracking-wider text-slate-400">Communication Numbers</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+                <h4 className="font-bold text-slate-900 mb-2 uppercase text-[10px] tracking-wider text-slate-400 dark:text-white dark:text-slate-500">Communication Numbers</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Telephone</label>
-                    <input 
-                      type="text" 
+                    <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Telephone</label>
+                    <input
+                      type="text"
                       required
-                      value={formData.telephone || ''} 
+                      value={formData.telephone || ''}
                       onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                       placeholder="(02) 8000-0000"
-                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Mobile No.</label>
-                    <input 
-                      type="text" 
-                      value={formData.mobile || ''} 
+                    <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Mobile No.</label>
+                    <input
+                      type="text"
+                      value={formData.mobile || ''}
                       onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
                       placeholder="+639170000000"
-                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                      className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Email Address</label>
-                <input 
-                  type="email" 
-                  value={formData.email || ''} 
+                <label className="block font-bold text-slate-700 mb-1 dark:text-slate-300">Email Address</label>
+                <input
+                  type="email"
+                  value={formData.email || ''}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="branch@paramount.com.ph"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-semibold focus:ring-2 focus:ring-[#008cb4] outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                 />
               </div>
 
             </form>
 
             {/* Drawer Actions */}
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end space-x-3">
-              <button 
-                type="button" 
+            <div className="p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end space-x-3 dark:border-slate-800 dark:bg-slate-800/60">
+              <button
+                type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-200 text-xs transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-200 text-xs transition-colors cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 form="branch-form"
-                type="submit" 
+                type="submit"
                 className="px-5 py-2.5 rounded-xl bg-[#008cb4] hover:bg-[#007396] text-white font-bold text-xs transition-colors shadow-sm cursor-pointer flex items-center space-x-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />

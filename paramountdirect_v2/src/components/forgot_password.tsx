@@ -66,7 +66,7 @@ export default function ForgotPassword({ onBackToLogin, darkMode, setDarkMode }:
               <h2 className="text-lg font-black text-[#d0112b] font-['Montserrat'] tracking-tight">
                 Forgot your Password?
               </h2>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Enter your email and we'll send you a link to reset your password
               </p>
             </div>
@@ -104,7 +104,7 @@ export default function ForgotPassword({ onBackToLogin, darkMode, setDarkMode }:
             <div className="text-center pt-2">
               <button
                 onClick={onBackToLogin}
-                className="text-xs font-semibold text-slate-500 hover:text-[#d0112b] inline-flex items-center space-x-1.5 transition-colors cursor-pointer"
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#d0112b] inline-flex items-center space-x-1.5 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back to Login</span>
@@ -124,7 +124,7 @@ export default function ForgotPassword({ onBackToLogin, darkMode, setDarkMode }:
               <h2 className="text-xl font-extrabold text-[#008cb4] tracking-tight">
                 Check your inbox!
               </h2>
-              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto">
                 Follow the instructions sent to your email address to reset your password
               </p>
             </div>

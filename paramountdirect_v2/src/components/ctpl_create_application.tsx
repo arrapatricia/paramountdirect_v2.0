@@ -29,8 +29,8 @@ const DEFAULT_PREMIUM = 606;
 
 const getPremium = (policyType: string, mvType: string) => PREMIUM_TABLE[`${policyType}|${mvType}`] ?? DEFAULT_PREMIUM;
 
-const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent';
-const labelClass = 'text-xs font-bold text-slate-700 block mb-1';
+const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:border-slate-700 dark:bg-slate-800 dark:text-white';
+const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
 
 export default function CtplCreateApplication({ onCreate, onBack, currentUser }: Props) {
   const [renewalType, setRenewalType] = useState<'New (1 Year)' | 'Renewal'>('New (1 Year)');
@@ -88,7 +88,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[900px] mx-auto font-sans text-slate-800">
+    <div className="p-4 md:p-8 space-y-6 max-w-[900px] mx-auto font-sans text-slate-800 dark:text-slate-100">
 
       {submitted && (
         <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center space-x-3">
@@ -98,23 +98,23 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
       )}
 
       {/* Header */}
-      <div className="flex items-center space-x-4 border-b border-slate-200 pb-4">
-        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors">
+      <div className="flex flex-wrap items-center gap-y-2 space-x-4 border-b border-slate-200 pb-4 dark:border-slate-800">
+        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
           <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] font-['Montserrat']">
             NEW CTPL APPLICATION
           </h1>
-          <p className="text-xs font-bold text-slate-500 mt-1">Based on the Compulsory Third Party Liability form at ctpl.ph</p>
+          <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-400">Based on the Compulsory Third Party Liability form at ctpl.ph</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 pb-10">
 
         {/* Choose Your Policy */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Choose Your Policy</h2>
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">Choose Your Policy</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Renewal</label>
@@ -136,15 +136,15 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
               </select>
             </div>
           </div>
-          <div className="mt-4 p-4 rounded-xl bg-[#ebf3fc] flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600 uppercase">Premium</span>
+          <div className="mt-4 p-4 rounded-xl bg-[#ebf3fc] flex items-center justify-between dark:bg-[#49b1ea]/10">
+            <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Premium</span>
             <span className="text-xl font-black text-[#002f6c]">₱ {premium.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Personal Information</h2>
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">Personal Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Client Type</label>
@@ -157,7 +157,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
             <div><label className={labelClass}>Email Address</label><input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Mobile Number</label><input required value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} className={inputClass} placeholder="09XXXXXXXXX" /></div>
 
-            <div className="md:col-span-3 text-xs font-extrabold text-slate-500 uppercase tracking-wide pt-2">Registered Owner's Information</div>
+            <div className="md:col-span-3 text-xs font-extrabold text-slate-500 uppercase tracking-wide pt-2 dark:text-slate-400">Registered Owner's Information</div>
             <div><label className={labelClass}>First Name</label><input required value={ownerFirstName} onChange={(e) => setOwnerFirstName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Middle Name</label><input value={ownerMiddleName} onChange={(e) => setOwnerMiddleName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Surname</label><input required value={ownerSurname} onChange={(e) => setOwnerSurname(e.target.value)} className={inputClass} /></div>
@@ -166,7 +166,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
               <label className={labelClass}>Is the Applicant the same as the Registered Owner?</label>
               <div className="flex space-x-3 pt-1">
                 {[true, false].map((val) => (
-                  <label key={String(val)} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700">
+                  <label key={String(val)} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <input type="radio" checked={sameAsOwner === val} onChange={() => setSameAsOwner(val)} className="accent-[#002f6c]" />
                     <span>{val ? 'Yes' : 'No'}</span>
                   </label>
@@ -184,9 +184,9 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
         </div>
 
         {/* Vehicle Details */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Vehicle Details</h2>
-          <p className="text-[10px] font-semibold text-slate-400 mb-4 flex items-start space-x-1.5">
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800">Vehicle Details</h2>
+          <p className="text-[10px] font-semibold text-slate-400 mb-4 flex items-start space-x-1.5 dark:text-slate-500">
             <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>Vehicle details can be found on the Certificate of Registration. Incorrect details will delay the application.</span>
           </p>
@@ -194,28 +194,28 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
             <div>
               <label className={labelClass}>Plate Number</label>
               <input required value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} className={inputClass} placeholder="ABC 1234" />
-              <p className="text-[10px] text-slate-400 mt-1">6-7 alphanumeric characters</p>
+              <p className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">6-7 alphanumeric characters</p>
             </div>
             <div>
               <label className={labelClass}>MV File Number</label>
               <input required value={mvFileNumber} onChange={(e) => setMvFileNumber(e.target.value)} className={inputClass} placeholder="1301-00001002045" />
-              <p className="text-[10px] text-slate-400 mt-1">15 numeric digits</p>
+              <p className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">15 numeric digits</p>
             </div>
             <div>
               <label className={labelClass}>Serial/Chassis Number</label>
               <input required value={chassisNumber} onChange={(e) => setChassisNumber(e.target.value)} className={inputClass} placeholder="JT4BR38J2R0123456" />
-              <p className="text-[10px] text-slate-400 mt-1">17 alphanumeric characters</p>
+              <p className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">17 alphanumeric characters</p>
             </div>
           </div>
 
           <label className="flex items-center space-x-2 mt-4 cursor-pointer">
             <input type="checkbox" checked={requiresCOV} onChange={(e) => setRequiresCOV(e.target.checked)} className="accent-[#002f6c]" />
-            <span className="text-xs font-semibold text-slate-700">Requires Certificate of Validation (COV) &mdash; adds a ₱60.00 verification fee via DBP-DCI</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱60.00 verification fee via DBP-DCI</span>
           </label>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-2">
-          <button type="button" onClick={onBack} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer">
+        <div className="flex flex-wrap justify-end gap-2 pt-2">
+          <button type="button" onClick={onBack} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
             Cancel
           </button>
           <button

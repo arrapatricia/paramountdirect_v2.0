@@ -23,7 +23,9 @@ import {
   PhoneCall,
   FileSignature,
   Eye,
-  ListChecks
+  ListChecks,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -57,6 +59,8 @@ interface SidebarProps {
   currentUserEmail?: string;
   activeProduct?: ProductLine;
   setActiveProduct?: (product: ProductLine) => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 export default function Sidebar({
@@ -70,7 +74,9 @@ export default function Sidebar({
   currentUserName = 'Juan Dela Cruz',
   currentUserEmail = 'juan.delacruz@paramount.com.ph',
   activeProduct = 'PD Life',
-  setActiveProduct
+  setActiveProduct,
+  darkMode = false,
+  onToggleDarkMode
 }: SidebarProps) {
   const userInitials = currentUserName
     .split(' ')
@@ -137,9 +143,9 @@ export default function Sidebar({
 
       <aside className={`
         fixed lg:static top-0 left-0 h-screen z-50 overflow-hidden
-        bg-white border-r border-slate-200 
+        bg-white border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800
         flex flex-col justify-between p-4 transition-all duration-300 ease-in-out font-sans
-        ${isCollapsed ? 'w-20' : 'w-64'}
+        ${isCollapsed ? 'w-20' : 'w-64 max-w-[80vw]'}
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         
@@ -156,20 +162,33 @@ export default function Sidebar({
               />
             </div>
 
-            {/* Desktop Collapse Toggle */}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:flex p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 cursor-pointer transition-colors flex-shrink-0"
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
+            <div className="hidden lg:flex items-center space-x-1.5 flex-shrink-0">
+              {/* Desktop Dark Mode Toggle */}
+              {onToggleDarkMode && (
+                <button
+                  onClick={onToggleDarkMode}
+                  className="p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 cursor-pointer transition-colors dark:border-slate-700 dark:text-yellow-400 dark:hover:bg-slate-800"
+                  title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                >
+                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+              )}
+
+              {/* Desktop Collapse Toggle */}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 cursor-pointer transition-colors dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Product Line Switcher */}
           {!isCollapsed && (
             <div className="mb-4 px-1">
-              <p className="text-[10px] font-black uppercase text-slate-400 px-2 mb-2 tracking-wider whitespace-nowrap">
+              <p className="text-[10px] font-black uppercase text-slate-400 px-2 mb-2 tracking-wider whitespace-nowrap dark:text-slate-500">
                 Product Line
               </p>
               <div className="grid grid-cols-2 gap-1.5">
@@ -189,10 +208,10 @@ export default function Sidebar({
                       }}
                       className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold transition-all flex items-center justify-center space-x-1 ${
                         !isBuilt
-                          ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-dashed border-slate-200'
+                          ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-dashed border-slate-200 dark:bg-slate-800/50 dark:text-slate-600 dark:border-slate-700'
                           : isActive
                           ? 'text-white shadow-sm cursor-pointer'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                       }`}
                       style={isBuilt && isActive ? { backgroundColor: product === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
                     >
@@ -210,7 +229,7 @@ export default function Sidebar({
 
           {/* Section Heading */}
           {!isCollapsed && navItems.length > 0 && (
-            <p className="text-[10px] font-black uppercase text-slate-400 px-3 mb-2 tracking-wider whitespace-nowrap">
+            <p className="text-[10px] font-black uppercase text-slate-400 px-3 mb-2 tracking-wider whitespace-nowrap dark:text-slate-500">
               Main Menu
             </p>
           )}
@@ -234,12 +253,12 @@ export default function Sidebar({
                     ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
                     ${isActive
                       ? 'text-white shadow-md'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                     }
                   `}
                   style={isActive ? { backgroundColor: activeProduct === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
                 >
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
                   {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </button>
               );
@@ -255,13 +274,13 @@ export default function Sidebar({
                   }}
                   title={isCollapsed ? 'Statistics' : undefined}
                   className={`
-                    w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100
+                    w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800
                     ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-3'}
-                    ${statisticsSubItems.some((s) => s.id === activeTab) ? 'bg-slate-100 text-slate-900' : ''}
+                    ${statisticsSubItems.some((s) => s.id === activeTab) ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white' : ''}
                   `}
                 >
                   <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
-                    <ListChecks className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                    <ListChecks className="w-5 h-5 text-slate-500 flex-shrink-0 dark:text-slate-400" />
                     {!isCollapsed && <span className="truncate">Statistics</span>}
                   </div>
                   {!isCollapsed && (
@@ -270,7 +289,7 @@ export default function Sidebar({
                 </button>
 
                 {isStatisticsOpen && !isCollapsed && (
-                  <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3">
+                  <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3 dark:border-slate-800">
                     {statisticsSubItems.map((sub) => {
                       const SubIcon = sub.icon;
                       const isSubActive = activeTab === sub.id;
@@ -284,8 +303,8 @@ export default function Sidebar({
                           }}
                           className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
                             isSubActive
-                              ? 'text-[#d0112b] bg-red-50 font-bold'
-                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                              ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
+                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
                           }`}
                         >
                           <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
@@ -308,13 +327,13 @@ export default function Sidebar({
                 }}
                 title={isCollapsed ? "Maintenance" : undefined}
                 className={`
-                  w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100
+                  w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800
                   ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-3'}
-                  ${activeTab === 'maintenance' ? 'bg-slate-100 text-slate-900' : ''}
+                  ${activeTab === 'maintenance' ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white' : ''}
                 `}
               >
                 <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
-                  <Wrench className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                  <Wrench className="w-5 h-5 text-slate-500 flex-shrink-0 dark:text-slate-400" />
                   {!isCollapsed && <span className="truncate">Maintenance</span>}
                 </div>
                 {!isCollapsed && (
@@ -324,7 +343,7 @@ export default function Sidebar({
 
               {/* Maintenance Sub-menu */}
               {isMaintenanceOpen && !isCollapsed && (
-                <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3">
+                <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3 dark:border-slate-800">
                   {maintenanceSubItems.map((sub) => {
                     const SubIcon = sub.icon;
                     const isSubActive = activeTab === 'maintenance' && activeSubTab === sub.id;
@@ -338,9 +357,9 @@ export default function Sidebar({
                           if (onClose) onClose();
                         }}
                         className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
-                          isSubActive 
-                            ? 'text-[#d0112b] bg-red-50 font-bold' 
-                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                          isSubActive
+                            ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
                         }`}
                       >
                         <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
@@ -362,39 +381,39 @@ export default function Sidebar({
               className={`
                 w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
                 ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
-                ${activeTab === 'audit' 
-                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20' 
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ${activeTab === 'audit'
+                  ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                 }
               `}
             >
-              <FileText className={`w-5 h-5 flex-shrink-0 ${activeTab === 'audit' ? 'text-white' : 'text-slate-500'}`} />
+              <FileText className={`w-5 h-5 flex-shrink-0 ${activeTab === 'audit' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
               {!isCollapsed && <span className="truncate">Audit Logs</span>}
             </button>
           </nav>
         </div>
 
         {/* Bottom User Section */}
-        <div className="border-t border-slate-100 pt-4">
+        <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
           <div className={`
-            flex items-center rounded-2xl bg-slate-50 border border-slate-100 transition-all
+            flex items-center rounded-2xl bg-slate-50 border border-slate-100 transition-all dark:bg-slate-800/60 dark:border-slate-700
             ${isCollapsed ? 'p-2 justify-center' : 'p-2.5 space-x-3'}
           `}>
-            <div className="w-8 h-8 rounded-xl bg-red-100 text-[#d0112b] font-black flex items-center justify-center text-xs flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-red-100 text-[#d0112b] font-black flex items-center justify-center text-xs flex-shrink-0 dark:bg-red-950/40">
               {userInitials}
             </div>
 
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-800 truncate">{currentUserName}</p>
-                <p className="text-[10px] text-slate-400 truncate">{currentUserEmail}</p>
+                <p className="text-xs font-bold text-slate-800 truncate dark:text-slate-100">{currentUserName}</p>
+                <p className="text-[10px] text-slate-400 truncate dark:text-slate-500">{currentUserEmail}</p>
               </div>
             )}
 
             {!isCollapsed && (
               <button
                 onClick={onLogout}
-                className="p-1.5 text-slate-400 hover:text-[#d0112b] rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-[#d0112b] rounded-lg hover:bg-red-50 transition-colors cursor-pointer dark:hover:bg-red-950/30"
                 title="Log Out"
               >
                 <LogOut className="w-4 h-4" />

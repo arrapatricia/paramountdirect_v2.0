@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  CreditCard, 
-  Search, 
-  Eye, 
-  History, 
-  Edit3, 
-  X, 
+import {
+  CreditCard,
+  Search,
+  Eye,
+  History,
+  Edit3,
+  X,
   ShieldCheck,
   Receipt,
   Save,
@@ -76,7 +76,7 @@ export interface PaymentTransaction {
   planDesc: string;
   orDate: string;
   orNumber: string;
-  
+
   ledgerHistory: PaymentLedgerItem[];
 }
 
@@ -190,7 +190,7 @@ export default function PaymentTransactions() {
   const [activeLedgerPolicy, setActiveLedgerPolicy] = useState<PaymentTransaction | null>(null);
   const [activeDetailPolicy, setActiveDetailPolicy] = useState<PaymentTransaction | null>(null);
   const [printHistoryPolicy, setPrintHistoryPolicy] = useState<PaymentTransaction | null>(null);
-  
+
   const [selectedInvoiceItem, setSelectedInvoiceItem] = useState<{
     policy: PaymentTransaction;
     ledger: PaymentLedgerItem;
@@ -203,7 +203,7 @@ export default function PaymentTransactions() {
 
   const filteredData = transactions.filter((t) => {
     const payorFullName = `${t.firstName} ${t.lastName}`;
-    const matchesSearch = 
+    const matchesSearch =
       t.policyNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payorFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.orNumber.includes(searchTerm);
@@ -285,7 +285,7 @@ export default function PaymentTransactions() {
     e.preventDefault();
     if (!activeDetailPolicy) return;
 
-    setTransactions(prev => prev.map(t => 
+    setTransactions(prev => prev.map(t =>
       t.policyNo === activeDetailPolicy.policyNo ? { ...t, ...formData } as PaymentTransaction : t
     ));
 
@@ -306,24 +306,24 @@ export default function PaymentTransactions() {
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'Inforced':
-        return 'bg-emerald-100/80 text-emerald-800 border-emerald-300 backdrop-blur-xs';
+        return 'bg-emerald-100/80 text-emerald-800 border-emerald-300 backdrop-blur-xs dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
       case 'Lapsed':
-        return 'bg-amber-100/80 text-amber-800 border-amber-300 backdrop-blur-xs';
+        return 'bg-amber-100/80 text-amber-800 border-amber-300 backdrop-blur-xs dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
       case 'Terminated':
       case 'Involuntary':
       case 'Voluntary':
       case 'Surrender':
-        return 'bg-rose-100/80 text-rose-800 border-rose-300 backdrop-blur-xs';
+        return 'bg-rose-100/80 text-rose-800 border-rose-300 backdrop-blur-xs dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
       case 'Matured':
-        return 'bg-blue-100/80 text-blue-800 border-blue-300 backdrop-blur-xs';
+        return 'bg-blue-100/80 text-blue-800 border-blue-300 backdrop-blur-xs dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
       default:
-        return 'bg-slate-100/80 text-slate-700 border-slate-300 backdrop-blur-xs';
+        return 'bg-slate-100/80 text-slate-700 border-slate-300 backdrop-blur-xs dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700';
     }
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 relative">
-      
+    <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100 relative">
+
       {/* Toast Alert Overlay */}
       {notification && (
         <div className="fixed top-6 right-6 z-[100] max-w-md p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl backdrop-blur-md flex items-center justify-between space-x-3 border border-emerald-400 transition-all duration-300 transform translate-y-0 opacity-100">
@@ -338,22 +338,22 @@ export default function PaymentTransactions() {
       )}
 
       {/* Header Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
         <div className="flex items-center space-x-3">
           <CreditCard className="w-6 h-6 text-[#d0112b]" />
           <div>
             <h1 className="text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
               PAYMENT TRANSACTIONS & LEDGER
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium dark:text-slate-400">
               Real-time policy ledger synchronization with iPeak billing engine
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
           {selectedMainPolicyNos.length > 0 && (
-            <button 
+            <button
               onClick={handleBatchPrintMainPolicies}
               className="flex items-center space-x-2 bg-[#008cb4] hover:bg-[#007396] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
             >
@@ -362,15 +362,15 @@ export default function PaymentTransactions() {
             </button>
           )}
 
-          <button className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer">
-            <Receipt className="w-4 h-4 text-slate-500" />
+          <button className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300">
+            <Receipt className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <span>Upload Batch Payment</span>
           </button>
         </div>
       </div>
 
       {/* Liquid Glass Filter Bar */}
-      <div className="p-4 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-4 dark:bg-slate-900/70 dark:border-slate-700/60">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <div className="relative flex-1 min-w-[240px]">
             <input
@@ -378,17 +378,17 @@ export default function PaymentTransactions() {
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               placeholder="Search Policy No, Payor Name, or OR No..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4]"
+              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
           </div>
 
           <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase">Policy Status:</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase dark:text-slate-400">Policy Status:</span>
             <select
               value={selectedStatus}
               onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white/80 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white/80 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
             >
               <option value="All">All Lifecycle Statuses</option>
               <option value="Inforced">Inforced (Active)</option>
@@ -400,11 +400,11 @@ export default function PaymentTransactions() {
           </div>
 
           <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase">Product:</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase dark:text-slate-400">Product:</span>
             <select
               value={selectedProduct}
               onChange={(e) => { setSelectedProduct(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white/80 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white/80 text-slate-800 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
             >
               <option value="All">All Products</option>
               <option value="GLA">GLA</option>
@@ -416,11 +416,11 @@ export default function PaymentTransactions() {
         </div>
 
         {/* View Switcher Toggle */}
-        <div className="flex items-center space-x-1 bg-slate-200/60 p-1 rounded-2xl border border-slate-300/40">
+        <div className="flex items-center space-x-1 bg-slate-200/60 p-1 rounded-2xl border border-slate-300/40 dark:bg-slate-800/60 dark:border-slate-700/40">
           <button
             onClick={() => setViewMode('table')}
             className={`p-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
-              viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <List className="w-4 h-4" />
@@ -430,7 +430,7 @@ export default function PaymentTransactions() {
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
-              viewMode === 'grid' ? 'bg-white text-[#d0112b] shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              viewMode === 'grid' ? 'bg-white text-[#d0112b] shadow-sm dark:bg-slate-900' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -441,16 +441,16 @@ export default function PaymentTransactions() {
 
       {/* Main Table View */}
       {viewMode === 'table' ? (
-        <div className="bg-white/80 backdrop-blur-md border border-white/60 rounded-3xl p-6 shadow-xl overflow-x-auto transition-all duration-300">
+        <div className="bg-white/80 backdrop-blur-md border border-white/60 rounded-3xl p-6 shadow-xl overflow-x-auto transition-all duration-300 dark:bg-slate-900/80 dark:border-slate-700/60">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider">
+              <tr className="border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider dark:border-slate-800 dark:text-slate-400">
                 <th className="py-3 px-2 w-8">
                   <button onClick={handleSelectAllMain} className="cursor-pointer">
                     {selectedMainPolicyNos.length === paginatedData.length && paginatedData.length > 0 ? (
                       <CheckSquare className="h-4 w-4 text-[#d0112b]" />
                     ) : (
-                      <Square className="h-4 w-4 text-slate-400" />
+                      <Square className="h-4 w-4 text-slate-400 dark:text-slate-600" />
                     )}
                   </button>
                 </th>
@@ -464,37 +464,37 @@ export default function PaymentTransactions() {
                 <th className="py-3 px-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 font-bold">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-bold dark:text-slate-500">
                     No payment transactions match the current filters.
                   </td>
                 </tr>
               ) : (
                 paginatedData.map((item) => (
-                  <tr key={item.policyNo} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={item.policyNo} className="hover:bg-slate-50/80 transition-colors dark:hover:bg-slate-800/60">
                     <td className="py-4 px-2">
                       <button onClick={() => handleToggleMainPolicy(item.policyNo)} className="cursor-pointer">
                         {selectedMainPolicyNos.includes(item.policyNo) ? (
                           <CheckSquare className="h-4 w-4 text-[#d0112b]" />
                         ) : (
-                          <Square className="h-4 w-4 text-slate-400" />
+                          <Square className="h-4 w-4 text-slate-400 dark:text-slate-600" />
                         )}
                       </button>
                     </td>
-                    <td className="py-4 px-3 font-bold text-slate-900">{item.policyNo}</td>
-                    <td className="py-4 px-3 font-extrabold text-slate-800">{item.firstName} {item.lastName}</td>
+                    <td className="py-4 px-3 font-bold text-slate-900 dark:text-white">{item.policyNo}</td>
+                    <td className="py-4 px-3 font-extrabold text-slate-800 dark:text-slate-200">{item.firstName} {item.lastName}</td>
                     <td className="py-4 px-3">
-                      <span className="font-bold text-slate-900">{item.planCode}</span>
-                      <span className="text-[10px] text-slate-500 block truncate">{item.planDesc}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{item.planCode}</span>
+                      <span className="text-[10px] text-slate-500 block truncate dark:text-slate-400">{item.planDesc}</span>
                     </td>
                     <td className="py-4 px-3 font-black text-[#d0112b]">₱{item.premium.toFixed(2)}</td>
                     <td className="py-4 px-3">
-                      <span className="font-mono font-bold text-slate-800 block">{item.orNumber}</span>
-                      <span className="text-[10px] text-slate-400 block">{item.orDate}</span>
+                      <span className="font-mono font-bold text-slate-800 block dark:text-slate-200">{item.orNumber}</span>
+                      <span className="text-[10px] text-slate-400 block dark:text-slate-500">{item.orDate}</span>
                     </td>
-                    <td className="py-4 px-3 font-semibold text-slate-700">{item.dueDate}</td>
+                    <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">{item.dueDate}</td>
                     <td className="py-4 px-3">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${getStatusBadgeStyle(item.policyStatus)}`}>
                         {item.policyStatus}
@@ -504,7 +504,7 @@ export default function PaymentTransactions() {
                       <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => handleOpenDetail(item)}
-                          className="p-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                           title="View / Update Policy Info"
                         >
                           <Eye className="w-4 h-4" />
@@ -515,7 +515,7 @@ export default function PaymentTransactions() {
                             setActiveLedgerPolicy(item);
                             setSelectedLedgerInstalCodes([]);
                           }}
-                          className="p-2 rounded-xl bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-700 transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                           title="Payment History Ledger"
                         >
                           <History className="w-4 h-4" />
@@ -523,7 +523,7 @@ export default function PaymentTransactions() {
 
                         <button
                           onClick={() => setPrintHistoryPolicy(item)}
-                          className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                           title="Print Payment History Summary"
                         >
                           <FileSpreadsheet className="w-4 h-4" />
@@ -540,29 +540,29 @@ export default function PaymentTransactions() {
         /* GRID / CARD VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300">
           {paginatedData.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-slate-400 font-bold bg-white/80 rounded-3xl border border-white/60 shadow-md">
+            <div className="col-span-full py-16 text-center text-slate-400 font-bold bg-white/80 rounded-3xl border border-white/60 shadow-md dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-500">
               No payment transactions match the current filters.
             </div>
           ) : (
             paginatedData.map((item) => (
-              <div 
+              <div
                 key={item.policyNo}
-                className="bg-white/80 backdrop-blur-md border border-white/60 rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all flex flex-col justify-between space-y-4 group"
+                className="bg-white/80 backdrop-blur-md border border-white/60 rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all flex flex-col justify-between space-y-4 group dark:bg-slate-900/80 dark:border-slate-700/60"
               >
-                <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div className="flex justify-between items-start border-b border-slate-100 pb-3 dark:border-slate-800">
                   <div className="flex items-center space-x-2">
                     <button onClick={() => handleToggleMainPolicy(item.policyNo)} className="cursor-pointer">
                       {selectedMainPolicyNos.includes(item.policyNo) ? (
                         <CheckSquare className="h-4 w-4 text-[#d0112b]" />
                       ) : (
-                        <Square className="h-4 w-4 text-slate-400" />
+                        <Square className="h-4 w-4 text-slate-400 dark:text-slate-600" />
                       )}
                     </button>
                     <div>
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase block tracking-wider">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase block tracking-wider dark:text-slate-500">
                         {item.planCode} — {item.planDesc}
                       </span>
-                      <h3 className="text-base font-black text-slate-900 font-mono tracking-tight mt-0.5">
+                      <h3 className="text-base font-black text-slate-900 font-mono tracking-tight mt-0.5 dark:text-white">
                         {item.policyNo}
                       </h3>
                     </div>
@@ -573,34 +573,34 @@ export default function PaymentTransactions() {
                 </div>
 
                 <div className="space-y-2.5 text-xs">
-                  <div className="flex items-center space-x-2 text-slate-700">
-                    <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="font-extrabold text-slate-900 truncate">{item.firstName} {item.lastName}</span>
+                  <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
+                    <User className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
+                    <span className="font-extrabold text-slate-900 truncate dark:text-white">{item.firstName} {item.lastName}</span>
                   </div>
 
-                  <div className="flex items-center space-x-2 text-slate-700">
+                  <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
                     <Tag className="w-4 h-4 text-[#d0112b] flex-shrink-0" />
-                    <span className="font-semibold text-slate-500">Premium:</span>
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Premium:</span>
                     <span className="font-black text-[#d0112b] text-sm">₱{item.premium.toFixed(2)}</span>
                   </div>
 
-                  <div className="flex items-center space-x-2 text-slate-700">
-                    <Receipt className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="font-semibold text-slate-500">Invoice OR:</span>
-                    <span className="font-mono font-bold text-slate-800">{item.orNumber}</span>
+                  <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
+                    <Receipt className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Invoice OR:</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{item.orNumber}</span>
                   </div>
 
-                  <div className="flex items-center space-x-2 text-slate-700">
-                    <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="font-semibold text-slate-500">Due Date:</span>
-                    <span className="font-bold text-slate-800">{item.dueDate}</span>
+                  <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
+                    <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Due Date:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{item.dueDate}</span>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5 dark:border-slate-800">
                   <button
                     onClick={() => handleOpenDetail(item)}
-                    className="flex-1 py-2 px-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center space-x-1"
+                    className="flex-1 py-2 px-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center space-x-1 dark:bg-slate-800 dark:text-slate-300"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>View</span>
@@ -619,7 +619,7 @@ export default function PaymentTransactions() {
 
                   <button
                     onClick={() => setPrintHistoryPolicy(item)}
-                    className="flex-1 py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center space-x-1"
+                    className="flex-1 py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center space-x-1 dark:bg-emerald-950/30 dark:text-emerald-300"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
                     <span>Print</span>
@@ -633,26 +633,26 @@ export default function PaymentTransactions() {
 
       {/* Pagination Controls */}
       {totalPages > 0 && (
-        <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-200/60 text-xs text-slate-500 font-semibold">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-200/60 text-xs text-slate-500 font-semibold dark:border-slate-800/60 dark:text-slate-400">
           <span>
-            Showing <span className="font-bold text-slate-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> of <span className="font-bold text-slate-900">{totalItems}</span> records
+            Showing <span className="font-bold text-slate-900 dark:text-white">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-bold text-slate-900 dark:text-white">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> of <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> records
           </span>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               <span>Prev</span>
             </button>
-            <div className="text-xs font-bold text-slate-700 px-2">
+            <div className="text-xs font-bold text-slate-700 px-2 dark:text-slate-300">
               Page {currentPage} of {totalPages}
             </div>
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800"
             >
               <span>Next</span>
               <ChevronRight className="h-3.5 w-3.5" />
@@ -665,16 +665,16 @@ export default function PaymentTransactions() {
       {activeDetailPolicy && (
         <div className="fixed inset-0 z-[50] flex justify-end">
           <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-300" onClick={() => setActiveDetailPolicy(null)} />
-          <div className="relative w-full max-w-4xl bg-white/95 backdrop-blur-xl border-l border-white/40 h-full shadow-2xl z-10 flex flex-col justify-between font-sans transform transition-all duration-300 translate-x-0">
-            
-            <div className="p-6 border-b border-slate-200/80 flex items-center justify-between bg-white/50 backdrop-blur-md">
+          <div className="relative w-full max-w-4xl bg-white/95 backdrop-blur-xl border-l border-white/40 h-full shadow-2xl z-10 flex flex-col justify-between font-sans transform transition-all duration-300 translate-x-0 dark:bg-slate-900/95 dark:border-slate-700/40">
+
+            <div className="p-6 border-b border-slate-200/80 flex items-center justify-between bg-white/50 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/50">
               <div className="flex items-center space-x-3">
                 <ShieldCheck className="w-6 h-6 text-[#d0112b]" />
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 uppercase">
+                  <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">
                     Update Application ( {activeDetailPolicy.policyNo} )
                   </h2>
-                  <p className="text-xs text-slate-500 font-medium">Policy and Insured Profile Records</p>
+                  <p className="text-xs text-slate-500 font-medium dark:text-slate-400">Policy and Insured Profile Records</p>
                 </div>
               </div>
 
@@ -683,8 +683,8 @@ export default function PaymentTransactions() {
                   type="button"
                   onClick={() => setIsEditingPolicy(!isEditingPolicy)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${
-                    isEditingPolicy 
-                      ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                    isEditingPolicy
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800'
                       : 'bg-[#008cb4] hover:bg-[#007396] text-white shadow-sm'
                   }`}
                 >
@@ -692,7 +692,7 @@ export default function PaymentTransactions() {
                   <span>{isEditingPolicy ? 'Cancel Edit' : 'Edit'}</span>
                 </button>
 
-                <button onClick={() => setActiveDetailPolicy(null)} className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 cursor-pointer">
+                <button onClick={() => setActiveDetailPolicy(null)} className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 cursor-pointer dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-700">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -700,83 +700,83 @@ export default function PaymentTransactions() {
 
             <form id="policy-edit-form" onSubmit={handleSavePolicyInfo} className="p-6 overflow-y-auto flex-1 text-xs space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
+
                 <div className="space-y-3">
-                  <div className="border-b border-slate-200 pb-2 mb-3">
-                    <h3 className="font-extrabold text-slate-800 uppercase tracking-wide text-xs">Personal Information</h3>
+                  <div className="border-b border-slate-200 pb-2 mb-3 dark:border-slate-800">
+                    <h3 className="font-extrabold text-slate-800 uppercase tracking-wide text-xs dark:text-slate-200">Personal Information</h3>
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Title</label>
-                    <input type="text" disabled={true} value={formData.title || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Title</label>
+                    <input type="text" disabled={true} value={formData.title || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">First name</label>
-                    <input type="text" disabled={true} value={formData.firstName || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">First name</label>
+                    <input type="text" disabled={true} value={formData.firstName || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Middle Name</label>
-                    <input type="text" disabled={true} value={formData.middleName || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Middle Name</label>
+                    <input type="text" disabled={true} value={formData.middleName || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Last Name</label>
-                    <input type="text" disabled={true} value={formData.lastName || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Last Name</label>
+                    <input type="text" disabled={true} value={formData.lastName || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Birthdate</label>
-                    <input type="date" disabled={true} value={formData.birthdate || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Birthdate</label>
+                    <input type="date" disabled={true} value={formData.birthdate || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Gender</label>
-                    <select disabled={true} value={formData.gender || 'Male'} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Gender</label>
+                    <select disabled={true} value={formData.gender || 'Male'} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400">
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                     </select>
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Current Age</label>
-                    <input type="number" disabled={true} value={formData.currentAge || 0} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Current Age</label>
+                    <input type="number" disabled={true} value={formData.currentAge || 0} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Issue Age</label>
-                    <input type="number" disabled={true} value={formData.issueAge || 0} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Issue Age</label>
+                    <input type="number" disabled={true} value={formData.issueAge || 0} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Address</label>
-                    <textarea rows={2} disabled={true} value={formData.address || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Address</label>
+                    <textarea rows={2} disabled={true} value={formData.address || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Mobile Number</label>
-                    <input type="text" disabled={true} value={formData.mobileNumber || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Mobile Number</label>
+                    <input type="text" disabled={true} value={formData.mobileNumber || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Email Address</label>
-                    <input type="email" disabled={true} value={formData.emailAddress || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Email Address</label>
+                    <input type="email" disabled={true} value={formData.emailAddress || ''} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-700 font-semibold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-400" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="border-b border-slate-200 pb-2 mb-3">
-                    <h3 className="font-extrabold text-slate-800 uppercase tracking-wide text-xs">Policy Information</h3>
+                  <div className="border-b border-slate-200 pb-2 mb-3 dark:border-slate-800">
+                    <h3 className="font-extrabold text-slate-800 uppercase tracking-wide text-xs dark:text-slate-200">Policy Information</h3>
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Policy Status</label>
-                    <select 
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Policy Status</label>
+                    <select
                       disabled={!isEditingPolicy}
-                      value={formData.policyStatus || 'Inforced'} 
+                      value={formData.policyStatus || 'Inforced'}
                       onChange={(e) => setFormData({ ...formData, policyStatus: e.target.value as PaymentTransaction['policyStatus'] })}
-                      className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold"
+                      className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80"
                     >
                       <option value="Inforced">Inforced</option>
                       <option value="Lapsed">Lapsed</option>
@@ -789,53 +789,53 @@ export default function PaymentTransactions() {
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">HCR Status</label>
-                    <input type="text" disabled={!isEditingPolicy} value={formData.hcrStatus || '0'} onChange={(e) => setFormData({ ...formData, hcrStatus: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">HCR Status</label>
+                    <input type="text" disabled={!isEditingPolicy} value={formData.hcrStatus || '0'} onChange={(e) => setFormData({ ...formData, hcrStatus: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">HCR Unit</label>
-                    <input type="text" disabled={!isEditingPolicy} value={formData.hcrUnit || '0'} onChange={(e) => setFormData({ ...formData, hcrUnit: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">HCR Unit</label>
+                    <input type="text" disabled={!isEditingPolicy} value={formData.hcrUnit || '0'} onChange={(e) => setFormData({ ...formData, hcrUnit: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Premium</label>
-                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.premium || 0} onChange={(e) => setFormData({ ...formData, premium: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-bold text-[#d0112b]" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Premium</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.premium || 0} onChange={(e) => setFormData({ ...formData, premium: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-bold text-[#d0112b] dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Deposit</label>
-                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.deposit || 0} onChange={(e) => setFormData({ ...formData, deposit: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Deposit</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.deposit || 0} onChange={(e) => setFormData({ ...formData, deposit: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Underpay</label>
-                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.underpay || 0} onChange={(e) => setFormData({ ...formData, underpay: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Underpay</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.underpay || 0} onChange={(e) => setFormData({ ...formData, underpay: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Due Date</label>
-                    <input type="date" disabled={!isEditingPolicy} value={formData.dueDate || ''} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Due Date</label>
+                    <input type="date" disabled={!isEditingPolicy} value={formData.dueDate || ''} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Pay Type</label>
-                    <input type="text" disabled={!isEditingPolicy} value={formData.payType || 'INDIVIDUAL'} onChange={(e) => setFormData({ ...formData, payType: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Pay Type</label>
+                    <input type="text" disabled={!isEditingPolicy} value={formData.payType || 'INDIVIDUAL'} onChange={(e) => setFormData({ ...formData, payType: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Life Benefits</label>
-                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.lifeBenefits || 0} onChange={(e) => setFormData({ ...formData, lifeBenefits: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Life Benefits</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.lifeBenefits || 0} onChange={(e) => setFormData({ ...formData, lifeBenefits: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Accidental Benefits</label>
-                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.accidentalBenefits || 0} onChange={(e) => setFormData({ ...formData, accidentalBenefits: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Accidental Benefits</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.accidentalBenefits || 0} onChange={(e) => setFormData({ ...formData, accidentalBenefits: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Mode</label>
-                    <select disabled={!isEditingPolicy} value={formData.mode || 'Monthly'} onChange={(e) => setFormData({ ...formData, mode: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Mode</label>
+                    <select disabled={!isEditingPolicy} value={formData.mode || 'Monthly'} onChange={(e) => setFormData({ ...formData, mode: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80">
                       <option value="Monthly">Monthly</option>
                       <option value="Quarterly">Quarterly</option>
                       <option value="Semi-Annual">Semi-Annual</option>
@@ -844,13 +844,13 @@ export default function PaymentTransactions() {
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Issue Date</label>
-                    <input type="date" disabled={!isEditingPolicy} value={formData.issueDate || ''} onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Issue Date</label>
+                    <input type="date" disabled={!isEditingPolicy} value={formData.issueDate || ''} onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <label className="font-semibold text-slate-600">Expiry Date</label>
-                    <input type="date" disabled={!isEditingPolicy} value={formData.expiryDate || ''} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold" />
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Expiry Date</label>
+                    <input type="date" disabled={!isEditingPolicy} value={formData.expiryDate || ''} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
 
                 </div>
@@ -858,19 +858,19 @@ export default function PaymentTransactions() {
               </div>
             </form>
 
-            <div className="p-6 border-t border-slate-200/80 bg-white/50 backdrop-blur-md flex items-center justify-end space-x-3">
-              <button 
-                type="button" 
+            <div className="p-6 border-t border-slate-200/80 bg-white/50 backdrop-blur-md flex items-center justify-end space-x-3 dark:border-slate-800/80 dark:bg-slate-900/50">
+              <button
+                type="button"
                 onClick={() => setActiveDetailPolicy(null)}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-200 text-xs transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-200 text-xs transition-colors cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 Close
               </button>
 
               {isEditingPolicy && (
-                <button 
+                <button
                   form="policy-edit-form"
-                  type="submit" 
+                  type="submit"
                   className="px-5 py-2.5 rounded-xl bg-[#008cb4] hover:bg-[#007396] text-white font-bold text-xs transition-colors shadow-sm cursor-pointer flex items-center space-x-1.5"
                 >
                   <Save className="w-4 h-4" />
@@ -886,14 +886,14 @@ export default function PaymentTransactions() {
       {/* Animated Printable Payment History Summary Modal */}
       {printHistoryPolicy && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto transition-opacity duration-300">
-          <div className="bg-white rounded-3xl max-w-6xl w-full p-8 shadow-2xl border border-slate-200 space-y-6 font-sans my-6 text-slate-800 transform transition-all duration-300 scale-100">
-            
-            <div className="flex justify-between items-center border-b pb-4 border-slate-200">
+          <div className="bg-white rounded-3xl max-w-6xl w-full p-8 shadow-2xl border border-slate-200 space-y-6 font-sans my-6 text-slate-800 transform transition-all duration-300 scale-100 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+
+            <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
               <div>
-                <h2 className="text-base font-bold text-slate-900 uppercase">
+                <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">
                   Payment History Document — {printHistoryPolicy.policyNo}
                 </h2>
-                <p className="text-xs text-slate-500 font-semibold">{printHistoryPolicy.firstName} {printHistoryPolicy.lastName}</p>
+                <p className="text-xs text-slate-500 font-semibold dark:text-slate-400">{printHistoryPolicy.firstName} {printHistoryPolicy.lastName}</p>
               </div>
 
               <div className="flex items-center space-x-3">
@@ -905,13 +905,17 @@ export default function PaymentTransactions() {
                   <span>Print Payment History</span>
                 </button>
 
-                <button onClick={() => setPrintHistoryPolicy(null)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer">
+                <button onClick={() => setPrintHistoryPolicy(null)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer dark:hover:bg-slate-800 dark:text-slate-500 dark:hover:text-slate-200">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div id="printable-payment-history" className="p-8 border-2 border-slate-300 bg-white space-y-6 font-sans text-xs">
+            {/* NOTE: This block emulates a printed paper document (also used for
+                window.print()), so it is intentionally kept as plain light/white
+                paper styling in both themes rather than following the dark:
+                convention used elsewhere on this page. */}
+            <div id="printable-payment-history" className="p-8 border-2 border-slate-300 bg-white space-y-6 font-sans text-xs text-slate-800">
               <div className="border-b border-slate-300 pb-3 flex justify-between items-start">
                 <div>
                   <h1 className="text-base font-extrabold text-[#d0112b] font-['Montserrat'] uppercase">
@@ -945,6 +949,7 @@ export default function PaymentTransactions() {
 
               <div className="space-y-2">
                 <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider">Installment Ledger Breakdown</h3>
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border border-slate-300">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300 font-extrabold uppercase text-[10px]">
@@ -977,13 +982,14 @@ export default function PaymentTransactions() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
 
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setPrintHistoryPolicy(null)}
-                className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-700 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-700 cursor-pointer dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200"
               >
                 Close Window
               </button>
@@ -996,15 +1002,15 @@ export default function PaymentTransactions() {
       {/* Animated Payment Ledger History Modal */}
       {activeLedgerPolicy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 transition-opacity duration-300">
-          <div className="bg-white/85 backdrop-blur-xl rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-white/60 space-y-6 font-sans transform transition-all duration-300 scale-100">
-            <div className="flex justify-between items-center border-b border-slate-200/80 pb-4">
+          <div className="bg-white/85 backdrop-blur-xl rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-white/60 space-y-6 font-sans transform transition-all duration-300 scale-100 dark:bg-slate-900/85 dark:border-slate-700/60">
+            <div className="flex justify-between items-center border-b border-slate-200/80 pb-4 dark:border-slate-800/80">
               <div className="flex items-center space-x-2">
                 <History className="w-5 h-5 text-[#008cb4]" />
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 uppercase">
+                  <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">
                     Payment Ledger History — {activeLedgerPolicy.policyNo}
                   </h2>
-                  <p className="text-xs text-slate-500 font-semibold">
+                  <p className="text-xs text-slate-500 font-semibold dark:text-slate-400">
                     {activeLedgerPolicy.firstName} {activeLedgerPolicy.lastName}
                   </p>
                 </div>
@@ -1021,9 +1027,9 @@ export default function PaymentTransactions() {
                   </button>
                 )}
 
-                <button 
+                <button
                   onClick={() => setActiveLedgerPolicy(null)}
-                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer dark:hover:bg-slate-700 dark:text-slate-500 dark:hover:text-slate-200"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1033,13 +1039,13 @@ export default function PaymentTransactions() {
             <div className="overflow-x-auto max-h-[55vh]">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-500 font-extrabold uppercase">
+                  <tr className="border-b border-slate-200 text-slate-500 font-extrabold uppercase dark:border-slate-800 dark:text-slate-400">
                     <th className="py-2.5 px-2 w-8">
                       <button onClick={handleSelectAllLedger} className="cursor-pointer">
                         {selectedLedgerInstalCodes.length === activeLedgerPolicy.ledgerHistory.length && activeLedgerPolicy.ledgerHistory.length > 0 ? (
                           <CheckSquare className="h-4 w-4 text-[#d0112b]" />
                         ) : (
-                          <Square className="h-4 w-4 text-slate-400" />
+                          <Square className="h-4 w-4 text-slate-400 dark:text-slate-600" />
                         )}
                       </button>
                     </th>
@@ -1054,25 +1060,25 @@ export default function PaymentTransactions() {
                     <th className="py-2.5 px-3 text-center">Service Invoice</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {activeLedgerPolicy.ledgerHistory.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors dark:hover:bg-slate-800/60">
                       <td className="py-3 px-2">
                         <button onClick={() => handleToggleLedgerInstal(item.yrInstal)} className="cursor-pointer">
                           {selectedLedgerInstalCodes.includes(item.yrInstal) ? (
                             <CheckSquare className="h-4 w-4 text-[#d0112b]" />
                           ) : (
-                            <Square className="h-4 w-4 text-slate-400" />
+                            <Square className="h-4 w-4 text-slate-400 dark:text-slate-600" />
                           )}
                         </button>
                       </td>
                       <td className="py-3 px-3 font-black text-[#d0112b] font-mono">{item.yrInstal}</td>
                       <td className="py-3 px-3 font-medium">{item.dueDate}</td>
-                      <td className="py-3 px-3 font-semibold text-slate-700">₱{item.uploaded.toFixed(2)}</td>
-                      <td className="py-3 px-3 font-extrabold text-emerald-700">₱{item.amountPaid.toFixed(2)}</td>
-                      <td className="py-3 px-3 text-slate-400">₱{item.underpay.toFixed(2)}</td>
+                      <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.uploaded.toFixed(2)}</td>
+                      <td className="py-3 px-3 font-extrabold text-emerald-700 dark:text-emerald-400">₱{item.amountPaid.toFixed(2)}</td>
+                      <td className="py-3 px-3 text-slate-400 dark:text-slate-500">₱{item.underpay.toFixed(2)}</td>
                       <td className="py-3 px-3 font-mono font-bold">{item.orNumber}</td>
-                      <td className="py-3 px-3 text-slate-500">{item.orDate}</td>
+                      <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{item.orDate}</td>
                       <td className="py-3 px-3">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${getStatusBadgeStyle(item.status)}`}>
                           {item.status}
@@ -1082,7 +1088,7 @@ export default function PaymentTransactions() {
                         <div className="flex items-center justify-center space-x-1.5">
                           <button
                             onClick={() => setSelectedInvoiceItem({ policy: activeLedgerPolicy, ledger: item })}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-600 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-600 transition-colors cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                             title="Print Preview Official PDF Service Invoice"
                           >
                             <Printer className="w-3.5 h-3.5" />
@@ -1090,7 +1096,7 @@ export default function PaymentTransactions() {
 
                           <button
                             onClick={() => handleSendInvoiceEmail(activeLedgerPolicy, item)}
-                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-[#008cb4] text-[#008cb4] hover:text-white transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-[#008cb4] text-[#008cb4] hover:text-white transition-colors cursor-pointer dark:bg-blue-950/30"
                             title={`Send Service Invoice (${item.yrInstal}) to ${activeLedgerPolicy.emailAddress}`}
                           >
                             <Send className="w-3.5 h-3.5" />
@@ -1106,7 +1112,7 @@ export default function PaymentTransactions() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setActiveLedgerPolicy(null)}
-                className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-700 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-700 cursor-pointer dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200"
               >
                 Close Ledger
               </button>
@@ -1118,25 +1124,25 @@ export default function PaymentTransactions() {
       {/* Official PDF Document Viewer Modal */}
       {selectedInvoiceItem && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto transition-opacity duration-300">
-          <div className="relative z-[70] bg-white rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 font-sans my-4 transform transition-all duration-300 scale-100">
-            
-            <div className="flex justify-between items-center border-b pb-4 border-slate-200">
+          <div className="relative z-[70] bg-white rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 font-sans my-4 transform transition-all duration-300 scale-100 dark:bg-slate-900 dark:border-slate-800">
+
+            <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
               <div className="flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-[#d0112b]" />
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 uppercase">
+                  <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">
                     Official Service Invoice — {selectedInvoiceItem.ledger.yrInstal} ({selectedInvoiceItem.policy.policyNo})
                     {selectedInvoiceItem.batchCount && ` [Batch Print: ${selectedInvoiceItem.batchCount} selected]`}
                   </h2>
-                  <p className="text-xs text-slate-500 font-semibold">BIR Formatted Document Preview</p>
+                  <p className="text-xs text-slate-500 font-semibold dark:text-slate-400">BIR Formatted Document Preview</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedInvoiceItem(null)} className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <button onClick={() => setSelectedInvoiceItem(null)} className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer dark:hover:bg-slate-800 dark:text-slate-500 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="w-full h-[68vh] rounded-2xl border-2 border-slate-300 bg-slate-100 overflow-hidden shadow-inner">
+            <div className="w-full h-[68vh] rounded-2xl border-2 border-slate-300 bg-slate-100 overflow-hidden shadow-inner dark:border-slate-700 dark:bg-slate-800">
               <iframe
                 src={`${serviceInvoicePdf}#toolbar=0&navpanes=0`}
                 title="ELECTRONIC_SERVICE_INVOICE"
@@ -1144,21 +1150,21 @@ export default function PaymentTransactions() {
               />
             </div>
 
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-2">
               <button
                 onClick={() => handleSendInvoiceEmail(selectedInvoiceItem.policy, selectedInvoiceItem.ledger)}
-                className="px-4 py-2 rounded-xl bg-blue-50 text-[#008cb4] hover:bg-[#008cb4] hover:text-white font-bold text-xs transition-colors cursor-pointer flex items-center space-x-1.5"
+                className="px-4 py-2 rounded-xl bg-blue-50 text-[#008cb4] hover:bg-[#008cb4] hover:text-white font-bold text-xs transition-colors cursor-pointer flex items-center space-x-1.5 dark:bg-blue-950/30"
               >
                 <Send className="w-4 h-4" />
                 <span>Send to Client ({selectedInvoiceItem.policy.emailAddress})</span>
               </button>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <a
                   href={serviceInvoicePdf}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer flex items-center space-x-1.5"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer flex items-center space-x-1.5 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Open PDF in New Tab</span>
@@ -1174,7 +1180,7 @@ export default function PaymentTransactions() {
 
                 <button
                   onClick={() => setSelectedInvoiceItem(null)}
-                  className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-700 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-700 cursor-pointer dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200"
                 >
                   Close
                 </button>

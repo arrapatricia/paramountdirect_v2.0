@@ -103,34 +103,34 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
     switch (status) {
       case 'Issued':
         return (
-          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300">
             <ShieldCheck className="w-3 h-3" />
             <span>Issued</span>
           </span>
         );
       case 'For Verification':
         return (
-          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300">
             <Clock className="w-3 h-3" />
             <span>For Verification</span>
           </span>
         );
       case 'For Evaluation':
         return (
-          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-300">
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950/40 dark:text-purple-300">
             <FileCheck className="w-3 h-3" />
             <span>For Evaluation</span>
           </span>
         );
       case 'Paid':
         return (
-          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-300">
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-300">
             <span>Paid</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-[#d0112b] border border-rose-300">
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-[#d0112b] border border-rose-300 dark:bg-rose-950/40">
             <span>{status}</span>
           </span>
         );
@@ -140,13 +140,13 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
   const getPaymentBadge = (payment: 'Paid' | 'Unpaid') => {
     if (payment === 'Paid') {
       return (
-        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300">
           Paid
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/40 dark:text-rose-300">
         <AlertCircle className="w-3 h-3" />
         <span>Unpaid</span>
       </span>
@@ -154,22 +154,22 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900">
-      
+    <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100">
+
       {/* Header */}
-      <div className="flex justify-between items-center border-b pb-4 border-slate-200">
-        <div className="text-xs text-slate-400 font-medium">
+      <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
+        <div className="text-xs text-slate-400 font-medium dark:text-slate-500">
           Home &gt; <span className="text-[#d0112b] font-bold">Application Inquiry</span>
         </div>
       </div>
 
-      <div className="p-6 md:p-8 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6">
+      <div className="p-6 md:p-8 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-black text-slate-900 font-['Montserrat'] uppercase tracking-wider">
+            <h1 className="text-xl font-black text-slate-900 font-['Montserrat'] uppercase tracking-wider dark:text-white">
               APPLICATION INQUIRY
             </h1>
-            <p className="text-xs text-slate-400 font-semibold mt-1">
+            <p className="text-xs text-slate-400 font-semibold mt-1 dark:text-slate-500">
               General inquiry registry for all insurance applications and policy documents
             </p>
           </div>
@@ -187,8 +187,8 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-wrap items-center gap-4">
-          
+        <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-wrap items-center gap-4 dark:bg-slate-800/60 dark:border-slate-700">
+
           {/* Search Input */}
           <div className="relative flex-1 min-w-[240px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -197,17 +197,17 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               placeholder="Search App ID, Policy No., or Payor..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4]"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-900 dark:border-slate-700"
             />
           </div>
 
           {/* Application Status Filter */}
           <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-800 uppercase">App Status:</span>
+            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">App Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-900 dark:border-slate-700"
             >
               <option value="All">All Statuses</option>
               <option value="Received">Received</option>
@@ -220,11 +220,11 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
 
           {/* Payment Status Filter Matrix */}
           <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-800 uppercase">Payment Status:</span>
+            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">Payment Status:</span>
             <select
               value={paymentFilter}
               onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-900 dark:border-slate-700"
             >
               <option value="All">All Payments</option>
               <option value="Paid">Paid</option>
@@ -234,29 +234,29 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
 
           {/* Date Filters */}
           <div className="flex items-center space-x-2">
-            <span className="text-[10px] font-bold text-slate-800 uppercase">From</span>
+            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">From</span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4]"
+              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-900 dark:border-slate-700"
             />
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className="text-[10px] font-bold text-slate-800 uppercase">To</span>
+            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">To</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4]"
+              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-900 dark:border-slate-700"
             />
           </div>
 
           {(fromDate || toDate || searchTerm || statusFilter !== 'All' || paymentFilter !== 'All') && (
             <button
               onClick={() => { setFromDate(''); setToDate(''); setSearchTerm(''); setStatusFilter('All'); setPaymentFilter('All'); setCurrentPage(1); }}
-              className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#d0112b] hover:bg-red-50 transition-colors cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#d0112b] hover:bg-red-50 transition-colors cursor-pointer dark:border-slate-700 dark:hover:bg-red-950/30"
               title="Clear Filters"
             >
               <X className="h-4 w-4" />
@@ -268,7 +268,7 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-800 font-extrabold uppercase tracking-wider">
+              <tr className="border-b border-slate-200 text-slate-800 font-extrabold uppercase tracking-wider dark:border-slate-800 dark:text-slate-100">
                 <th className="py-3 px-2 w-8">
                   <button onClick={handleSelectAll} className="cursor-pointer">
                     {selectedIds.length === paginatedData.length && paginatedData.length > 0 ? (
@@ -285,10 +285,10 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
                 <th className="py-3.5 px-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-bold dark:text-slate-500">
                     No applications match the current filters.
                   </td>
                 </tr>
@@ -298,7 +298,7 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
                   const displayPolicyNumber = formatPolicyNumber(item);
 
                   return (
-                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800">
                       <td className="py-4 px-2">
                         <button onClick={() => handleSelectItem(item.id)} className="cursor-pointer">
                           {selectedIds.includes(item.id) ? (
@@ -308,23 +308,23 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
                           )}
                         </button>
                       </td>
-                      <td className="py-4 px-3 font-bold text-slate-900">{displayPolicyNumber}</td>
-                      <td className="py-4 px-3 font-extrabold text-slate-800">{item.payor}</td>
+                      <td className="py-4 px-3 font-bold text-slate-900 dark:text-white">{displayPolicyNumber}</td>
+                      <td className="py-4 px-3 font-extrabold text-slate-800 dark:text-slate-100">{item.payor}</td>
                       <td className="py-4 px-3">{getStatusBadge(item.status)}</td>
                       <td className="py-4 px-3">{getPaymentBadge(paymentStatus)}</td>
                       <td className="py-4 px-3 text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <button
                             onClick={() => onSelectApplication && onSelectApplication(item.id, item.planCode)}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 transition-all cursor-pointer"
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
-                          
+
                           <button
                             onClick={() => setPrintModalApps([item])}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-700 transition-all cursor-pointer"
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                             title="Print Policy Certificate"
                           >
                             <Printer className="h-4 w-4" />
@@ -341,26 +341,26 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
 
         {/* Pagination Footer */}
         {totalPages > 0 && (
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500 font-semibold">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 pt-4 border-t border-slate-100 text-xs text-slate-500 font-semibold dark:border-slate-800 dark:text-slate-400">
             <span>
-              Showing <span className="font-bold text-slate-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> of <span className="font-bold text-slate-900">{totalItems}</span> records
+              Showing <span className="font-bold text-slate-900 dark:text-white">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-bold text-slate-900 dark:text-white">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> of <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> records
             </span>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 <span>Prev</span>
               </button>
-              <div className="text-xs font-bold text-slate-700 px-2">
+              <div className="text-xs font-bold text-slate-700 px-2 dark:text-slate-300">
                 Page {currentPage} of {totalPages}
               </div>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 <span>Next</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -374,17 +374,17 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
       {/* Batch Policy Certificate Print Preview Modal */}
       {printModalApps && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 font-sans my-8">
-            <div className="flex justify-between items-center border-b pb-4 border-slate-100">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 font-sans my-8 dark:bg-slate-900 dark:border-slate-800">
+            <div className="flex justify-between items-center border-b pb-4 border-slate-100 dark:border-slate-800">
               <div className="flex items-center space-x-2">
                 <Printer className="w-5 h-5 text-[#d0112b]" />
-                <h2 className="text-base font-bold text-slate-900 uppercase">
+                <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">
                   Policy Print Preview ({printModalApps.length})
                 </h2>
               </div>
-              <button 
+              <button
                 onClick={() => setPrintModalApps(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -393,40 +393,40 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
             {/* Printable Frame */}
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
               {printModalApps.map((app) => (
-                <div key={app.id} className="p-8 rounded-2xl border-2 border-slate-200 bg-slate-50/50 space-y-4">
-                  <div className="text-center border-b border-slate-200 pb-4">
+                <div key={app.id} className="p-8 rounded-2xl border-2 border-slate-200 bg-slate-50/50 space-y-4 dark:bg-slate-800/50 dark:border-slate-700">
+                  <div className="text-center border-b border-slate-200 pb-4 dark:border-slate-700">
                     <h3 className="text-lg font-black text-[#d0112b] tracking-wider font-['Montserrat'] uppercase">
                       PARAMOUNT LIFE & GENERAL INSURANCE CORP.
                     </h3>
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1 dark:text-slate-400">
                       OFFICIAL POLICY CERTIFICATE
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
-                      <span className="text-slate-400 font-bold block">APP ID / POLICY NO:</span>
-                      <span className="font-extrabold text-slate-900 text-sm">{formatPolicyNumber(app)}</span>
+                      <span className="text-slate-400 font-bold block dark:text-slate-500">APP ID / POLICY NO:</span>
+                      <span className="font-extrabold text-slate-900 text-sm dark:text-white">{formatPolicyNumber(app)}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 font-bold block">POLICY HOLDER:</span>
-                      <span className="font-extrabold text-slate-900 text-sm">{app.payor}</span>
+                      <span className="text-slate-400 font-bold block dark:text-slate-500">POLICY HOLDER:</span>
+                      <span className="font-extrabold text-slate-900 text-sm dark:text-white">{app.payor}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 font-bold block">PLAN CODE:</span>
-                      <span className="font-extrabold text-slate-900">{app.planCode} ({app.planDesc})</span>
+                      <span className="text-slate-400 font-bold block dark:text-slate-500">PLAN CODE:</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white">{app.planCode} ({app.planDesc})</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 font-bold block">PREMIUM:</span>
+                      <span className="text-slate-400 font-bold block dark:text-slate-500">PREMIUM:</span>
                       <span className="font-black text-[#d0112b]">{app.premium}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 font-bold block">APPLICATION STATUS:</span>
-                      <span className="font-bold text-slate-800">{app.status}</span>
+                      <span className="text-slate-400 font-bold block dark:text-slate-500">APPLICATION STATUS:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{app.status}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 font-bold block">ISSUED BY:</span>
-                      <span className="font-bold text-slate-800">{app.screenedBy}</span>
+                      <span className="text-slate-400 font-bold block dark:text-slate-500">ISSUED BY:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{app.screenedBy}</span>
                     </div>
                   </div>
                 </div>
@@ -434,10 +434,10 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end space-x-3 pt-2 border-t border-slate-100">
+            <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setPrintModalApps(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Close
               </button>

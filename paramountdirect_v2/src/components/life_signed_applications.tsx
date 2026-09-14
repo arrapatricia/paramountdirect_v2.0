@@ -50,32 +50,32 @@ export default function LifeSignedApplications() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 space-y-6">
-      <h1 className="text-xl font-black uppercase tracking-widest text-slate-900 font-['Montserrat']">SIGNED APPLICATIONS</h1>
+    <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
+      <h1 className="text-xl font-black uppercase tracking-widest text-slate-900 dark:text-white font-['Montserrat']">SIGNED APPLICATIONS</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left stats */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3">Total</h2>
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3 dark:text-slate-500">Total</h2>
             <div className="space-y-2 text-xs font-semibold">
-              <div className="flex items-center justify-between"><span className="text-slate-600">Paid</span><span className="font-black text-slate-900">{totalPaid.toLocaleString()}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-600">Signed</span><span className="font-black text-emerald-600">{totalSigned.toLocaleString()}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-600">Unsigned</span><span className="font-black text-amber-600">{totalUnsigned.toLocaleString()}</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-600 dark:text-slate-400">Paid</span><span className="font-black text-slate-900 dark:text-white">{totalPaid.toLocaleString()}</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-600 dark:text-slate-400">Signed</span><span className="font-black text-emerald-600 dark:text-emerald-400">{totalSigned.toLocaleString()}</span></div>
+              <div className="flex items-center justify-between"><span className="text-slate-600 dark:text-slate-400">Unsigned</span><span className="font-black text-amber-600 dark:text-amber-400">{totalUnsigned.toLocaleString()}</span></div>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3">Per Month</h2>
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3 dark:text-slate-500">Per Month</h2>
             <div className="flex items-baseline space-x-3 mb-3">
               <span className="text-2xl font-black text-[#d0112b] flex items-center">
                 {current.paid} <TrendingUp className="w-4 h-4 ml-1" />
               </span>
-              <span className="text-lg font-bold text-slate-400 flex items-center">
+              <span className="text-lg font-bold text-slate-400 flex items-center dark:text-slate-500">
                 {Math.abs(delta)} {delta >= 0 ? <TrendingUp className="w-3.5 h-3.5 ml-1" /> : <TrendingDown className="w-3.5 h-3.5 ml-1" />}
               </span>
             </div>
-            <div className="space-y-1.5 text-xs font-semibold text-slate-600">
+            <div className="space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
               <p>{average.toLocaleString()} average per month</p>
               <p>{previous.paid.toLocaleString()} last month</p>
               <p>{current.paid.toLocaleString()} this month</p>
@@ -86,8 +86,8 @@ export default function LifeSignedApplications() {
         </div>
 
         {/* Right: chart */}
-        <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col">
-          <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-6">Paid vs Signed</h2>
+        <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-6 dark:text-slate-100">Paid vs Signed</h2>
           <div className="flex-1 flex items-end justify-between px-2 pb-2 space-x-1 min-h-[200px]">
             {MONTHLY_TREND.map((m) => (
               <div key={m.month} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
@@ -95,11 +95,11 @@ export default function LifeSignedApplications() {
                   <div className="w-full max-w-[10px] rounded-t bg-[#d0112b]" style={{ height: `${(m.paid / maxTrendValue) * 100}%` }} title={`Paid: ${m.paid}`} />
                   <div className="w-full max-w-[10px] rounded-t bg-emerald-500" style={{ height: `${(m.signed / maxTrendValue) * 100}%` }} title={`Signed: ${m.signed}`} />
                 </div>
-                <span className="text-[9px] font-bold text-slate-400">{m.month}</span>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">{m.month}</span>
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-100 text-[10px] font-bold text-slate-500">
+          <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-slate-100 text-[10px] font-bold text-slate-500 dark:border-slate-800 dark:text-slate-500">
             <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#d0112b]" /><span>Paid</span></span>
             <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /><span>Signed</span></span>
           </div>
@@ -107,13 +107,13 @@ export default function LifeSignedApplications() {
       </div>
 
       {/* Unsigned queue */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-        <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1">Paid, Awaiting Signature</h2>
-        <p className="text-xs text-slate-500 font-medium mb-5">Applications that have been paid but still need the client's signature</p>
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-slate-100">Paid, Awaiting Signature</h2>
+        <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">Applications that have been paid but still need the client's signature</p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-800 font-extrabold uppercase tracking-wider">
+              <tr className="border-b border-slate-200 text-slate-800 font-extrabold uppercase tracking-wider dark:border-slate-800 dark:text-slate-100">
                 <th className="py-3 px-2">Reference No.</th>
                 <th className="py-3 px-2">Payor</th>
                 <th className="py-3 px-2">Plan</th>
@@ -122,22 +122,22 @@ export default function LifeSignedApplications() {
                 <th className="py-3 px-2 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {unsigned.map((app) => (
                 <tr key={app.id}>
-                  <td className="py-3.5 px-2 font-bold text-slate-900">{app.id}</td>
-                  <td className="py-3.5 px-2 font-bold text-slate-900">{app.payor}</td>
-                  <td className="py-3.5 px-2 font-extrabold text-slate-800">{app.planCode}</td>
+                  <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{app.id}</td>
+                  <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{app.payor}</td>
+                  <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{app.planCode}</td>
                   <td className="py-3.5 px-2 font-black text-[#d0112b]">{app.premium}</td>
-                  <td className="py-3.5 px-2 font-semibold text-slate-700">{app.datePaid}</td>
+                  <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{app.datePaid}</td>
                   <td className="py-3.5 px-2 text-center">
                     <button
                       onClick={() => markSigned(app.id)}
                       disabled={signedIds.includes(app.id)}
                       className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
                         signedIds.includes(app.id)
-                          ? 'bg-emerald-50 text-emerald-600 cursor-default'
-                          : 'bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer'
+                          ? 'bg-emerald-50 text-emerald-600 cursor-default dark:bg-emerald-950/30 dark:text-emerald-400'
+                          : 'bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300'
                       }`}
                     >
                       <FileSignature className="w-3.5 h-3.5" />

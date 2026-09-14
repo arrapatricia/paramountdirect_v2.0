@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { Search, ShieldCheck, Download, Filter, UserCheck, Clock, FileText } from 'lucide-react';
 
-interface Props {
-  darkMode: boolean;
-}
-
 interface AuditLogEntry {
   id: string;
   timestamp: string;
@@ -16,7 +12,7 @@ interface AuditLogEntry {
   ipAddress: string;
 }
 
-export default function AuditLogs({ darkMode }: Props) {
+export default function AuditLogs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModule, setSelectedModule] = useState('All');
 
@@ -64,11 +60,9 @@ export default function AuditLogs({ darkMode }: Props) {
   ];
 
   return (
-    <div className={`p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto font-sans transition-colors duration-500 ${
-      darkMode ? 'text-white' : 'text-gray-900'
-    }`}>
+    <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto font-sans transition-colors duration-500 text-gray-900 dark:text-white">
       {/* Title Header */}
-      <div className="flex justify-between items-center border-b pb-4 border-gray-200 dark:border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-gray-200 dark:border-white/10">
         <div className="flex items-center space-x-2">
           <ShieldCheck className="h-6 w-6 text-[#d0112b]" />
           <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
@@ -83,20 +77,16 @@ export default function AuditLogs({ darkMode }: Props) {
       </div>
 
       {/* Filter Controls */}
-      <div className={`p-4 rounded-3xl border backdrop-blur-xl flex flex-wrap items-center justify-between gap-4 ${
-        darkMode ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-100 shadow-sm'
-      }`}>
+      <div className="p-4 rounded-3xl border backdrop-blur-xl flex flex-wrap items-center justify-between gap-4 bg-white border-gray-100 shadow-sm dark:bg-gray-900/40 dark:border-white/10">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search user, action, or log details..."
-              className={`w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-[#008cb4] ${
-                darkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
-              }`}
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border focus:outline-none focus:ring-2 focus:ring-[#008cb4] bg-gray-50 border-gray-200 text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white"
             />
           </div>
 
@@ -105,9 +95,7 @@ export default function AuditLogs({ darkMode }: Props) {
             <select
               value={selectedModule}
               onChange={(e) => setSelectedModule(e.target.value)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium border outline-none ${
-                darkMode ? 'bg-slate-900 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
-              }`}
+              className="px-3 py-2 rounded-xl text-xs font-medium border outline-none bg-gray-50 border-gray-200 text-gray-900 dark:bg-slate-900 dark:border-white/10 dark:text-white"
             >
               <option value="All">All Modules</option>
               <option value="Application Screening">Application Screening</option>
@@ -119,9 +107,7 @@ export default function AuditLogs({ darkMode }: Props) {
       </div>
 
       {/* Logs Table */}
-      <div className={`p-6 rounded-3xl border backdrop-blur-xl ${
-        darkMode ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-100 shadow-sm'
-      }`}>
+      <div className="p-6 rounded-3xl border backdrop-blur-xl bg-white border-gray-100 shadow-sm dark:bg-gray-900/40 dark:border-white/10">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -141,13 +127,13 @@ export default function AuditLogs({ darkMode }: Props) {
                   <td className="py-3.5 px-2 font-mono font-bold text-[#d0112b]">{log.id}</td>
                   <td className="py-3.5 px-2 font-medium text-gray-700 dark:text-gray-300">
                     <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-gray-400" />
+                      <Clock className="h-3 w-3 text-gray-400 dark:text-gray-500" />
                       {log.timestamp}
                     </span>
                   </td>
                   <td className="py-3.5 px-2">
                     <div className="font-bold text-black dark:text-white">{log.user}</div>
-                    <div className="text-[10px] text-gray-400">{log.role}</div>
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500">{log.role}</div>
                   </td>
                   <td className="py-3.5 px-2 font-mono">
                     <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-[10px]">

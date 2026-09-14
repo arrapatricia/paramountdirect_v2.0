@@ -75,8 +75,8 @@ export default function LifeApplicationsOverview({ period }: Props) {
   const maxValue = Math.max(...data.map((d) => d.total));
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 space-y-6">
-      <h1 className="text-xl font-black uppercase tracking-widest text-slate-900 font-['Montserrat']">
+    <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
+      <h1 className="text-xl font-black uppercase tracking-widest text-slate-900 dark:text-white font-['Montserrat']">
         {period.toUpperCase()} APPLICATIONS
       </h1>
 
@@ -84,11 +84,11 @@ export default function LifeApplicationsOverview({ period }: Props) {
 
         {/* Left: Progress + Stats */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3 dark:text-slate-500">
               Current {isMonthly ? 'Month' : 'Day'} Progress
             </h2>
-            <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden">
+            <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
               <div className="h-full rounded-full bg-[#d0112b]" style={{ width: `${attainmentPct}%` }} />
             </div>
             <div className="flex justify-end mt-2">
@@ -98,17 +98,17 @@ export default function LifeApplicationsOverview({ period }: Props) {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3">Per {isMonthly ? 'Month' : 'Day'}</h2>
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3 dark:text-slate-500">Per {isMonthly ? 'Month' : 'Day'}</h2>
             <div className="flex items-baseline space-x-3 mb-3">
               <span className="text-2xl font-black text-[#d0112b] flex items-center">
                 {current.total} <TrendingUp className="w-4 h-4 ml-1" />
               </span>
-              <span className="text-lg font-bold text-slate-400 flex items-center">
+              <span className="text-lg font-bold text-slate-400 flex items-center dark:text-slate-500">
                 {Math.abs(delta)} {delta >= 0 ? <TrendingUp className="w-3.5 h-3.5 ml-1" /> : <TrendingDown className="w-3.5 h-3.5 ml-1" />}
               </span>
             </div>
-            <div className="space-y-1.5 text-xs font-semibold text-slate-600">
+            <div className="space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
               <p>{average.toLocaleString()} average per {isMonthly ? 'month' : 'day'}</p>
               <p>{previous.total.toLocaleString()} {isMonthly ? 'last month' : 'yesterday'}</p>
               <p>{current.total.toLocaleString()} {isMonthly ? 'this month' : 'today'}</p>
@@ -116,19 +116,19 @@ export default function LifeApplicationsOverview({ period }: Props) {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-2">For Payment</h2>
-            <p className="text-xl font-black text-slate-900">{totalPaid.toLocaleString()} <span className="text-xs font-bold text-slate-400">total policies</span></p>
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-2 dark:text-slate-500">For Payment</h2>
+            <p className="text-xl font-black text-slate-900 dark:text-white">{totalPaid.toLocaleString()} <span className="text-xs font-bold text-slate-400 dark:text-slate-500">total policies</span></p>
           </div>
 
           {!isMonthly && (
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3">Per Source Today</h2>
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+              <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3 dark:text-slate-500">Per Source Today</h2>
               <div className="space-y-2">
                 {SOURCE_TODAY.map((s) => (
                   <div key={s.source} className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-600">{s.source}</span>
-                    <span className="font-black text-slate-900">{s.count}</span>
+                    <span className="font-semibold text-slate-600 dark:text-slate-400">{s.source}</span>
+                    <span className="font-black text-slate-900 dark:text-white">{s.count}</span>
                   </div>
                 ))}
               </div>
@@ -137,14 +137,14 @@ export default function LifeApplicationsOverview({ period }: Props) {
         </div>
 
         {/* Right: Chart */}
-        <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col">
+        <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-6 mb-6">
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold text-slate-500 uppercase">Source:</span>
+              <span className="text-xs font-bold text-slate-500 uppercase dark:text-slate-500">Source:</span>
               <select
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+                className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="All">Sales Source</option>
                 <option value="Google">Google</option>
@@ -154,11 +154,11 @@ export default function LifeApplicationsOverview({ period }: Props) {
               </select>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold text-slate-500 uppercase">Product:</span>
+              <span className="text-xs font-bold text-slate-500 uppercase dark:text-slate-500">Product:</span>
               <select
                 value={productFilter}
                 onChange={(e) => setProductFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer"
+                className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="All">Product</option>
                 <option value="HIP">HIP</option>
@@ -189,17 +189,17 @@ export default function LifeApplicationsOverview({ period }: Props) {
                     />
                   ))}
                 </div>
-                <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap">{d.label}</span>
+                <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap dark:text-slate-500">{d.label}</span>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-slate-100">
-            <span className="flex items-center space-x-1.5 text-[10px] font-bold text-slate-500">
+          <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <span className="flex items-center space-x-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-500">
               <span className="w-2.5 h-2.5 rounded-sm bg-[#d0112b]" /><span>Total</span>
             </span>
             {SERIES.map((s) => (
-              <span key={s.key} className="flex items-center space-x-1.5 text-[10px] font-bold text-slate-500">
+              <span key={s.key} className="flex items-center space-x-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-500">
                 <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} /><span>{s.label}</span>
               </span>
             ))}

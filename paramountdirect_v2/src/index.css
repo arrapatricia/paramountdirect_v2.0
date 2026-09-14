@@ -1,9 +1,18 @@
 @import "tailwindcss";
 
+/* Tailwind v4 defaults dark: to the prefers-color-scheme media query; this
+   repoints it at the .dark class App.tsx toggles on <html>, so the toggle
+   button - not the OS setting - controls dark mode. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --color-paramount: #d0112b;
   --font-sans: 'Montserrat', sans-serif;
   color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
 }
 
 * {
@@ -18,9 +27,22 @@ body {
   color: #0f172a;
 }
 
-/* Force dark, crisp slate text everywhere */
+.dark body {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+/* Force dark, crisp slate text everywhere in light mode */
 td, th, p, span, label, div, input, select {
   color: #1e293b;
+}
+
+/* Same elements get a light slate color in dark mode - higher specificity
+   (two classes) than the light-mode rule above, so this wins once .dark is
+   on <html>. Anything that needs a different shade still overrides via its
+   own text-* utility class. */
+.dark td, .dark th, .dark p, .dark span, .dark label, .dark div, .dark input, .dark select {
+  color: #e2e8f0;
 }
 
 /* Any element explicitly set to white text (buttons on a colored

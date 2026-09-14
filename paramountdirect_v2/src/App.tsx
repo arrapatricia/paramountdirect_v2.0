@@ -323,6 +323,8 @@ export default function App() {
         currentUserEmail={CURRENT_USER.email}
         activeProduct={activeProduct}
         setActiveProduct={setActiveProduct}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
       />
 
       {/* Primary Main Content View */}
