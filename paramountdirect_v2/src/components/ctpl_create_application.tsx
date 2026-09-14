@@ -11,7 +11,7 @@ interface Props {
 }
 
 const getPremium = (rates: PremiumRate[], policyType: string, mvType: string) =>
-  getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
+  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
 
 const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
@@ -20,8 +20,8 @@ const sectionHeadingClass = 'text-sm font-bold text-slate-800 border-b border-sl
 
 export default function CtplCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
   const [renewalType, setRenewalType] = useState<'New (1 Year)' | 'Renewal'>('New (1 Year)');
-  const [policyType, setPolicyType] = useState<typeof CTPL_POLICY_TYPES[number]>('Private Car');
-  const [mvType, setMvType] = useState(CTPL_MV_TYPES[0]);
+  const [policyType, setPolicyType] = useState<typeof CTPL_POLICY_TYPES[number] | ''>('');
+  const [mvType, setMvType] = useState('');
 
   const [clientType, setClientType] = useState<'Individual' | 'Corporate without assignee' | 'Corporate with assignee'>('Individual');
   const [ownerFirstName, setOwnerFirstName] = useState('');
@@ -44,13 +44,14 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [submittedApp, setSubmittedApp] = useState<CtplApplication | null>(null);
 
   const canSubmit =
+    policyType && mvType &&
     ownerFirstName && ownerSurname && email && mobileNumber &&
     plateNumber && mvFileNumber && chassisNumber &&
     (sameAsOwner || (applicantFirstName && applicantSurname));
 
   const buildApplication = (): CtplApplication => ({
     id: `MCOC${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`,
-    policyType, mvType, renewalType,
+    policyType: policyType as typeof CTPL_POLICY_TYPES[number], mvType, renewalType,
     clientType, ownerFirstName, ownerMiddleName, ownerSurname,
     sameAsOwner,
     applicantFirstName: sameAsOwner ? ownerFirstName : applicantFirstName,
@@ -163,13 +164,15 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             </div>
             <div>
               <label className={labelClass}>Policy Type</label>
-              <select value={policyType} onChange={(e) => { setPolicyType(e.target.value as typeof policyType); setMvType(CTPL_MV_TYPES[0]); }} className={inputClass}>
+              <select required value={policyType} onChange={(e) => { setPolicyType(e.target.value as typeof policyType); setMvType(''); }} className={inputClass}>
+                <option value="">-- Select --</option>
                 {CTPL_POLICY_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>LTO MV Type</label>
-              <select value={mvType} onChange={(e) => setMvType(e.target.value)} className={inputClass}>
+              <select required value={mvType} onChange={(e) => setMvType(e.target.value)} className={inputClass}>
+                <option value="">-- Select --</option>
                 {CTPL_MV_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
@@ -282,7 +285,7 @@ function CtplReviewSummary({
   plateNumber, mvFileNumber, chassisNumber, requiresCOV, premiumValue, onEdit, onConfirm,
 }: {
   renewalType: 'New (1 Year)' | 'Renewal';
-  policyType: typeof CTPL_POLICY_TYPES[number];
+  policyType: typeof CTPL_POLICY_TYPES[number] | '';
   mvType: string;
   clientType: 'Individual' | 'Corporate without assignee' | 'Corporate with assignee';
   ownerFirstName: string;

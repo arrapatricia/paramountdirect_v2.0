@@ -125,7 +125,7 @@ function PdLifeCategoryForm({
   rates: PremiumRate[];
 }) {
   const planOptions = PD_LIFE_PLAN_CODES[category];
-  const [planCode, setPlanCode] = useState(planOptions[0].code);
+  const [planCode, setPlanCode] = useState('');
   const [source, setSource] = useState('Paramount Website');
 
   const [owner, setOwner] = useState<PolicyOwnerInfo>({
@@ -172,13 +172,14 @@ function PdLifeCategoryForm({
 
 
   const age = calculateAge(owner.birthdate);
-  const planName = planOptions.find((p) => p.code === planCode)?.name ?? planOptions[0].name;
-  const premiumValue = getPremiumRate(rates, 'PD Life', planCode, 500);
+  const planName = planOptions.find((p) => p.code === planCode)?.name ?? '';
+  const premiumValue = planCode ? getPremiumRate(rates, 'PD Life', planCode, 500) : 0;
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<PdLifeApplication | null>(null);
 
   const canSubmit =
+    planCode &&
     owner.firstName && owner.lastName && owner.birthdate && owner.placeOfBirth &&
     contact.houseNumber && contact.street && contact.zipcode && contact.mobileNumber && contact.email &&
     (payorInfo.sameAsInsured || (payorInfo.name && payorInfo.contactNumber && payorInfo.email)) &&
@@ -324,7 +325,8 @@ function PdLifeCategoryForm({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Plan</label>
-              <select value={planCode} onChange={(e) => setPlanCode(e.target.value)} className={inputClass}>
+              <select required value={planCode} onChange={(e) => setPlanCode(e.target.value)} className={inputClass}>
+                <option value="">-- Select Plan --</option>
                 {planOptions.map((p) => <option key={p.code} value={p.code}>{p.name} ({p.code})</option>)}
               </select>
             </div>

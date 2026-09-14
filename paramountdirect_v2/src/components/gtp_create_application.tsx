@@ -62,11 +62,16 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   // Paramount's own GTPH Computation rate card.
   const destinationCategory: GtpDestinationCategory =
     travelType === 'Domestic' ? 'Domestic' : isHighCostDestination ? 'Including' : 'Excluding';
-  const basePremium =
-    planVariant === 'Single Trip'
-      ? getGtpSingleTripRate(rates, destinationCategory, applicationType, Math.max(1, daysOfTravel))
+  // Don't show a premium until the trip is actually specified - departure
+  // and return dates are the trigger; without them there's nothing real to
+  // price (Single Trip previously fell back to a fabricated 1-day quote).
+  const hasTravelDates = departureDate !== '' && returnDate !== '' && daysOfTravel > 0;
+  const basePremium = !hasTravelDates
+    ? 0
+    : planVariant === 'Single Trip'
+      ? getGtpSingleTripRate(rates, destinationCategory, applicationType, daysOfTravel)
       : getGtpMultiTripRate(rates, planVariant, destinationCategory);
-  const addOnFee =
+  const addOnFee = !hasTravelDates ? 0 :
     (cruiseCoverage ? getPremiumRate(rates, 'GTP', 'cruiseCoverage', 150) : 0) +
     (hazardousSportsCoverage ? getPremiumRate(rates, 'GTP', 'hazardousSportsCoverage', 200) : 0);
   const premiumValue = basePremium + addOnFee;
