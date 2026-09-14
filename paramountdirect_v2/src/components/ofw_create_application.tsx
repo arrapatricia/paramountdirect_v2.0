@@ -70,14 +70,22 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const allDocsUploaded = documents.passport && documents.visa && documents.employmentContract && documents.medicalCertificate;
   const documentsUploadedCount = [documents.passport, documents.visa, documents.employmentContract, documents.medicalCertificate].filter(Boolean).length;
 
-  // Real rate card is a flat daily rate over the contract's exact duration
-  // (verified against Paramount's own OFW premium computation sheet), not a
-  // flat amount per coverage type.
-  const contractDays = contractStart && contractEnd
-    ? Math.max(0, Math.round((new Date(contractEnd).getTime() - new Date(contractStart).getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
-  const dailyRate = getPremiumRate(rates, 'OFW', 'dailyRate', 0.0954);
-  const premiumValue = Number((contractDays * dailyRate).toFixed(2));
+  // No. of Months is the actual pricing driver on the live ofwinsurance.ph
+  // form - a read-only field computed from the Term of Employment From/To
+  // dates, with a 6-month minimum. Counts full calendar months (e.g.
+  // 2026-01-01 to 2027-01-01 = 12), not a raw day count.
+  const contractMonths = (() => {
+    if (!contractStart || !contractEnd) return 0;
+    const start = new Date(contractStart);
+    const end = new Date(contractEnd);
+    let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+    if (end.getDate() < start.getDate()) months -= 1;
+    return Math.max(0, months);
+  })();
+  const MIN_CONTRACT_MONTHS = 6;
+  const isContractTooShort = contractStart !== '' && contractEnd !== '' && contractMonths < MIN_CONTRACT_MONTHS;
+  const monthlyRate = getPremiumRate(rates, 'OFW', 'monthlyRate', 2.90);
+  const premiumValue = Number((contractMonths * monthlyRate).toFixed(2));
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<OfwApplication | null>(null);
@@ -86,6 +94,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
     lastName && firstName && phAddress && birthdate && placeOfBirth && phone && email &&
     passportNumber && salaryAmount && employerName &&
     contractStart && contractEnd && insuranceStart &&
+    !isContractTooShort &&
     (!isConflictZone || conflictAcknowledged);
 
   const handleFileChange = (key: keyof typeof documents) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,6 +221,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
           employerCountry={employerCountry}
           contractStart={contractStart}
           contractEnd={contractEnd}
+          contractMonths={contractMonths}
           insuranceStart={insuranceStart}
           premiumValue={premiumValue}
           documentsUploadedCount={documentsUploadedCount}
@@ -328,6 +338,18 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
             </div>
             <div><label className={labelClass}>Contract Start Date</label><input required type="date" value={contractStart} onChange={(e) => setContractStart(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Contract End Date</label><input required type="date" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} className={inputClass} /></div>
+            <div>
+              <label className={labelClass}>No. of Months</label>
+              <input
+                disabled
+                value={contractStart && contractEnd ? contractMonths : ''}
+                placeholder="Auto-computed"
+                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-70`}
+              />
+              {isContractTooShort && (
+                <p className="text-[10px] font-bold text-rose-600 mt-1 dark:text-rose-400">Contract period should not be less than 6 months.</p>
+              )}
+            </div>
             <div><label className={labelClass}>Insurance Start Date</label><input required type="date" value={insuranceStart} onChange={(e) => setInsuranceStart(e.target.value)} className={inputClass} /></div>
           </div>
 
@@ -388,7 +410,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
 function OfwReviewSummary({
   lastName, firstName, middleName, gender, civilStatus, birthdate, phAddress, phCity, phone, email, referralSource,
   natureOfEmployment, coverageType, occupation, passportNumber, salaryAmount, salaryCurrency, employerName, employerCountry,
-  contractStart, contractEnd, insuranceStart, premiumValue, documentsUploadedCount, onEdit, onConfirm,
+  contractStart, contractEnd, contractMonths, insuranceStart, premiumValue, documentsUploadedCount, onEdit, onConfirm,
 }: {
   lastName: string;
   firstName: string;
@@ -411,6 +433,7 @@ function OfwReviewSummary({
   employerCountry: string;
   contractStart: string;
   contractEnd: string;
+  contractMonths: number;
   insuranceStart: string;
   premiumValue: number;
   documentsUploadedCount: number;
@@ -448,7 +471,7 @@ function OfwReviewSummary({
           {row('Passport Number', passportNumber || '-')}
           {row('Estimated Salary', salaryAmount ? `${salaryAmount} ${salaryCurrency}` : '-')}
           {row('Foreign Employer', employerName ? `${employerName} (${employerCountry})` : '-')}
-          {row('Contract Period', contractStart && contractEnd ? `${contractStart} to ${contractEnd}` : '-')}
+          {row('Contract Period', contractStart && contractEnd ? `${contractStart} to ${contractEnd} (${contractMonths} months)` : '-')}
           {row('Insurance Start Date', insuranceStart || '-')}
           {row('Estimated Premium', <span className="text-[#002f6c]">${premiumValue.toFixed(2)}</span>)}
         </div>

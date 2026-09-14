@@ -7,7 +7,7 @@
 // and only looks up the numeric amount from here.
 
 export type PremiumProduct = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
-export type PremiumUnit = 'flat' | 'per day' | 'add-on';
+export type PremiumUnit = 'flat' | 'per day' | 'per month' | 'add-on';
 
 export interface PremiumRate {
   id: string;
@@ -37,10 +37,13 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   { id: 'pdlife-PHP', product: 'PD Life', key: 'PHP', label: 'PrimeHealth Cash Plan (PHP)', amount: 620, currency: 'PHP', unit: 'flat' },
   { id: 'pdlife-DRE', product: 'PD Life', key: 'DRE', label: 'Dream College Plan (DRE)', amount: 750, currency: 'PHP', unit: 'flat' },
 
-  // OFW - flat daily rate over the exact contract duration (per Paramount's
-  // own OFW premium computation sheet: $0.0954/day, e.g. a 268-day contract
-  // comes out to $25.57), same rate regardless of land/sea coverage type.
-  { id: 'ofw-daily-rate', product: 'OFW', key: 'dailyRate', label: 'Daily premium rate (applies to every day of the contract)', amount: 0.0954, currency: 'USD', unit: 'per day' },
+  // OFW - flat rate per month of the employment contract (No. of Months is
+  // the actual pricing driver on the live ofwinsurance.ph form, computed
+  // from Term of Employment From/To, with a 6-month minimum) - $2.90/month
+  // per Paramount's own OFW premium computation sheet and published rate
+  // table (e.g. 12 months = $34.80), same rate regardless of land/sea
+  // coverage type.
+  { id: 'ofw-monthly-rate', product: 'OFW', key: 'monthlyRate', label: 'Premium rate per month of the employment contract', amount: 2.90, currency: 'USD', unit: 'per month' },
 
   // CTPL - flat premium by policy type + vehicle type
   { id: 'ctpl-car', product: 'CTPL', key: 'Private Car|Car', label: 'Private Car - Car', amount: 606, currency: 'PHP', unit: 'flat' },
