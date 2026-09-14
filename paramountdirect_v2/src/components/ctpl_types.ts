@@ -25,11 +25,23 @@ export interface CtplApplication {
 
   premium: string; // formatted, e.g. "₱606.00"
   dateReceived: string;
-  status: 'Received' | 'For Verification' | 'For Evaluation' | 'Paid' | 'Issued';
+  status: CtplStatus;
   screenedBy: string;
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;
+
+export type CtplStatus = 'Completed' | 'Spoiled' | 'Duplicate' | 'Reversed' | 'Cancelled';
+
+export const CTPL_STATUSES: CtplStatus[] = ['Completed', 'Spoiled', 'Duplicate', 'Reversed', 'Cancelled'];
+
+export const CTPL_STATUS_DESCRIPTIONS: Record<CtplStatus, string> = {
+  'Completed': 'Initial upon submission from website',
+  'Spoiled': 'The application was not paid and only expired',
+  'Duplicate': "There's an existing application already",
+  'Reversed': 'The application was cancelled and the payment was refunded',
+  'Cancelled': 'Cancelled by client',
+};
 
 export const CTPL_MV_TYPES = [
   'Car', 'Non-Conventional MV', 'Sports Utility Vehicle', 'Truck', 'Trailer',

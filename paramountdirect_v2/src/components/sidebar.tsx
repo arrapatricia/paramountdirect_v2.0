@@ -16,7 +16,8 @@ import {
   Users,
   FolderTree,
   Plane,
-  Car
+  Car,
+  Cross
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -27,6 +28,16 @@ export type ProductLine = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
 // scaffolded in User Management / Role Access Maintenance but don't have
 // dashboards yet, so their pills are shown but not selectable.
 const BUILT_PRODUCT_LINES: ProductLine[] = ['PD Life', 'OFW', 'CTPL', 'GTP'];
+
+// Display label shown on the product-line switcher pill only - the
+// underlying 'PD Life' identifier stays as-is everywhere else (User
+// Management, Role Access Maintenance, etc.) to avoid touching those.
+const PRODUCT_DISPLAY_LABEL: Record<ProductLine, string> = {
+  'PD Life': 'Life',
+  'OFW': 'OFW',
+  'CTPL': 'CTPL',
+  'GTP': 'GTP',
+};
 
 interface SidebarProps {
   activeTab: string;
@@ -166,10 +177,11 @@ export default function Sidebar({
                       }`}
                       style={isBuilt && isActive ? { backgroundColor: product === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
                     >
+                      {product === 'PD Life' && <Cross className="w-3 h-3 flex-shrink-0" />}
                       {product === 'OFW' && <Plane className="w-3 h-3 flex-shrink-0" />}
                       {product === 'CTPL' && <Car className="w-3 h-3 flex-shrink-0" />}
                       {product === 'GTP' && <Plane className="w-3 h-3 flex-shrink-0 rotate-45" />}
-                      <span className="truncate">{product}</span>
+                      <span className="truncate">{PRODUCT_DISPLAY_LABEL[product]}</span>
                     </button>
                   );
                 })}

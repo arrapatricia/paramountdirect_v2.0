@@ -41,9 +41,20 @@ export interface OfwApplication {
 
   premium: string; // formatted, e.g. "$42.00"
   dateReceived: string;
-  status: 'Received' | 'For Verification' | 'For Evaluation' | 'Paid' | 'Issued';
+  status: OfwStatus;
   screenedBy: string;
 }
+
+export type OfwStatus = 'Received' | 'Cancelled' | 'Duplicate' | 'Reversed';
+
+export const OFW_STATUSES: OfwStatus[] = ['Received', 'Cancelled', 'Duplicate', 'Reversed'];
+
+export const OFW_STATUS_DESCRIPTIONS: Record<OfwStatus, string> = {
+  'Received': 'Initial upon submission from website',
+  'Cancelled': 'Cancelled by client',
+  'Duplicate': "There's an existing application already",
+  'Reversed': 'The application was cancelled and the payment was refunded',
+};
 
 // Countries the live form flags with a conflict-zone advisory. Kept short
 // and limited to widely-reported active conflict zones for underwriting

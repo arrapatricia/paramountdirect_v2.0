@@ -23,11 +23,14 @@ td, th, p, span, label, div, input, select {
   color: #1e293b;
 }
 
-/* Primary buttons keep white text */
-.bg-\[\#d0112b\],
-.bg-\[\#d0112b\] *,
-button.bg-\[\#d0112b\],
-button.bg-\[\#d0112b\] * {
+/* Any element explicitly set to white text (buttons on a colored
+   background, badges, etc.) keeps white text - the rule above only
+   targets elements that didn't ask for a specific color, but its bare
+   element selectors still have enough specificity to beat an inherited
+   text-white from a parent, so this override is needed for every button
+   background color, not just the original red one. */
+.text-white,
+.text-white * {
   color: #ffffff !important;
 }
 

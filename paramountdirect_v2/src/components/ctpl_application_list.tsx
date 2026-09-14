@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck } from 'lucide-react';
 import type { CtplApplication } from './ctpl_types';
-import { CTPL_POLICY_TYPES } from './ctpl_types';
+import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS } from './ctpl_types';
 
 interface Props {
   data: CtplApplication[];
@@ -9,26 +9,26 @@ interface Props {
 }
 
 const ITEMS_PER_PAGE = 20;
-const STATUS_TABS = ['All', 'Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
+const STATUS_TABS = ['All', ...CTPL_STATUSES] as const;
 
 const getStatusBadgeStyle = (status: string) => {
   switch (status) {
-    case 'Received': return 'bg-[#002f6c]/10 text-[#002f6c] border-[#002f6c]/30';
-    case 'For Verification': return 'bg-amber-100 text-amber-800 border-amber-300';
-    case 'For Evaluation': return 'bg-purple-100 text-purple-800 border-purple-300';
-    case 'Paid': return 'bg-indigo-100 text-indigo-800 border-indigo-300';
-    case 'Issued': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    case 'Completed': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    case 'Spoiled': return 'bg-rose-100 text-rose-700 border-rose-300';
+    case 'Duplicate': return 'bg-amber-100 text-amber-800 border-amber-300';
+    case 'Reversed': return 'bg-purple-100 text-purple-800 border-purple-300';
+    case 'Cancelled': return 'bg-slate-100 text-slate-600 border-slate-300';
     default: return 'bg-slate-100 text-slate-700 border-slate-300';
   }
 };
 
 const getRowTintStyle = (status: string) => {
   switch (status) {
-    case 'Received': return 'bg-[#002f6c]/[0.03] hover:bg-[#002f6c]/[0.06]';
-    case 'For Verification': return 'bg-amber-50/60 hover:bg-amber-50';
-    case 'For Evaluation': return 'bg-purple-50/60 hover:bg-purple-50';
-    case 'Paid': return 'bg-indigo-50/60 hover:bg-indigo-50';
-    case 'Issued': return 'bg-emerald-50/60 hover:bg-emerald-50';
+    case 'Completed': return 'bg-emerald-50/60 hover:bg-emerald-50';
+    case 'Spoiled': return 'bg-rose-50/60 hover:bg-rose-50';
+    case 'Duplicate': return 'bg-amber-50/60 hover:bg-amber-50';
+    case 'Reversed': return 'bg-purple-50/60 hover:bg-purple-50';
+    case 'Cancelled': return 'bg-slate-50 hover:bg-slate-100';
     default: return 'hover:bg-slate-50';
   }
 };
@@ -42,11 +42,7 @@ export default function CtplApplicationList({ data, onCreateNew }: Props) {
 
   const tabCounts: Record<string, number> = {
     'All': data.length,
-    'Received': data.filter(d => d.status === 'Received').length,
-    'For Verification': data.filter(d => d.status === 'For Verification').length,
-    'For Evaluation': data.filter(d => d.status === 'For Evaluation').length,
-    'Paid': data.filter(d => d.status === 'Paid').length,
-    'Issued': data.filter(d => d.status === 'Issued').length,
+    ...Object.fromEntries(CTPL_STATUSES.map((s) => [s, data.filter(d => d.status === s).length])),
   };
 
   const filteredData = data.filter((item) => {
@@ -175,7 +171,10 @@ export default function CtplApplicationList({ data, onCreateNew }: Props) {
                       )}
                     </td>
                     <td className="py-3.5 px-2 text-center">
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-xs font-bold ${getStatusBadgeStyle(row.status)}`}>
+                      <span
+                        title={CTPL_STATUS_DESCRIPTIONS[row.status]}
+                        className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-xs font-bold ${getStatusBadgeStyle(row.status)}`}
+                      >
                         {row.status}
                       </span>
                     </td>

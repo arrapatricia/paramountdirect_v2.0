@@ -23,11 +23,21 @@ export interface GtpApplication {
 
   premium: string; // formatted, e.g. "₱850.00"
   dateReceived: string;
-  status: 'Received' | 'For Verification' | 'For Evaluation' | 'Paid' | 'Issued';
+  status: GtpStatus;
   screenedBy: string;
 }
 
 export const GTP_PLAN_VARIANTS = ['Single Trip', 'Multi-Trip 90', 'Multi-Trip 180'] as const;
+
+export type GtpStatus = 'Received' | 'Cancelled' | 'Duplicate';
+
+export const GTP_STATUSES: GtpStatus[] = ['Received', 'Cancelled', 'Duplicate'];
+
+export const GTP_STATUS_DESCRIPTIONS: Record<GtpStatus, string> = {
+  'Received': 'Initial upon submission from website',
+  'Cancelled': 'Cancelled by client',
+  'Duplicate': "There's an existing application already",
+};
 
 // Schengen Area member states, since the real site specifically calls out a
 // €30,000 / ₱2.5M medical coverage compliance requirement for these.

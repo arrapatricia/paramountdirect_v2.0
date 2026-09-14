@@ -78,7 +78,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
       requiresCOV,
       premium: `₱${premium.toFixed(2)}`,
       dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      status: 'Received',
+      status: 'Completed',
       screenedBy: currentUser,
     };
 
@@ -99,7 +99,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
 
       {/* Header */}
       <div className="flex items-center space-x-4 border-b border-slate-200 pb-4">
-        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors">
+        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
@@ -215,7 +215,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
         </div>
 
         <div className="flex justify-end space-x-3 pt-2">
-          <button type="button" onClick={onBack} className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <button type="button" onClick={onBack} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer">
             Cancel
           </button>
           <button

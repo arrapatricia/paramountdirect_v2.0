@@ -6,15 +6,15 @@ import Dashboard from './components/dashboard';
 import OfwDashboard from './components/ofw_dashboard';
 import OfwApplicationList from './components/ofw_application_list';
 import OfwCreateApplication from './components/ofw_create_application';
-import type { OfwApplication } from './components/ofw_types';
+import { OFW_STATUSES, type OfwApplication } from './components/ofw_types';
 import CtplDashboard from './components/ctpl_dashboard';
 import CtplApplicationList from './components/ctpl_application_list';
 import CtplCreateApplication from './components/ctpl_create_application';
-import type { CtplApplication } from './components/ctpl_types';
+import { CTPL_STATUSES, type CtplApplication } from './components/ctpl_types';
 import GtpDashboard from './components/gtp_dashboard';
 import GtpApplicationList from './components/gtp_application_list';
 import GtpCreateApplication from './components/gtp_create_application';
-import type { GtpApplication } from './components/gtp_types';
+import { GTP_STATUSES, type GtpApplication } from './components/gtp_types';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -89,8 +89,12 @@ const OFW_MOCK_APPLICANTS = [
 
 const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, i) => {
   const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
-  const statuses = ['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
-  const status = statuses[i % statuses.length];
+  // Weighted so most applications sit in 'Received' (the common case), with
+  // the terminal outcomes appearing occasionally.
+  const statusCycle: typeof OFW_STATUSES[number][] = [
+    'Received', 'Received', 'Received', 'Cancelled', 'Received', 'Duplicate', 'Received', 'Reversed',
+  ];
+  const status = statusCycle[i % statusCycle.length];
   const isConflictZone = ['Ukraine', 'Israel', 'Yemen', 'Syria'].includes(applicant.country);
   const day = 27 - (i % 5);
 
@@ -144,8 +148,10 @@ const CTPL_MOCK_OWNERS = [
 
 const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_, i) => {
   const owner = CTPL_MOCK_OWNERS[i % CTPL_MOCK_OWNERS.length];
-  const statuses = ['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
-  const status = statuses[i % statuses.length];
+  const statusCycle: typeof CTPL_STATUSES[number][] = [
+    'Completed', 'Completed', 'Completed', 'Cancelled', 'Completed', 'Spoiled', 'Completed', 'Duplicate', 'Completed', 'Reversed',
+  ];
+  const status = statusCycle[i % statusCycle.length];
   const day = 27 - (i % 5);
 
   return {
@@ -184,8 +190,8 @@ const GTP_MOCK_TRAVELERS = [
 
 const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, i) => {
   const traveler = GTP_MOCK_TRAVELERS[i % GTP_MOCK_TRAVELERS.length];
-  const statuses = ['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
-  const status = statuses[i % statuses.length];
+  const statusCycle: typeof GTP_STATUSES[number][] = ['Received', 'Received', 'Received', 'Cancelled', 'Received', 'Duplicate'];
+  const status = statusCycle[i % statusCycle.length];
   const isSchengenDestination = traveler.destinations.some((d) => ['France', 'Italy'].includes(d));
   const day = 27 - (i % 5);
   const days = 7 + (i % 3) * 3;
