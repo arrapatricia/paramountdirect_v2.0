@@ -1,23 +1,31 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Search, 
-  ClipboardCheck, 
+import {
+  LayoutDashboard,
+  Search,
+  ClipboardCheck,
   CreditCard,
-  Wrench, 
-  FileText, 
-  ChevronDown, 
-  ChevronRight, 
+  Wrench,
+  FileText,
+  ChevronDown,
+  ChevronRight,
   ChevronLeft,
-  LogOut, 
-  Building2, 
-  Globe, 
+  LogOut,
+  Building2,
+  Globe,
   BarChart3,
   Users,
-  FolderTree
+  FolderTree,
+  Plane
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
+
+export type ProductLine = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
+
+// Only PD Life and OFW have real pages built so far - CTPL and GTP are
+// scaffolded in User Management / Role Access Maintenance but don't have
+// dashboards yet, so their pills are shown but not selectable.
+const BUILT_PRODUCT_LINES: ProductLine[] = ['PD Life', 'OFW'];
 
 interface SidebarProps {
   activeTab: string;
@@ -29,6 +37,8 @@ interface SidebarProps {
   onClose?: () => void;
   currentUserName?: string;
   currentUserEmail?: string;
+  activeProduct?: ProductLine;
+  setActiveProduct?: (product: ProductLine) => void;
 }
 
 export default function Sidebar({
@@ -40,7 +50,9 @@ export default function Sidebar({
   isOpen = false,
   onClose,
   currentUserName = 'Juan Dela Cruz',
-  currentUserEmail = 'juan.delacruz@paramount.com.ph'
+  currentUserEmail = 'juan.delacruz@paramount.com.ph',
+  activeProduct = 'PD Life',
+  setActiveProduct
 }: SidebarProps) {
   const userInitials = currentUserName
     .split(' ')
@@ -52,12 +64,20 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'inquiry', label: 'Application Inquiry', icon: Search },
-    { id: 'screening', label: 'Application Screening', icon: ClipboardCheck },
-    { id: 'payments', label: 'Payment Transactions', icon: CreditCard },
-  ];
+  const navItemsByProduct: Record<ProductLine, { id: string; label: string; icon: typeof LayoutDashboard }[]> = {
+    'PD Life': [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'inquiry', label: 'Application Inquiry', icon: Search },
+      { id: 'screening', label: 'Application Screening', icon: ClipboardCheck },
+      { id: 'payments', label: 'Payment Transactions', icon: CreditCard },
+    ],
+    'OFW': [
+      { id: 'ofw-dashboard', label: 'OFW Dashboard', icon: LayoutDashboard },
+    ],
+    'CTPL': [],
+    'GTP': [],
+  };
+  const navItems = navItemsByProduct[activeProduct];
 
   const maintenanceSubItems = [
     { id: 'users', label: 'User Management', icon: Users },
@@ -108,8 +128,46 @@ export default function Sidebar({
             </button>
           </div>
 
-          {/* Section Heading */}
+          {/* Product Line Switcher */}
           {!isCollapsed && (
+            <div className="mb-4 px-1">
+              <p className="text-[10px] font-black uppercase text-slate-400 px-2 mb-2 tracking-wider whitespace-nowrap">
+                Product Line
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(['PD Life', 'OFW', 'CTPL', 'GTP'] as ProductLine[]).map((product) => {
+                  const isBuilt = BUILT_PRODUCT_LINES.includes(product);
+                  const isActive = activeProduct === product;
+                  return (
+                    <button
+                      key={product}
+                      disabled={!isBuilt}
+                      title={isBuilt ? undefined : 'Coming Soon'}
+                      onClick={() => {
+                        if (!isBuilt || !setActiveProduct) return;
+                        setActiveProduct(product);
+                        setActiveTab(navItemsByProduct[product][0]?.id || 'dashboard');
+                        if (onClose) onClose();
+                      }}
+                      className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold transition-all flex items-center justify-center space-x-1 ${
+                        !isBuilt
+                          ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-dashed border-slate-200'
+                          : isActive
+                          ? 'bg-[#d0112b] text-white shadow-sm cursor-pointer'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer'
+                      }`}
+                    >
+                      {product === 'OFW' && <Plane className="w-3 h-3 flex-shrink-0" />}
+                      <span className="truncate">{product}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Section Heading */}
+          {!isCollapsed && navItems.length > 0 && (
             <p className="text-[10px] font-black uppercase text-slate-400 px-3 mb-2 tracking-wider whitespace-nowrap">
               Main Menu
             </p>

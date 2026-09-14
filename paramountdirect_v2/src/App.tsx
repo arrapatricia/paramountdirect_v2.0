@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, Sun, Moon } from 'lucide-react';
 import Login from './components/login';
-import Sidebar from './components/sidebar';
+import Sidebar, { type ProductLine } from './components/sidebar';
 import Dashboard from './components/dashboard';
+import OfwDashboard from './components/ofw_dashboard';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -66,6 +67,7 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('users');
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
@@ -150,12 +152,17 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)}
         currentUserName={CURRENT_USER.name}
         currentUserEmail={CURRENT_USER.email}
+        activeProduct={activeProduct}
+        setActiveProduct={setActiveProduct}
       />
 
       {/* Primary Main Content View */}
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'dashboard' && <Dashboard />}
-        
+
+        {/* OFW Dashboard */}
+        {activeTab === 'ofw-dashboard' && <OfwDashboard />}
+
         {/* Application Inquiry */}
         {activeTab === 'inquiry' && (
           selectedApp ? renderApplicationDetail() : (
