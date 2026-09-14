@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, ShieldAlert, Info } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldAlert, Info, X } from 'lucide-react';
 import {
-  GTP_PLAN_VARIANTS, SCHENGEN_COUNTRIES, HIGH_COST_DESTINATIONS, POPULAR_DESTINATIONS,
+  GTP_PLAN_VARIANTS, SCHENGEN_COUNTRIES, HIGH_COST_DESTINATIONS, POPULAR_DESTINATIONS, ALL_COUNTRIES,
   type GtpApplication,
 } from './gtp_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
@@ -190,14 +190,47 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
 
           <div className="mb-4">
             <label className={labelClass}>Country Destination(s)</label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+
+            {/* Quick picks for the most common destinations */}
+            <div className="flex flex-wrap gap-2 mb-2">
               {POPULAR_DESTINATIONS.map((country) => (
-                <label key={country} className={`flex items-center space-x-1.5 px-2.5 py-2 rounded-lg border cursor-pointer text-[11px] ${destinations.includes(country) ? 'border-[#49b1ea] bg-[#ebf3fc] dark:bg-[#49b1ea]/10' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'}`}>
-                  <input type="checkbox" checked={destinations.includes(country)} onChange={() => toggleDestination(country)} className="accent-[#002f6c]" />
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">{country}</span>
-                </label>
+                <button
+                  type="button"
+                  key={country}
+                  onClick={() => toggleDestination(country)}
+                  className={`px-2.5 py-1.5 rounded-lg border cursor-pointer text-[11px] font-semibold transition-colors ${destinations.includes(country) ? 'border-[#49b1ea] bg-[#ebf3fc] text-[#002f6c] dark:bg-[#49b1ea]/10 dark:text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-[#49b1ea] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+                >
+                  {country}
+                </button>
               ))}
             </div>
+
+            {/* Full country list, for anything not in the quick picks */}
+            <select
+              value=""
+              onChange={(e) => { if (e.target.value) toggleDestination(e.target.value); }}
+              className={inputClass}
+            >
+              <option value="">+ Add another country&hellip;</option>
+              {ALL_COUNTRIES.filter((c) => !destinations.includes(c)).map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            {/* Selected destinations */}
+            {destinations.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {destinations.map((country) => (
+                  <span key={country} className="flex items-center space-x-1.5 pl-2.5 pr-1.5 py-1.5 rounded-lg bg-[#002f6c] text-white text-[11px] font-bold">
+                    <span>{country}</span>
+                    <button type="button" onClick={() => toggleDestination(country)} className="p-0.5 rounded hover:bg-white/20 cursor-pointer">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             {isHighCostDestination && (
               <p className="text-[10px] font-semibold text-amber-700 mt-2 flex items-center space-x-1 dark:text-amber-400">
                 <Info className="w-3 h-3 flex-shrink-0" />
