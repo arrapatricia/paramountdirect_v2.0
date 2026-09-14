@@ -1,0 +1,53 @@
+// Shared CTPL (Compulsory Third Party Liability) application data model,
+// based on the real quote + application flow researched at ctpl.ph.
+
+export interface CtplApplication {
+  id: string;
+  policyType: 'Private Car' | 'Commercial Vehicle' | 'Motorcycle';
+  mvType: string; // Car, SUV, Truck, Trailer, Motorcycle, Tricycle, etc.
+  renewalType: 'New (1 Year)' | 'Renewal';
+
+  clientType: 'Individual' | 'Corporate without assignee' | 'Corporate with assignee';
+  ownerFirstName: string;
+  ownerMiddleName: string;
+  ownerSurname: string;
+  sameAsOwner: boolean;
+  applicantFirstName: string;
+  applicantSurname: string;
+  email: string;
+  mobileNumber: string;
+
+  plateNumber: string; // 6-7 alphanumeric
+  mvFileNumber: string; // 15 numeric digits
+  chassisNumber: string; // 17 alphanumeric
+
+  requiresCOV: boolean; // Certificate of Validation - additional PHP 60 fee via DBP-DCI
+
+  premium: string; // formatted, e.g. "₱606.00"
+  dateReceived: string;
+  status: 'Received' | 'For Verification' | 'For Evaluation' | 'Paid' | 'Issued';
+  screenedBy: string;
+}
+
+export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;
+
+export const CTPL_MV_TYPES = [
+  'Car', 'Non-Conventional MV', 'Sports Utility Vehicle', 'Truck', 'Trailer',
+  'Motorcycle', 'Motorcycle with Side Car', 'Tourist Bus', 'School Bus',
+  'Utility Vehicle', 'Tricycle', 'Shuttle Bus',
+];
+
+// Ending plate digit -> coverage effectivity month, per the LTO staggered
+// registration schedule the real site publishes.
+export const PLATE_ENDING_SCHEDULE: { ending: string; month: string }[] = [
+  { ending: '1', month: 'February' },
+  { ending: '2', month: 'March' },
+  { ending: '3', month: 'April' },
+  { ending: '4', month: 'May' },
+  { ending: '5', month: 'June' },
+  { ending: '6', month: 'July' },
+  { ending: '7', month: 'August' },
+  { ending: '8', month: 'September' },
+  { ending: '9', month: 'October' },
+  { ending: '0', month: 'November' },
+];

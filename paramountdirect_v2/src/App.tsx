@@ -7,6 +7,10 @@ import OfwDashboard from './components/ofw_dashboard';
 import OfwApplicationList from './components/ofw_application_list';
 import OfwCreateApplication from './components/ofw_create_application';
 import type { OfwApplication } from './components/ofw_types';
+import CtplDashboard from './components/ctpl_dashboard';
+import CtplApplicationList from './components/ctpl_application_list';
+import CtplCreateApplication from './components/ctpl_create_application';
+import type { CtplApplication } from './components/ctpl_types';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -125,6 +129,46 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, 
   };
 });
 
+const CTPL_MOCK_OWNERS = [
+  { firstName: 'Ricardo', surname: 'Santos', policyType: 'Private Car' as const, mvType: 'Car', premium: 606 },
+  { firstName: 'Ligaya', surname: 'Fernandez', policyType: 'Private Car' as const, mvType: 'Sports Utility Vehicle', premium: 730 },
+  { firstName: 'Bayani', surname: 'Cruz', policyType: 'Motorcycle' as const, mvType: 'Motorcycle', premium: 260 },
+  { firstName: 'Corazon', surname: 'Aquino', policyType: 'Commercial Vehicle' as const, mvType: 'Utility Vehicle', premium: 850 },
+  { firstName: 'Emmanuel', surname: 'Bautista', policyType: 'Private Car' as const, mvType: 'Car', premium: 606 },
+  { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Truck', premium: 1200 },
+];
+
+const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_, i) => {
+  const owner = CTPL_MOCK_OWNERS[i % CTPL_MOCK_OWNERS.length];
+  const statuses = ['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const;
+  const status = statuses[i % statuses.length];
+  const day = 27 - (i % 5);
+
+  return {
+    id: `CTP1${(1000 + i).toString()}`,
+    policyType: owner.policyType,
+    mvType: owner.mvType,
+    renewalType: (i % 4 === 0 ? 'Renewal' : 'New (1 Year)') as 'New (1 Year)' | 'Renewal',
+    clientType: 'Individual' as const,
+    ownerFirstName: owner.firstName,
+    ownerMiddleName: 'M',
+    ownerSurname: owner.surname,
+    sameAsOwner: true,
+    applicantFirstName: owner.firstName,
+    applicantSurname: owner.surname,
+    email: `${owner.firstName.toLowerCase()}.${owner.surname.toLowerCase()}@example.com`,
+    mobileNumber: '09171234567',
+    plateNumber: `ABC${1000 + i}`.slice(0, 7),
+    mvFileNumber: `1301-0000${(1000000 + i).toString().slice(-7)}`,
+    chassisNumber: `JT4BR38J2R${(100000 + i).toString().padStart(6, '0')}`,
+    requiresCOV: i % 5 === 0,
+    premium: `₱${owner.premium.toFixed(2)}`,
+    dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
+    status,
+    screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+  };
+});
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
@@ -137,6 +181,8 @@ export default function App() {
   const [screeningData, setScreeningData] = useState<ScreeningItem[]>(initialMockData);
   const [ofwApplications, setOfwApplications] = useState<OfwApplication[]>(initialOfwMockData);
   const [isCreatingOfwApp, setIsCreatingOfwApp] = useState(false);
+  const [ctplApplications, setCtplApplications] = useState<CtplApplication[]>(initialCtplMockData);
+  const [isCreatingCtplApp, setIsCreatingCtplApp] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -207,6 +253,7 @@ export default function App() {
           setActiveTab(tab);
           setSelectedApp(null); // Resets detail view on menu navigation
           setIsCreatingOfwApp(false);
+          setIsCreatingCtplApp(false);
         }}
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
@@ -238,6 +285,25 @@ export default function App() {
             <OfwApplicationList
               data={ofwApplications}
               onCreateNew={() => setIsCreatingOfwApp(true)}
+            />
+          )
+        )}
+
+        {/* CTPL Dashboard */}
+        {activeTab === 'ctpl-dashboard' && <CtplDashboard />}
+
+        {/* CTPL Applications */}
+        {activeTab === 'ctpl-applications' && (
+          isCreatingCtplApp ? (
+            <CtplCreateApplication
+              currentUser={CURRENT_USER.name}
+              onBack={() => setIsCreatingCtplApp(false)}
+              onCreate={(app) => setCtplApplications(prev => [app, ...prev])}
+            />
+          ) : (
+            <CtplApplicationList
+              data={ctplApplications}
+              onCreateNew={() => setIsCreatingCtplApp(true)}
             />
           )
         )}
