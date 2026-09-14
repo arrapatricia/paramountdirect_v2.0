@@ -26,6 +26,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
 
   // Tab counts dynamically computed from 'data' prop
   const tabCounts: Record<string, number> = {
+    'All': data.length,
     'Received': data.filter(d => d.status === 'Received').length,
     'For Verification': data.filter(d => d.status === 'For Verification').length,
     'For Evaluation': data.filter(d => d.status === 'For Evaluation').length,
@@ -35,7 +36,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
 
   // 1. Filter Data
   const filteredData = data.filter((item) => {
-    const matchesTab = item.status === activeTab;
+    const matchesTab = activeTab === 'All' || item.status === activeTab;
     const matchesSearch = item.payor.toLowerCase().includes(searchTerm.toLowerCase()) || item.id.includes(searchTerm);
     const matchesSource = selectedSource === 'All' || item.source === selectedSource;
     const matchesProduct = selectedProduct === 'All' || item.planCode === selectedProduct;
@@ -251,7 +252,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
 
       {/* Status Counter Tabs */}
       <div className="rounded-2xl border border-slate-300 bg-slate-200/70 p-1 flex items-center justify-start space-x-1 overflow-x-auto">
-        {(['Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const).map((tab) => (
+        {(['All', 'Received', 'For Verification', 'For Evaluation', 'Paid', 'Issued'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
