@@ -23,6 +23,39 @@ export function getPremiumRate(rates: PremiumRate[], product: PremiumProduct, ke
   return rates.find((r) => r.product === product && r.key === key)?.amount ?? fallback;
 }
 
+export type GtpDestinationCategory = 'Including' | 'Excluding' | 'Domestic';
+
+const GTP_DAY_BRACKETS = [4, 8, 15, 24, 31, 45, 60];
+
+// GTP Single Trip pricing: graduated day brackets up to 60 days, then a flat
+// per-10-days increment beyond that - matches the sheet's own "Each addtl
+// 10 days" row.
+export function getGtpSingleTripRate(
+  rates: PremiumRate[],
+  category: GtpDestinationCategory,
+  applicationType: 'Individual' | 'Family',
+  days: number
+): number {
+  const bracket = GTP_DAY_BRACKETS.find((b) => days <= b);
+  if (bracket) {
+    return getPremiumRate(rates, 'GTP', `Single Trip|${category}|${applicationType}|${bracket}`);
+  }
+  const base = getPremiumRate(rates, 'GTP', `Single Trip|${category}|${applicationType}|60`);
+  const addtl = getPremiumRate(rates, 'GTP', `Single Trip|${category}|${applicationType}|addtl10`);
+  const increments = Math.ceil((days - 60) / 10);
+  return base + increments * addtl;
+}
+
+// GTP Multi-Trip annual plans are one flat premium per destination category,
+// not split by Individual/Family.
+export function getGtpMultiTripRate(
+  rates: PremiumRate[],
+  planVariant: 'Multi-Trip 90' | 'Multi-Trip 180',
+  category: GtpDestinationCategory
+): number {
+  return getPremiumRate(rates, 'GTP', `${planVariant}|${category}`);
+}
+
 export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   // PD Life - flat premium per plan code
   { id: 'pdlife-HCP', product: 'PD Life', key: 'HCP', label: 'HealthCARE Cash Plan (HCP)', amount: 500, currency: 'PHP', unit: 'flat' },
@@ -60,10 +93,72 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   { id: 'ctpl-shuttle', product: 'CTPL', key: 'Commercial Vehicle|Shuttle Bus', label: 'Commercial Vehicle - Shuttle Bus', amount: 1600, currency: 'PHP', unit: 'flat' },
   { id: 'ctpl-default', product: 'CTPL', key: 'default', label: 'Default (any combination not listed above)', amount: 606, currency: 'PHP', unit: 'flat' },
 
-  // GTP - per-day rate by plan variant, plus flat add-on fees
-  { id: 'gtp-single', product: 'GTP', key: 'Single Trip', label: 'Single Trip', amount: 55, currency: 'PHP', unit: 'per day' },
-  { id: 'gtp-multi90', product: 'GTP', key: 'Multi-Trip 90', label: 'Multi-Trip 90', amount: 42, currency: 'PHP', unit: 'per day' },
-  { id: 'gtp-multi180', product: 'GTP', key: 'Multi-Trip 180', label: 'Multi-Trip 180', amount: 38, currency: 'PHP', unit: 'per day' },
+  // GTP - Single Trip prices off two factors: destination category
+  // (Including USA/Canada/HK vs Excluding vs Domestic, auto-detected from
+  // the chosen destinations) and days of travel (graduated brackets), split
+  // by Individual/Family. Verified against Paramount's own GTPH
+  // Computation sheet, Economy tier (P500,000 Intl / P250,000 Domestic).
+  { id: 'gtp-st-incl-4-ind', product: 'GTP', key: 'Single Trip|Including|Individual|4', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 4 days', amount: 450.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-4-fam', product: 'GTP', key: 'Single Trip|Including|Family|4', label: 'Single Trip, Including USA/Canada/HK, Family, up to 4 days', amount: 1102.50, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-8-ind', product: 'GTP', key: 'Single Trip|Including|Individual|8', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 8 days', amount: 711.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-8-fam', product: 'GTP', key: 'Single Trip|Including|Family|8', label: 'Single Trip, Including USA/Canada/HK, Family, up to 8 days', amount: 1756.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-15-ind', product: 'GTP', key: 'Single Trip|Including|Individual|15', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 15 days', amount: 1013.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-15-fam', product: 'GTP', key: 'Single Trip|Including|Family|15', label: 'Single Trip, Including USA/Canada/HK, Family, up to 15 days', amount: 2523.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-24-ind', product: 'GTP', key: 'Single Trip|Including|Individual|24', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 24 days', amount: 1316.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-24-fam', product: 'GTP', key: 'Single Trip|Including|Family|24', label: 'Single Trip, Including USA/Canada/HK, Family, up to 24 days', amount: 3302.50, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-31-ind', product: 'GTP', key: 'Single Trip|Including|Individual|31', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 31 days', amount: 1603.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-31-fam', product: 'GTP', key: 'Single Trip|Including|Family|31', label: 'Single Trip, Including USA/Canada/HK, Family, up to 31 days', amount: 4056.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-45-ind', product: 'GTP', key: 'Single Trip|Including|Individual|45', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 45 days', amount: 2208.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-45-fam', product: 'GTP', key: 'Single Trip|Including|Family|45', label: 'Single Trip, Including USA/Canada/HK, Family, up to 45 days', amount: 5631.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-60-ind', product: 'GTP', key: 'Single Trip|Including|Individual|60', label: 'Single Trip, Including USA/Canada/HK, Individual, up to 60 days', amount: 2813.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-60-fam', product: 'GTP', key: 'Single Trip|Including|Family|60', label: 'Single Trip, Including USA/Canada/HK, Family, up to 60 days', amount: 7230.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-incl-addtl10-ind', product: 'GTP', key: 'Single Trip|Including|Individual|addtl10', label: 'Single Trip, Including USA/Canada/HK, Individual, each additional 10 days beyond 60', amount: 257.50, currency: 'PHP', unit: 'add-on' },
+  { id: 'gtp-st-incl-addtl10-fam', product: 'GTP', key: 'Single Trip|Including|Family|addtl10', label: 'Single Trip, Including USA/Canada/HK, Family, each additional 10 days beyond 60', amount: 643.75, currency: 'PHP', unit: 'add-on' },
+
+  { id: 'gtp-st-excl-4-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|4', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 4 days', amount: 378.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-4-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|4', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 4 days', amount: 926.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-8-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|8', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 8 days', amount: 635.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-8-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|8', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 8 days', amount: 1568.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-15-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|15', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 15 days', amount: 907.50, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-15-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|15', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 15 days', amount: 2258.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-24-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|24', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 24 days', amount: 1180.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-24-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|24', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 24 days', amount: 2961.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-31-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|31', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 31 days', amount: 1452.50, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-31-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|31', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 31 days', amount: 3673.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-45-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|45', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 45 days', amount: 1981.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-45-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|45', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 45 days', amount: 5053.75, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-60-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|60', label: 'Single Trip, Excluding USA/Canada/HK, Individual, up to 60 days', amount: 2526.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-60-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|60', label: 'Single Trip, Excluding USA/Canada/HK, Family, up to 60 days', amount: 6491.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-excl-addtl10-ind', product: 'GTP', key: 'Single Trip|Excluding|Individual|addtl10', label: 'Single Trip, Excluding USA/Canada/HK, Individual, each additional 10 days beyond 60', amount: 227.50, currency: 'PHP', unit: 'add-on' },
+  { id: 'gtp-st-excl-addtl10-fam', product: 'GTP', key: 'Single Trip|Excluding|Family|addtl10', label: 'Single Trip, Excluding USA/Canada/HK, Family, each additional 10 days beyond 60', amount: 567.50, currency: 'PHP', unit: 'add-on' },
+
+  { id: 'gtp-st-dom-4-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|4', label: 'Single Trip, Domestic, Individual, up to 4 days', amount: 272.25, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-4-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|4', label: 'Single Trip, Domestic, Family, up to 4 days', amount: 667.13, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-8-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|8', label: 'Single Trip, Domestic, Individual, up to 8 days', amount: 505.13, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-8-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|8', label: 'Single Trip, Domestic, Family, up to 8 days', amount: 1247.63, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-15-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|15', label: 'Single Trip, Domestic, Individual, up to 15 days', amount: 721.13, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-15-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|15', label: 'Single Trip, Domestic, Family, up to 15 days', amount: 1796.63, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-24-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|24', label: 'Single Trip, Domestic, Individual, up to 24 days', amount: 939.38, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-24-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|24', label: 'Single Trip, Domestic, Family, up to 24 days', amount: 2358.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-31-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|31', label: 'Single Trip, Domestic, Individual, up to 31 days', amount: 1157.63, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-31-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|31', label: 'Single Trip, Domestic, Family, up to 31 days', amount: 2928.38, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-45-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|45', label: 'Single Trip, Domestic, Individual, up to 45 days', amount: 1584.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-45-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|45', label: 'Single Trip, Domestic, Family, up to 45 days', amount: 4041.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-60-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|60', label: 'Single Trip, Domestic, Individual, up to 60 days', amount: 2017.13, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-60-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|60', label: 'Single Trip, Domestic, Family, up to 60 days', amount: 5185.13, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-st-dom-addtl10-ind', product: 'GTP', key: 'Single Trip|Domestic|Individual|addtl10', label: 'Single Trip, Domestic, Individual, each additional 10 days beyond 60', amount: 181.13, currency: 'PHP', unit: 'add-on' },
+  { id: 'gtp-st-dom-addtl10-fam', product: 'GTP', key: 'Single Trip|Domestic|Family|addtl10', label: 'Single Trip, Domestic, Family, each additional 10 days beyond 60', amount: 453.38, currency: 'PHP', unit: 'add-on' },
+
+  // GTP - Multi-Trip annual plans: one flat premium per destination
+  // category (not split by Individual/Family), for the given per-trip day
+  // cap (90 or 180 days), Economy tier.
+  { id: 'gtp-mt90-incl', product: 'GTP', key: 'Multi-Trip 90|Including', label: 'Multi-Trip 90, Including USA/Canada/HK', amount: 6404.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-mt90-excl', product: 'GTP', key: 'Multi-Trip 90|Excluding', label: 'Multi-Trip 90, Excluding USA/Canada/HK', amount: 5765.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-mt90-dom', product: 'GTP', key: 'Multi-Trip 90|Domestic', label: 'Multi-Trip 90, Domestic', amount: 5124.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-mt180-incl', product: 'GTP', key: 'Multi-Trip 180|Including', label: 'Multi-Trip 180, Including USA/Canada/HK', amount: 12331.00, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-mt180-excl', product: 'GTP', key: 'Multi-Trip 180|Excluding', label: 'Multi-Trip 180, Excluding USA/Canada/HK', amount: 10920.63, currency: 'PHP', unit: 'flat' },
+  { id: 'gtp-mt180-dom', product: 'GTP', key: 'Multi-Trip 180|Domestic', label: 'Multi-Trip 180, Domestic', amount: 9706.38, currency: 'PHP', unit: 'flat' },
+
   { id: 'gtp-cruise', product: 'GTP', key: 'cruiseCoverage', label: 'Cruise Coverage add-on', amount: 150, currency: 'PHP', unit: 'add-on' },
   { id: 'gtp-hazardous', product: 'GTP', key: 'hazardousSportsCoverage', label: 'Hazardous Sports Coverage add-on', amount: 200, currency: 'PHP', unit: 'add-on' },
 ];

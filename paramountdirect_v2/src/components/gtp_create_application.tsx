@@ -4,7 +4,7 @@ import {
   GTP_PLAN_VARIANTS, SCHENGEN_COUNTRIES, HIGH_COST_DESTINATIONS, POPULAR_DESTINATIONS, ALL_COUNTRIES,
   type GtpApplication,
 } from './gtp_types';
-import { getPremiumRate, type PremiumRate } from './premium_rates';
+import { getPremiumRate, getGtpSingleTripRate, getGtpMultiTripRate, type PremiumRate, type GtpDestinationCategory } from './premium_rates';
 
 interface Props {
   onCreate: (app: GtpApplication) => void;
@@ -57,8 +57,15 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   const isHighCostDestination = destinations.some((d) => HIGH_COST_DESTINATIONS.includes(d));
   const isSeniorApplicant = age !== null && age > 65;
 
-  const dailyRateFallback = planVariant === 'Single Trip' ? 55 : planVariant === 'Multi-Trip 90' ? 42 : 38;
-  const basePremium = Math.max(1, daysOfTravel) * getPremiumRate(rates, 'GTP', planVariant, dailyRateFallback);
+  // Premium is priced off destination category (auto-detected: Including
+  // USA/Canada/HK, Excluding, or Domestic) and days of travel - matches
+  // Paramount's own GTPH Computation rate card.
+  const destinationCategory: GtpDestinationCategory =
+    travelType === 'Domestic' ? 'Domestic' : isHighCostDestination ? 'Including' : 'Excluding';
+  const basePremium =
+    planVariant === 'Single Trip'
+      ? getGtpSingleTripRate(rates, destinationCategory, applicationType, Math.max(1, daysOfTravel))
+      : getGtpMultiTripRate(rates, planVariant, destinationCategory);
   const addOnFee =
     (cruiseCoverage ? getPremiumRate(rates, 'GTP', 'cruiseCoverage', 150) : 0) +
     (hazardousSportsCoverage ? getPremiumRate(rates, 'GTP', 'hazardousSportsCoverage', 200) : 0);
@@ -232,7 +239,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
             {isHighCostDestination && (
               <p className="text-[10px] font-semibold text-amber-700 mt-2 flex items-center space-x-1 dark:text-amber-400">
                 <Info className="w-3 h-3 flex-shrink-0" />
-                <span>High cost-of-living destination selected — make sure coverage amounts are correctly indicated.</span>
+                <span>USA / Canada / Hong Kong selected — the higher "Including" rate is automatically applied to this application.</span>
               </p>
             )}
           </div>
