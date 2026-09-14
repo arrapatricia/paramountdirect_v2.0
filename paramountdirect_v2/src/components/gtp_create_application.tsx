@@ -79,7 +79,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   };
 
   const buildApplication = (): GtpApplication => ({
-    id: `GTP${Math.floor(10000 + Math.random() * 90000)}`,
+    id: `GTPH-${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`,
     travelType, destinations, departureDate, returnDate, daysOfTravel, applicationType,
     travelerFirstName, travelerSurname, birthdate, email, mobileNumber,
     planVariant, cruiseCoverage, hazardousSportsCoverage, isSchengenDestination,

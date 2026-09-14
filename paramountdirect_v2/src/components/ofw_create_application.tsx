@@ -86,7 +86,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   };
 
   const buildApplication = (): OfwApplication => ({
-    id: `OFW${Math.floor(10000 + Math.random() * 90000)}`,
+    id: `800${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`,
     lastName, firstName, middleName,
     gender, civilStatus, birthdate, placeOfBirth,
     phAddress, phCity, phone, email, referralSource,

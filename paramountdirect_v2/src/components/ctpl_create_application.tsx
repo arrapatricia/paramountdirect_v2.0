@@ -49,7 +49,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     (sameAsOwner || (applicantFirstName && applicantSurname));
 
   const buildApplication = (): CtplApplication => ({
-    id: `CTP${Math.floor(10000 + Math.random() * 90000)}`,
+    id: `MCOC${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`,
     policyType, mvType, renewalType,
     clientType, ownerFirstName, ownerMiddleName, ownerSurname,
     sameAsOwner,

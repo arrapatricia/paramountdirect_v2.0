@@ -108,7 +108,7 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, 
   const day = 27 - (i % 5);
 
   return {
-    id: `OFW1${(1000 + i).toString()}`,
+    id: `800${(10000 + i).toString()}`,
     lastName: applicant.lastName,
     firstName: applicant.firstName,
     middleName: 'Santos',
@@ -164,7 +164,7 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_
   const day = 27 - (i % 5);
 
   return {
-    id: `CTP1${(1000 + i).toString()}`,
+    id: `MCOC${(1000000 + i).toString()}`,
     policyType: owner.policyType,
     mvType: owner.mvType,
     renewalType: (i % 4 === 0 ? 'Renewal' : 'New (1 Year)') as 'New (1 Year)' | 'Renewal',
@@ -206,7 +206,7 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, 
   const days = 7 + (i % 3) * 3;
 
   return {
-    id: `GTP1${(1000 + i).toString()}`,
+    id: `GTPH-${(100000 + i).toString()}`,
     travelType: 'International' as const,
     destinations: traveler.destinations,
     departureDate: '10/01/2026',
