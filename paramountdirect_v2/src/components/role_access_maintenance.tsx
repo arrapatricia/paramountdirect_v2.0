@@ -20,14 +20,65 @@ export interface ModulePermission {
 }
 
 const PRODUCT_MODULE_MAP: Record<ProductSystem, string[]> = {
-  'PD Life': ['Applications & Screening', 'Payment Transactions & Ledger', 'Maintenance & Rate Tables', 'CMS Content', 'Audit Logs'],
+  'PD Life': [
+    'Application Screening',
+    'Application Inquiry',
+    'Sending of Policy Docs',
+    'Sending of Billing',
+    'Payment Transactions & Ledger',
+    'Call Out',
+    'Maintenance & Rate Tables',
+    'CMS Content',
+    'Audit Logs',
+  ],
   'OFW': ['OFW Contracts & Screening', 'OEC Payment Ledger', 'POEA Rate Configuration', 'Agency Audit Logs'],
   'CTPL': ['LTO Motor Registration', 'CTPL Certificate Ledger', 'Tariff & Premium Calculator', 'Agent Logs'],
   'GTP': ['Group Corporate Accounts', 'Billing Schedule & Master Roll', 'Endorsements & Rates', 'Audit Logs']
 };
 
+// These modules describe workflows Direct Marketing has committed to, but the
+// underlying pages haven't been built yet (Billing send-outs, the Contact
+// Center's Call Out queue). Roles can still be pre-configured for them so
+// access is ready to go the day the page ships.
+const MODULES_NOT_YET_BUILT = new Set(['Sending of Billing', 'Call Out']);
+
+const MODULE_DESCRIPTIONS: Partial<Record<string, string>> = {
+  'Application Screening': 'Review, verify and update the status of incoming online applications.',
+  'Application Inquiry': 'Read-only lookup of application details and status history.',
+  'Sending of Policy Docs': 'Dispatch issued policy documents to policyholders.',
+  'Sending of Billing': 'Send billing notices and statements to policyholders.',
+  'Call Out': 'Contact Center outbound call queue for application follow-up.',
+};
+
+// Direct Marketing's own operating roles, as opposed to the large legacy
+// PD Life role list below (carried over from the wider Paramount system).
+const DIRECT_MARKETING_ROLES = ['Operations', 'Marketing', 'Contact Center'];
+
+type PermissionTemplate = Partial<Record<string, { canRead?: boolean; canWrite?: boolean; canDelete?: boolean }>>;
+
+const ROLE_PERMISSION_TEMPLATES: Partial<Record<ProductSystem, Record<string, PermissionTemplate>>> = {
+  'PD Life': {
+    'Operations': {
+      'Application Screening': { canRead: true, canWrite: true },
+      'Application Inquiry': { canRead: true },
+      'Sending of Policy Docs': { canRead: true, canWrite: true },
+      'Sending of Billing': { canRead: true, canWrite: true },
+      'Payment Transactions & Ledger': { canRead: true, canWrite: true },
+      'Audit Logs': { canRead: true },
+    },
+    'Marketing': {
+      'Application Inquiry': { canRead: true },
+    },
+    'Contact Center': {
+      'Application Inquiry': { canRead: true },
+      'Call Out': { canRead: true, canWrite: true },
+    },
+  },
+};
+
 const PRODUCT_ROLES_MAP: Record<ProductSystem, string[]> = {
   'PD Life': [
+    ...DIRECT_MARKETING_ROLES,
     'Accounts Executive 1',
     'Agency Admin',
     'Agency Branch Admin',
@@ -140,21 +191,44 @@ const SHARED_CORE_ROLES = [
   'OJT'
 ];
 
+// Roles with a known template get a tailored starting matrix; everything
+// else (the large legacy role lists) keeps the old blanket "read-only
+// everything" default rather than guessing at access it shouldn't grant.
+const getDefaultPermissions = (product: ProductSystem, role: string): ModulePermission[] => {
+  const modules = PRODUCT_MODULE_MAP[product];
+  const template = ROLE_PERMISSION_TEMPLATES[product]?.[role];
+
+  if (!template) {
+    return modules.map(m => ({ moduleName: m, canRead: true, canWrite: false, canDelete: false }));
+  }
+
+  return modules.map(m => ({
+    moduleName: m,
+    canRead: !!template[m]?.canRead,
+    canWrite: !!template[m]?.canWrite,
+    canDelete: !!template[m]?.canDelete,
+  }));
+};
+
 export default function RoleAccessMaintenance() {
   const [selectedProduct, setSelectedProduct] = useState<ProductSystem>('PD Life');
   const [selectedRole, setSelectedRole] = useState<string>(PRODUCT_ROLES_MAP['PD Life'][0]);
   const [notification, setNotification] = useState<string | null>(null);
 
   const [permissionMatrix, setPermissionMatrix] = useState<ModulePermission[]>(
-    PRODUCT_MODULE_MAP['PD Life'].map(m => ({ moduleName: m, canRead: true, canWrite: false, canDelete: false }))
+    getDefaultPermissions('PD Life', PRODUCT_ROLES_MAP['PD Life'][0])
   );
 
   const handleProductChange = (prod: ProductSystem) => {
+    const firstRole = PRODUCT_ROLES_MAP[prod][0];
     setSelectedProduct(prod);
-    setSelectedRole(PRODUCT_ROLES_MAP[prod][0]);
-    setPermissionMatrix(
-      PRODUCT_MODULE_MAP[prod].map(m => ({ moduleName: m, canRead: true, canWrite: false, canDelete: false }))
-    );
+    setSelectedRole(firstRole);
+    setPermissionMatrix(getDefaultPermissions(prod, firstRole));
+  };
+
+  const handleRoleChange = (role: string) => {
+    setSelectedRole(role);
+    setPermissionMatrix(getDefaultPermissions(selectedProduct, role));
   };
 
   const handleToggle = (moduleName: string, key: 'canRead' | 'canWrite' | 'canDelete') => {
@@ -219,14 +293,31 @@ export default function RoleAccessMaintenance() {
         <span className="text-xs font-bold text-slate-600 uppercase">Target Role ({selectedProduct}):</span>
         <select
           value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value)}
+          onChange={(e) => handleRoleChange(e.target.value)}
           className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer max-w-md"
         >
-          <optgroup label={`${selectedProduct} Product Roles`}>
-            {PRODUCT_ROLES_MAP[selectedProduct].map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </optgroup>
+          {selectedProduct === 'PD Life' ? (
+            <>
+              <optgroup label="Direct Marketing Roles">
+                {DIRECT_MARKETING_ROLES.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Other PD Life Product Roles">
+                {PRODUCT_ROLES_MAP['PD Life']
+                  .filter((role) => !DIRECT_MARKETING_ROLES.includes(role))
+                  .map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+              </optgroup>
+            </>
+          ) : (
+            <optgroup label={`${selectedProduct} Product Roles`}>
+              {PRODUCT_ROLES_MAP[selectedProduct].map((role) => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </optgroup>
+          )}
           <optgroup label="System Core & Global Roles">
             {SHARED_CORE_ROLES.map((role) => (
               <option key={role} value={role}>{role}</option>
@@ -234,6 +325,14 @@ export default function RoleAccessMaintenance() {
           </optgroup>
         </select>
       </div>
+
+      {selectedProduct === 'PD Life' && DIRECT_MARKETING_ROLES.includes(selectedRole) && (
+        <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50/60 text-xs text-slate-700 font-semibold">
+          {selectedRole === 'Operations' && 'Handles Application Screening, sending policy documents, and sending billing statements once that page ships.'}
+          {selectedRole === 'Marketing' && 'Mostly views submitted applications — read-only access to Application Inquiry.'}
+          {selectedRole === 'Contact Center' && 'Uses the Call Out queue for outbound follow-up, once that page ships, plus read access to Application Inquiry for lookups.'}
+        </div>
+      )}
 
       {/* Access Control Matrix Table */}
       <div className="bg-white/80 backdrop-blur-md border border-white/60 rounded-3xl p-6 shadow-xl">
@@ -249,7 +348,19 @@ export default function RoleAccessMaintenance() {
           <tbody className="divide-y divide-slate-100">
             {permissionMatrix.map((item) => (
               <tr key={item.moduleName} className="hover:bg-slate-50/80">
-                <td className="py-4 px-3 font-bold text-slate-800">{item.moduleName}</td>
+                <td className="py-4 px-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-800">{item.moduleName}</span>
+                    {MODULES_NOT_YET_BUILT.has(item.moduleName) && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-700 border border-amber-300 uppercase tracking-wide">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                  {MODULE_DESCRIPTIONS[item.moduleName] && (
+                    <p className="text-[10px] font-medium text-slate-400 mt-0.5">{MODULE_DESCRIPTIONS[item.moduleName]}</p>
+                  )}
+                </td>
                 <td className="py-4 px-3 text-center">
                   <input
                     type="checkbox"

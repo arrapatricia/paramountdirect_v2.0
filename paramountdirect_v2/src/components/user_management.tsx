@@ -21,8 +21,14 @@ export interface UserAccount {
   lastLogin: string;
 }
 
+// Direct Marketing's own operating roles for this system, ahead of the
+// broader legacy PD Life role list carried over from the wider Paramount
+// system.
+const DIRECT_MARKETING_ROLES = ['Operations', 'Marketing', 'Contact Center'];
+
 const PRODUCT_ROLES_MAP: Record<ProductScope, string[]> = {
   'PD Life': [
+    ...DIRECT_MARKETING_ROLES,
     'Accounts Executive 1',
     'Agency Admin',
     'Agency Branch Admin',
@@ -85,7 +91,7 @@ const INITIAL_USERS: UserAccount[] = [
     firstName: 'Juan',
     lastName: 'Dela Cruz',
     email: 'juan.delacruz@paramount.com.ph',
-    role: 'Collection Assistant',
+    role: 'Operations',
     assignedProducts: ['PD Life', 'OFW'],
     status: 'Active',
     lastLogin: '2026-09-01 04:12 PM'
@@ -99,6 +105,36 @@ const INITIAL_USERS: UserAccount[] = [
     assignedProducts: ['CTPL', 'GTP'],
     status: 'Active',
     lastLogin: '2026-08-30 11:20 AM'
+  },
+  {
+    id: 'USR-1004',
+    firstName: 'Oliver',
+    lastName: 'Rodrigo',
+    email: 'oliver.rodrigo@paramount.com.ph',
+    role: 'Operations',
+    assignedProducts: ['PD Life'],
+    status: 'Active',
+    lastLogin: '2026-09-13 09:05 AM'
+  },
+  {
+    id: 'USR-1005',
+    firstName: 'Isabelle',
+    lastName: 'Marasigan',
+    email: 'isabelle.marasigan@paramount.com.ph',
+    role: 'Marketing',
+    assignedProducts: ['PD Life'],
+    status: 'Active',
+    lastLogin: '2026-09-12 10:15 AM'
+  },
+  {
+    id: 'USR-1006',
+    firstName: 'Ramon',
+    lastName: 'Aquino',
+    email: 'ramon.aquino@paramount.com.ph',
+    role: 'Contact Center',
+    assignedProducts: ['PD Life'],
+    status: 'Active',
+    lastLogin: '2026-09-12 02:40 PM'
   }
 ];
 
@@ -383,14 +419,33 @@ export default function UserManagement() {
               {/* Dynamic System Role Selector based on Checked Products */}
               <div>
                 <label className="font-bold text-slate-700 block mb-1">System Role</label>
-                <select 
-                  value={formData.role || ''} 
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })} 
+                <select
+                  value={formData.role || ''}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold"
                 >
-                  {getAvailableRoles().map((role) => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
+                  {(() => {
+                    const availableRoles = getAvailableRoles();
+                    const directMarketing = availableRoles.filter((r) => DIRECT_MARKETING_ROLES.includes(r));
+                    const otherRoles = availableRoles.filter((r) => !DIRECT_MARKETING_ROLES.includes(r));
+
+                    if (directMarketing.length === 0) {
+                      return otherRoles.map((role) => <option key={role} value={role}>{role}</option>);
+                    }
+
+                    return (
+                      <>
+                        <optgroup label="Direct Marketing Roles">
+                          {directMarketing.map((role) => <option key={role} value={role}>{role}</option>)}
+                        </optgroup>
+                        {otherRoles.length > 0 && (
+                          <optgroup label="Other Roles">
+                            {otherRoles.map((role) => <option key={role} value={role}>{role}</option>)}
+                          </optgroup>
+                        )}
+                      </>
+                    );
+                  })()}
                 </select>
               </div>
 
