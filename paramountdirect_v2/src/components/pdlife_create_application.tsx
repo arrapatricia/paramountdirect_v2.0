@@ -12,11 +12,13 @@ import {
   type Beneficiary,
   type NonForfeitureOption,
 } from './pdlife_types';
+import { getPremiumRate, type PremiumRate } from './premium_rates';
 
 interface Props {
   onCreate: (app: PdLifeApplication) => void;
   onBack: () => void;
   currentUser: string;
+  rates: PremiumRate[];
 }
 
 const PH_REGIONS = ['NCR', 'Region III', 'Region IV-A'];
@@ -25,14 +27,6 @@ const PH_BARANGAYS = ['Barangay 101', 'Barangay 102', 'Barangay 103'];
 const NATIONALITIES = ['Filipino', 'American', 'Chinese', 'Japanese', 'Korean', 'Others'];
 const PAYMENT_OPTIONS = ['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'] as const;
 const NON_FORFEITURE_OPTIONS: NonForfeitureOption[] = ['Paid-up Insurance', 'Automatic Payment of Premium', 'Cash Surrender'];
-
-// Flat indicative premium per plan code - the live wizards compute this from
-// plan tier/units/age, this mirrors that with a simple lookup.
-const PREMIUM_BY_PLAN_CODE: Record<string, number> = {
-  HCP: 500, HIP: 350, PCP: 420, PHC: 680,
-  GLP: 450, GLA: 600, GPR: 380,
-  MPR: 500, SSP: 892, PHP: 620, DRE: 750,
-};
 
 const CATEGORY_ICON: Record<PdLifePlanCategory, typeof HeartPulse> = {
   'Health': HeartPulse,
@@ -61,7 +55,7 @@ const calculateAge = (dobString: string) => {
   return age;
 };
 
-export default function PdLifeCreateApplication({ onCreate, onBack, currentUser }: Props) {
+export default function PdLifeCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
   const [category, setCategory] = useState<PdLifePlanCategory | null>(null);
 
   if (!category) {
@@ -104,6 +98,7 @@ export default function PdLifeCreateApplication({ onCreate, onBack, currentUser 
       onBackToCategories={() => setCategory(null)}
       onFinish={onBack}
       currentUser={currentUser}
+      rates={rates}
     />
   );
 }
@@ -120,12 +115,14 @@ function PdLifeCategoryForm({
   onBackToCategories,
   onFinish,
   currentUser,
+  rates,
 }: {
   category: PdLifePlanCategory;
   onCreate: (app: PdLifeApplication) => void;
   onBackToCategories: () => void;
   onFinish: () => void;
   currentUser: string;
+  rates: PremiumRate[];
 }) {
   const planOptions = PD_LIFE_PLAN_CODES[category];
   const [planCode, setPlanCode] = useState(planOptions[0].code);
@@ -199,7 +196,7 @@ function PdLifeCategoryForm({
     if (!canSubmit) return;
 
     const fullName = `${owner.firstName} ${owner.lastName}`;
-    const premiumValue = PREMIUM_BY_PLAN_CODE[planCode] ?? 500;
+    const premiumValue = getPremiumRate(rates, 'PD Life', planCode, 500);
 
     const baseDetails = { policyOwner: owner, contact, payor: payorInfo };
     const categoryDetails =

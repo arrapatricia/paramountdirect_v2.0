@@ -4,11 +4,13 @@ import {
   GTP_PLAN_VARIANTS, SCHENGEN_COUNTRIES, HIGH_COST_DESTINATIONS, POPULAR_DESTINATIONS,
   type GtpApplication,
 } from './gtp_types';
+import { getPremiumRate, type PremiumRate } from './premium_rates';
 
 interface Props {
   onCreate: (app: GtpApplication) => void;
   onBack: () => void;
   currentUser: string;
+  rates: PremiumRate[];
 }
 
 const calculateAge = (dobString: string) => {
@@ -27,18 +29,10 @@ const calculateDays = (start: string, end: string) => {
   return Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
 };
 
-// Simplified daily rate by plan variant, scaled by days of travel - the real
-// site computes a full quote server-side; this mirrors the shape of it.
-const DAILY_RATE: Record<typeof GTP_PLAN_VARIANTS[number], number> = {
-  'Single Trip': 55,
-  'Multi-Trip 90': 42,
-  'Multi-Trip 180': 38,
-};
-
 const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
 
-export default function GtpCreateApplication({ onCreate, onBack, currentUser }: Props) {
+export default function GtpCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
   const [travelType, setTravelType] = useState<'International' | 'Domestic'>('International');
   const [destinations, setDestinations] = useState<string[]>([POPULAR_DESTINATIONS[0]]);
   const [departureDate, setDepartureDate] = useState('');
@@ -64,8 +58,11 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser }: 
   const isHighCostDestination = destinations.some((d) => HIGH_COST_DESTINATIONS.includes(d));
   const isSeniorApplicant = age !== null && age > 65;
 
-  const basePremium = Math.max(1, daysOfTravel) * DAILY_RATE[planVariant];
-  const addOnFee = (cruiseCoverage ? 150 : 0) + (hazardousSportsCoverage ? 200 : 0);
+  const dailyRateFallback = planVariant === 'Single Trip' ? 55 : planVariant === 'Multi-Trip 90' ? 42 : 38;
+  const basePremium = Math.max(1, daysOfTravel) * getPremiumRate(rates, 'GTP', planVariant, dailyRateFallback);
+  const addOnFee =
+    (cruiseCoverage ? getPremiumRate(rates, 'GTP', 'cruiseCoverage', 150) : 0) +
+    (hazardousSportsCoverage ? getPremiumRate(rates, 'GTP', 'hazardousSportsCoverage', 200) : 0);
   const premium = basePremium + addOnFee;
 
   const canSubmit =

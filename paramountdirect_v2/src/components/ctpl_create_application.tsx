@@ -1,38 +1,22 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
 import { CTPL_MV_TYPES, CTPL_POLICY_TYPES, type CtplApplication } from './ctpl_types';
+import { getPremiumRate, type PremiumRate } from './premium_rates';
 
 interface Props {
   onCreate: (app: CtplApplication) => void;
   onBack: () => void;
   currentUser: string;
+  rates: PremiumRate[];
 }
 
-// Flat rate table approximating ctpl.ph's own quote calculator (verified
-// ₱606.00 for Private Car / Car during research); other combinations are
-// reasonable placeholders pending the real rate table.
-const PREMIUM_TABLE: Record<string, number> = {
-  'Private Car|Car': 606,
-  'Private Car|Non-Conventional MV': 650,
-  'Private Car|Sports Utility Vehicle': 730,
-  'Motorcycle|Motorcycle': 260,
-  'Motorcycle|Motorcycle with Side Car': 300,
-  'Commercial Vehicle|Truck': 1200,
-  'Commercial Vehicle|Trailer': 1500,
-  'Commercial Vehicle|Tourist Bus': 2200,
-  'Commercial Vehicle|School Bus': 1800,
-  'Commercial Vehicle|Utility Vehicle': 850,
-  'Commercial Vehicle|Tricycle': 400,
-  'Commercial Vehicle|Shuttle Bus': 1600,
-};
-const DEFAULT_PREMIUM = 606;
-
-const getPremium = (policyType: string, mvType: string) => PREMIUM_TABLE[`${policyType}|${mvType}`] ?? DEFAULT_PREMIUM;
+const getPremium = (rates: PremiumRate[], policyType: string, mvType: string) =>
+  getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
 
 const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
 
-export default function CtplCreateApplication({ onCreate, onBack, currentUser }: Props) {
+export default function CtplCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
   const [renewalType, setRenewalType] = useState<'New (1 Year)' | 'Renewal'>('New (1 Year)');
   const [policyType, setPolicyType] = useState<typeof CTPL_POLICY_TYPES[number]>('Private Car');
   const [mvType, setMvType] = useState(CTPL_MV_TYPES[0]);
@@ -54,7 +38,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser }:
 
   const [submitted, setSubmitted] = useState(false);
 
-  const premium = getPremium(policyType, mvType);
+  const premium = getPremium(rates, policyType, mvType);
 
   const canSubmit =
     ownerFirstName && ownerSurname && email && mobileNumber &&

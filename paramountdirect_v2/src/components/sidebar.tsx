@@ -25,7 +25,8 @@ import {
   Eye,
   ListChecks,
   Sun,
-  Moon
+  Moon,
+  Wallet
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -126,6 +127,7 @@ export default function Sidebar({
   const maintenanceSubItems = [
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'roles', label: 'Role Access Matrix', icon: FolderTree },
+    { id: 'premiums', label: 'Premium Maintenance', icon: Wallet },
     { id: 'branch', label: 'Branch Directory', icon: Building2 },
     { id: 'marketing', label: 'Marketing Dashboard', icon: BarChart3 },
     { id: 'cms', label: 'CMS (Website Content)', icon: Globe },

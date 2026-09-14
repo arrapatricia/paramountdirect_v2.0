@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowLeft, UploadCloud, FileCheck2, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { CONFLICT_ZONE_COUNTRIES, OFW_OCCUPATIONS, type OfwApplication } from './ofw_types';
+import { getPremiumRate, type PremiumRate } from './premium_rates';
 
 interface Props {
   onCreate: (app: OfwApplication) => void;
   onBack: () => void;
   currentUser: string;
+  rates: PremiumRate[];
 }
 
 const PH_CITIES = ['Pasay City', 'Makati City', 'Manila City', 'Quezon City'];
@@ -24,17 +26,10 @@ const calculateAge = (dobString: string) => {
   return age;
 };
 
-// Flat annual premium by coverage type - the live form computes this from
-// age/occupation/term, but this mirrors the two coverage-type rate tiers.
-const PREMIUM_BY_COVERAGE: Record<'Land-based' | 'Sea-based', number> = {
-  'Land-based': 42,
-  'Sea-based': 58,
-};
-
 const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:bg-slate-800 dark:border-slate-700 dark:text-white';
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
 
-export default function OfwCreateApplication({ onCreate, onBack, currentUser }: Props) {
+export default function OfwCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
   const [referralSource, setReferralSource] = useState('Facebook');
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -88,7 +83,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser }: 
     e.preventDefault();
     if (!canSubmit) return;
 
-    const premiumValue = PREMIUM_BY_COVERAGE[coverageType];
+    const premiumValue = getPremiumRate(rates, 'OFW', coverageType, coverageType === 'Sea-based' ? 58 : 42);
     const newApp: OfwApplication = {
       id: `OFW${Math.floor(10000 + Math.random() * 90000)}`,
       lastName, firstName, middleName,

@@ -31,6 +31,8 @@ import PaymentTransactions from './components/payment_transactions';
 import Maintenance from './components/maintenance';
 import UserManagement from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
+import PremiumMaintenance from './components/premium_maintenance';
+import { INITIAL_PREMIUM_RATES, type PremiumRate } from './components/premium_rates';
 import logoImg from './assets/logo.png';
 
 const CURRENT_USER = {
@@ -244,6 +246,7 @@ export default function App() {
   const [gtpApplications, setGtpApplications] = useState<GtpApplication[]>(initialGtpMockData);
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
+  const [premiumRates, setPremiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
 
   useEffect(() => {
     if (darkMode) {
@@ -353,6 +356,7 @@ export default function App() {
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingOfwApp(false)}
               onCreate={(app) => setOfwApplications(prev => [app, ...prev])}
+              rates={premiumRates}
             />
           ) : (
             <OfwApplicationList
@@ -372,6 +376,7 @@ export default function App() {
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingCtplApp(false)}
               onCreate={(app) => setCtplApplications(prev => [app, ...prev])}
+              rates={premiumRates}
             />
           ) : (
             <CtplApplicationList
@@ -391,6 +396,7 @@ export default function App() {
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingGtpApp(false)}
               onCreate={(app) => setGtpApplications(prev => [app, ...prev])}
+              rates={premiumRates}
             />
           ) : (
             <GtpApplicationList
@@ -419,6 +425,8 @@ export default function App() {
             <UserManagement />
           ) : activeSubTab === 'roles' ? (
             <RoleAccessMaintenance />
+          ) : activeSubTab === 'premiums' ? (
+            <PremiumMaintenance rates={premiumRates} onSave={setPremiumRates} />
           ) : (
             <Maintenance 
               activeSubTab={activeSubTab} 
@@ -434,6 +442,7 @@ export default function App() {
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingPdLifeApp(false)}
               onCreate={(app: PdLifeApplication) => setScreeningData(prev => [app, ...prev])}
+              rates={premiumRates}
             />
           ) : (
             <ApplicationScreening
