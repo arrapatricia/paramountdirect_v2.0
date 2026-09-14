@@ -1,0 +1,462 @@
+// Paramount Direct admin dashboard - backend data model.
+//
+// Field names deliberately mirror the TypeScript interfaces already used by
+// the frontend (see paramountdirect_v2/src/components/*_types.ts and the
+// component files referenced above each model) so the API can be consumed
+// with minimal translation. Product-line scoping ("PD Life" / "OFW" /
+// "CTPL" / "GTP") is kept as plain strings rather than a Prisma enum because
+// the frontend's own literal union type includes a space ("PD Life"), and
+// validating that set belongs in the API layer (zod), not the DB layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Users, roles & permissions
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  Active
+  Inactive
+}
+
+model User {
+  id           String     @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String     @unique
+  passwordHash String
+  status       UserStatus @default(Active)
+  // Product lines this user's account can switch into, e.g. ["PD Life", "OFW"].
+  assignedProducts String[]
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  auditLogs AuditLog[]
+
+  @@index([roleId])
+  @@index([branchId])
+}
+
+model Role {
+  id             String   @id @default(cuid())
+  name           String
+  // Which product system this role belongs to: "PD Life" | "OFW" | "CTPL" | "GTP".
+  productScope   String
+  // True for the newer Direct Marketing-specific roles (Operations, Marketing,
+  // Contact Center) as opposed to the larger legacy PD Life role list.
+  isDirectMarketing Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([name, productScope])
+}
+
+model RolePermission {
+  id         String  @id @default(cuid())
+  roleId     String
+  role       Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  moduleName String
+  canRead    Boolean @default(false)
+  canWrite   Boolean @default(false)
+  canDelete  Boolean @default(false)
+
+  @@unique([roleId, moduleName])
+}
+
+// ---------------------------------------------------------------------------
+// Branch directory
+// ---------------------------------------------------------------------------
+
+enum BranchDivision {
+  LIFE
+  NON_LIFE
+}
+
+enum BranchStatus {
+  Active
+  Inactive
+}
+
+model Branch {
+  id        String         @id @default(cuid())
+  division  BranchDivision
+  region    String
+  province  String
+  city      String
+  address   String
+  barangay  String?
+  zipcode   String
+  mobile    String
+  telephone String
+  fax       String?
+  email     String?
+  website   String
+  status    BranchStatus   @default(Active)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  users User[]
+}
+
+// ---------------------------------------------------------------------------
+// PD Life applications
+// ---------------------------------------------------------------------------
+
+// Mirrors App.tsx's ScreeningItem plus the plan-category split used to route
+// applications to application_detail_health.tsx / _lifeaccident.tsx /
+// _comprehensive.tsx. Category-specific fields (medical questions,
+// beneficiaries, etc.) live in `details` as JSON rather than as separate
+// tables/columns, since each category's field list can evolve independently
+// and isn't queried relationally elsewhere.
+enum PdLifePlanCategory {
+  Health
+  LifeAccident
+  Comprehensive
+}
+
+enum PdLifeStatus {
+  Received
+  For_Verification
+  For_Evaluation
+  Paid
+  Issued
+}
+
+model PdLifeApplication {
+  id            String             @id @default(cuid())
+  payor         String
+  planCategory  PdLifePlanCategory
+  planCode      String
+  planDesc      String
+  premium       String
+  source        String
+  dateReceived  DateTime
+  dateScreened  DateTime?
+  screenedBy    String?
+  status        PdLifeStatus       @default(Received)
+  // Category-specific structured data (applicant details, beneficiaries,
+  // medical declarations, etc.) - shape depends on planCategory.
+  details       Json               @default("{}")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([status])
+  @@index([planCategory])
+}
+
+// ---------------------------------------------------------------------------
+// OFW applications
+// ---------------------------------------------------------------------------
+
+enum Gender {
+  Male
+  Female
+}
+
+enum CivilStatus {
+  Single
+  Married
+  Widower
+  Separated
+}
+
+enum SalaryCurrency {
+  PHP
+  USD
+  HKD
+  Others
+}
+
+enum NatureOfEmployment {
+  Direct_hired
+  Balik_Manggagawa
+}
+
+enum CoverageType {
+  Land_based
+  Sea_based
+}
+
+enum DocumentStatus {
+  Uploaded
+  Missing
+}
+
+enum OfwStatus {
+  Received
+  Cancelled
+  Duplicate
+  Reversed
+}
+
+model OfwApplication {
+  id                 String             @id @default(cuid())
+  lastName           String
+  firstName          String
+  middleName         String
+  gender             Gender
+  civilStatus        CivilStatus
+  birthdate          DateTime
+  placeOfBirth       String
+  phAddress          String
+  phCity             String
+  phone              String
+  email              String
+  referralSource     String
+
+  natureOfEmployment NatureOfEmployment
+  coverageType       CoverageType
+  occupation         String
+  passportNumber     String
+  salaryAmount       Float
+  salaryCurrency     SalaryCurrency
+  employerName       String
+  employerCountry    String
+  contractStart      DateTime
+  contractEnd        DateTime
+  insuranceStart     DateTime
+  isConflictZone     Boolean            @default(false)
+
+  passportDoc            DocumentStatus @default(Missing)
+  visaDoc                DocumentStatus @default(Missing)
+  employmentContractDoc  DocumentStatus @default(Missing)
+  medicalCertificateDoc  DocumentStatus @default(Missing)
+
+  premium       String
+  dateReceived  DateTime
+  status        OfwStatus  @default(Received)
+  screenedBy    String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// CTPL applications
+// ---------------------------------------------------------------------------
+
+enum CtplPolicyType {
+  Private_Car
+  Commercial_Vehicle
+  Motorcycle
+}
+
+enum CtplRenewalType {
+  New_1_Year
+  Renewal
+}
+
+enum CtplClientType {
+  Individual
+  Corporate_without_assignee
+  Corporate_with_assignee
+}
+
+enum CtplStatus {
+  Completed
+  Spoiled
+  Duplicate
+  Reversed
+  Cancelled
+}
+
+model CtplApplication {
+  id             String          @id @default(cuid())
+  policyType     CtplPolicyType
+  mvType         String
+  renewalType    CtplRenewalType
+
+  clientType         CtplClientType
+  ownerFirstName      String
+  ownerMiddleName     String
+  ownerSurname        String
+  sameAsOwner         Boolean        @default(true)
+  applicantFirstName  String
+  applicantSurname    String
+  email               String
+  mobileNumber        String
+
+  plateNumber    String
+  mvFileNumber   String
+  chassisNumber  String
+
+  requiresCOV    Boolean  @default(false)
+
+  premium       String
+  dateReceived  DateTime
+  status        CtplStatus @default(Completed)
+  screenedBy    String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// GTP applications
+// ---------------------------------------------------------------------------
+
+enum GtpTravelType {
+  International
+  Domestic
+}
+
+enum GtpApplicationType {
+  Individual
+  Family
+}
+
+enum GtpPlanVariant {
+  Single_Trip
+  Multi_Trip_90
+  Multi_Trip_180
+}
+
+enum GtpStatus {
+  Received
+  Cancelled
+  Duplicate
+}
+
+model GtpApplication {
+  id             String        @id @default(cuid())
+  travelType     GtpTravelType
+  destinations   String[]
+  departureDate  DateTime
+  returnDate     DateTime
+  daysOfTravel   Int
+  applicationType GtpApplicationType
+
+  travelerFirstName String
+  travelerSurname   String
+  birthdate         DateTime
+  email             String
+  mobileNumber      String
+
+  planVariant             GtpPlanVariant
+  cruiseCoverage          Boolean @default(false)
+  hazardousSportsCoverage Boolean @default(false)
+  isSchengenDestination   Boolean @default(false)
+
+  premium       String
+  dateReceived  DateTime
+  status        GtpStatus @default(Received)
+  screenedBy    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Payment transactions & ledger (PD Life)
+// ---------------------------------------------------------------------------
+
+enum PolicyStatus {
+  Inforced
+  Lapsed
+  Terminated
+  Matured
+  Involuntary
+  Voluntary
+  Surrender
+}
+
+model PaymentTransaction {
+  id               String   @id @default(cuid())
+  policyNo         String   @unique
+  title            String
+  firstName        String
+  middleName       String
+  lastName         String
+  birthdate        DateTime
+  gender           String
+  currentAge       Int
+  issueAge         Int
+  address          String
+  mobileNumber     String
+  telephoneNumber  String
+  emailAddress     String
+
+  policyStatus     PolicyStatus
+  hcrStatus        String
+  hcrUnit          String
+  premium          Float
+  hcrPremium       Float
+  deposit          Float
+  underpay         Float
+  dueDate          DateTime
+  payType          String
+  cashValue        Float
+  lifeBenefits     Float
+  accidentalBenefits Float
+  mode             String
+  issueDate        DateTime
+  effectivityDate  DateTime
+  policyDate       DateTime
+  expiryDate       DateTime
+
+  planCode  String
+  planDesc  String
+  orDate    DateTime?
+  orNumber  String?
+
+  ledgerHistory PaymentLedgerItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentLedgerItem {
+  id           String   @id @default(cuid())
+  paymentId    String
+  payment      PaymentTransaction @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  yrInstal     String
+  dueDate      DateTime
+  uploaded     Float
+  amountPaid   Float
+  underpay     Float
+  orNumber     String
+  orDate       DateTime?
+  status       String
+
+  @@index([paymentId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit logs
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  userLabel String   // denormalized display name, kept even if the user is later deleted
+  role      String
+  action    String
+  module    String
+  details   String
+  ipAddress String
+
+  @@index([userId])
+  @@index([module])
+}
