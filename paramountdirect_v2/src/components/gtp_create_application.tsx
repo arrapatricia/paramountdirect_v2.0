@@ -97,6 +97,9 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
     dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
     status: 'Received',
     screenedBy: currentUser,
+    // Straight-through payment on the client's website - by the time it
+    // reaches this admin system, it's already paid.
+    isPaid: true,
   });
 
   const handleReview = (e: React.FormEvent) => {

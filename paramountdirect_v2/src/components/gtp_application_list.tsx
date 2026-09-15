@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Plane, ShieldAlert } from 'lucide-react';
+import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Plane, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { GTP_STATUSES, GTP_STATUS_DESCRIPTIONS, type GtpApplication } from './gtp_types';
+import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
 
 interface Props {
   data: GtpApplication[];
   onCreateNew?: () => void;
+  onUpdate?: (id: string, patch: Partial<GtpApplication>) => void;
 }
+
+const GTP_DOCUMENTS: PolicyDocumentSpec[] = [
+  { key: 'policySchedule', label: 'Policy Schedule' },
+  { key: 'policyJacket', label: 'Policy Jacket' },
+  { key: 'or', label: 'Official Receipt (OR)' },
+  { key: 'serviceInvoice', label: 'Service Invoice' },
+];
 
 const ITEMS_PER_PAGE = 20;
 const STATUS_TABS = ['All', ...GTP_STATUSES] as const;
@@ -28,12 +37,29 @@ const getRowTintStyle = (status: string) => {
   }
 };
 
-export default function GtpApplicationList({ data, onCreateNew }: Props) {
+export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof STATUS_TABS)[number]>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [travelTypeFilter, setTravelTypeFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewingApp, setViewingApp] = useState<GtpApplication | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  // Look up from `data` (rather than holding a snapshot) so the modal stays
+  // in sync as the payment field changes.
+  const viewingApp = viewingId ? data.find((d) => d.id === viewingId) ?? null : null;
+
+  const notify = (message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 2500);
+  };
+
+  const handleViewDoc = (key: string) => setViewingDoc(key);
+  const handleSendDoc = (key: string) => {
+    const doc = GTP_DOCUMENTS.find((d) => d.key === key);
+    notify(`${doc?.label ?? 'Document'} emailed to ${viewingApp?.email}.`);
+  };
 
   const tabCounts: Record<string, number> = {
     'All': data.length,
@@ -175,7 +201,7 @@ export default function GtpApplicationList({ data, onCreateNew }: Props) {
                     </td>
                     <td className="py-3.5 px-2 text-center">
                       <button
-                        onClick={() => setViewingApp(row)}
+                        onClick={() => setViewingId(row.id)}
                         className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-[#002f6c] hover:text-white transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                         title="View Application Details"
                       >
@@ -223,7 +249,7 @@ export default function GtpApplicationList({ data, onCreateNew }: Props) {
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 my-8 dark:bg-slate-900 dark:border-slate-800">
             <div className="flex justify-between items-center border-b pb-4 border-slate-100 dark:border-slate-800">
               <h2 className="text-base font-bold uppercase text-slate-900 dark:text-white">Application {viewingApp.id}</h2>
-              <button onClick={() => setViewingApp(null)} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+              <button onClick={() => setViewingId(null)} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                 <X className="w-5 h-5 text-slate-400 dark:text-slate-500" />
               </button>
             </div>
@@ -259,14 +285,63 @@ export default function GtpApplicationList({ data, onCreateNew }: Props) {
                   <span className="font-semibold text-amber-800 dark:text-amber-300">Schengen destination — requires €30,000 / ₱2.5M medical coverage compliance.</span>
                 </div>
               )}
+
+              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">
+                Payment
+              </div>
+              {!viewingApp.isPaid && (
+                <div className="sm:col-span-2 flex items-center justify-between px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Awaiting client payment</span>
+                  <button
+                    type="button"
+                    onClick={() => { onUpdate?.(viewingApp.id, { isPaid: true }); notify('Payment confirmed — documents are now available.'); }}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-[11px] font-bold hover:bg-amber-700 cursor-pointer"
+                  >
+                    Simulate Payment Received
+                  </button>
+                </div>
+              )}
+
+              <PolicyDocumentsSection
+                isPaid={viewingApp.isPaid}
+                documents={GTP_DOCUMENTS}
+                onView={handleViewDoc}
+                onSend={handleSendDoc}
+                lockedMessage="Documents will be available once the client completes payment on the website."
+              />
             </div>
 
             <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button onClick={() => setViewingApp(null)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+              <button onClick={() => setViewingId(null)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                 Close
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Printable Document Modal */}
+      {viewingApp && viewingDoc && (
+        <PrintableDocumentModal
+          title={GTP_DOCUMENTS.find((d) => d.key === viewingDoc)?.label ?? 'Document'}
+          onClose={() => setViewingDoc(null)}
+        >
+          <DocRow label="Reference No." value={viewingApp.id} />
+          <DocRow label="Traveler" value={`${viewingApp.travelerFirstName} ${viewingApp.travelerSurname}`} />
+          <DocRow label="Destination(s)" value={viewingApp.destinations.join(', ')} />
+          <DocRow label="Travel Dates" value={`${viewingApp.departureDate} to ${viewingApp.returnDate}`} />
+          <DocRow label="Plan" value={viewingApp.planVariant} />
+          <DocRow label="Premium" value={viewingApp.premium} />
+          {viewingDoc === 'or' && <DocRow label="OR Status" value="PAID" />}
+          {viewingDoc === 'serviceInvoice' && <DocRow label="Invoice Status" value="PAID" />}
+        </PrintableDocumentModal>
+      )}
+
+      {/* Toast */}
+      {notification && (
+        <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center space-x-3">
+          <CheckCircle2 className="w-5 h-5 text-white" />
+          <span>{notification}</span>
         </div>
       )}
 

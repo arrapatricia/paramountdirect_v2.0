@@ -403,15 +403,71 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate }: Prop
           title={OFW_DOCUMENTS.find((d) => d.key === viewingDoc)?.label ?? 'Document'}
           onClose={() => setViewingDoc(null)}
         >
-          <DocRow label="Reference No." value={viewingApp.id} />
-          <DocRow label="Insured" value={`${viewingApp.firstName} ${viewingApp.middleName} ${viewingApp.lastName}`} />
-          <DocRow label="Coverage Type" value={viewingApp.coverageType} />
-          <DocRow label="Employer / Country" value={`${viewingApp.employerName}, ${viewingApp.employerCountry}`} />
-          <DocRow label="Contract Period" value={`${viewingApp.contractStart} to ${viewingApp.contractEnd}`} />
-          <DocRow label="Insurance Start Date" value={viewingApp.insuranceStart} />
-          <DocRow label="Premium" value={viewingApp.premium} />
-          {viewingDoc === 'or' && <DocRow label="OR Status" value="PAID" />}
-          {viewingDoc === 'serviceInvoice' && <DocRow label="Invoice Status" value="PAID" />}
+          {viewingDoc === 'policySchedule' || viewingDoc === 'policyJacket' ? (
+            // Matches the real "Certificate of Insurance" (BM/DH variant) template.
+            <>
+              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Certificate of Insurance</p>
+              <p className="text-[11px] leading-relaxed text-slate-700 border-b border-dashed border-slate-300 pb-3">
+                This is to certify that <strong>{viewingApp.firstName} {viewingApp.middleName} {viewingApp.lastName}</strong> is covered under the{' '}
+                <strong>Compulsory Migrant Workers Insurance &ndash; {viewingApp.natureOfEmployment === 'Balik-Manggagawa' ? 'Balik Manggagawa' : 'Direct Hired'}</strong>{' '}
+                of Paramount Life &amp; General Insurance Corporation (PLGIC). This certificate of insurance is governed by the terms and conditions, warranties, and clauses of said Policy. The insurance coverage shall be effective from the date of departure and shall continue during the entire term of employment but not to exceed one (1) year.
+              </p>
+              <DocRow label="COI No." value={viewingApp.id} />
+              <DocRow label="Insured" value={`${viewingApp.firstName} ${viewingApp.middleName} ${viewingApp.lastName}`} />
+              <DocRow label="Employer / Country" value={`${viewingApp.employerName}, ${viewingApp.employerCountry}`} />
+              <DocRow label="Contract Period" value={`${viewingApp.contractStart} to ${viewingApp.contractEnd}`} />
+              <DocRow label="Insurance Start Date" value={viewingApp.insuranceStart} />
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <table className="w-full text-[10px] border border-slate-300">
+                  <thead><tr className="bg-slate-100"><th className="text-left px-2 py-1 border-b border-slate-300">Benefits</th><th className="text-right px-2 py-1 border-b border-slate-300">Amount</th></tr></thead>
+                  <tbody>
+                    <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Accidental Death</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $5,000.00</td></tr>
+                    <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Natural Death</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $2,500.00</td></tr>
+                    <tr><td className="px-2 py-1">Repatriation (in case of death)</td><td className="px-2 py-1 text-right font-bold">Actual Cost</td></tr>
+                  </tbody>
+                </table>
+                <table className="w-full text-[10px] border border-slate-300">
+                  <thead><tr className="bg-slate-100"><th className="text-left px-2 py-1 border-b border-slate-300">Benefits (continuation)</th><th className="text-right px-2 py-1 border-b border-slate-300">Amount</th></tr></thead>
+                  <tbody>
+                    <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Subsistence Benefit</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $100.00/mo.</td></tr>
+                    <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Compassionate Visit</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">Actual Cost</td></tr>
+                    <tr><td className="px-2 py-1">Medical Evacuation</td><td className="px-2 py-1 text-right font-bold">Actual Cost</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <DocRow label="Premium" value={viewingApp.premium} />
+              <p className="text-[10px] text-slate-500 pt-2 text-right">Paramount Life &amp; General Insurance Corporation<br /><strong>George T. Tiu</strong> &mdash; President</p>
+            </>
+          ) : viewingDoc === 'serviceInvoice' ? (
+            // Matches the real Service Invoice template.
+            <>
+              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Service Invoice</p>
+              <DocRow label="Invoice No." value={`INV-${viewingApp.id}`} />
+              <DocRow label="Invoice Date" value={viewingApp.dateReceived} />
+              <DocRow label="Policy No." value={viewingApp.id} />
+              <DocRow label="Insured" value={`${viewingApp.firstName} ${viewingApp.middleName} ${viewingApp.lastName}`} />
+              <DocRow label="Term of Insurance" value={`${viewingApp.contractStart} to ${viewingApp.contractEnd}`} />
+              <table className="w-full text-[10px] border border-slate-300 mt-1">
+                <thead><tr className="bg-[#002f6c] text-white"><th className="text-left px-2 py-1.5">Item Description / Nature of Service</th><th className="text-right px-2 py-1.5">Amount</th></tr></thead>
+                <tbody>
+                  <tr><td className="px-2 py-1.5 border-b border-dashed border-slate-200">OFW Compulsory Insurance Premium</td><td className="px-2 py-1.5 border-b border-dashed border-slate-200 text-right font-bold">{viewingApp.premium}</td></tr>
+                </tbody>
+              </table>
+              <DocRow label="Total Amount" value={viewingApp.premium} />
+              <p className="text-[10px] text-slate-500 pt-2">Please make check payments payable to Paramount Life &amp; General Insurance Corporation.</p>
+            </>
+          ) : (
+            <>
+              <DocRow label="Reference No." value={viewingApp.id} />
+              <DocRow label="Insured" value={`${viewingApp.firstName} ${viewingApp.middleName} ${viewingApp.lastName}`} />
+              <DocRow label="Coverage Type" value={viewingApp.coverageType} />
+              <DocRow label="Employer / Country" value={`${viewingApp.employerName}, ${viewingApp.employerCountry}`} />
+              <DocRow label="Contract Period" value={`${viewingApp.contractStart} to ${viewingApp.contractEnd}`} />
+              <DocRow label="Insurance Start Date" value={viewingApp.insuranceStart} />
+              <DocRow label="Premium" value={viewingApp.premium} />
+              {viewingDoc === 'or' && <DocRow label="OR Status" value="PAID" />}
+            </>
+          )}
         </PrintableDocumentModal>
       )}
 

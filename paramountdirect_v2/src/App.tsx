@@ -190,6 +190,9 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
     status,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+    // Straight-through website payment - some mock rows are left unpaid so
+    // the Documents section has both locked and unlocked rows to demo.
+    isPaid: i % 3 !== 0,
   };
 });
 
@@ -231,6 +234,9 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, 
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
     status,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+    // Straight-through website payment - some mock rows are left unpaid so
+    // the Documents section has both locked and unlocked rows to demo.
+    isPaid: i % 3 !== 0,
   };
 });
 
@@ -388,6 +394,7 @@ export default function App() {
             <CtplApplicationList
               data={ctplApplications}
               onCreateNew={() => setIsCreatingCtplApp(true)}
+              onUpdate={(id, patch) => setCtplApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app))}
             />
           )
         )}
@@ -408,6 +415,7 @@ export default function App() {
             <GtpApplicationList
               data={gtpApplications}
               onCreateNew={() => setIsCreatingGtpApp(true)}
+              onUpdate={(id, patch) => setGtpApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app))}
             />
           )
         )}

@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
-import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck } from 'lucide-react';
+import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import type { CtplApplication } from './ctpl_types';
 import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS } from './ctpl_types';
+import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
 
 interface Props {
   data: CtplApplication[];
   onCreateNew?: () => void;
+  onUpdate?: (id: string, patch: Partial<CtplApplication>) => void;
 }
+
+// CTPL issues a Certificate of Cover (COC) rather than a separate OR, unlike
+// OFW/GTP which get an Official Receipt.
+const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
+  { key: 'policySchedule', label: 'Policy Schedule' },
+  { key: 'policyJacket', label: 'Policy Jacket' },
+  { key: 'coc', label: 'Certificate of Cover (COC)' },
+  { key: 'serviceInvoice', label: 'Service Invoice' },
+];
 
 const ITEMS_PER_PAGE = 20;
 const STATUS_TABS = ['All', ...CTPL_STATUSES] as const;
@@ -33,12 +44,29 @@ const getRowTintStyle = (status: string) => {
   }
 };
 
-export default function CtplApplicationList({ data, onCreateNew }: Props) {
+export default function CtplApplicationList({ data, onCreateNew, onUpdate }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof STATUS_TABS)[number]>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [policyTypeFilter, setPolicyTypeFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewingApp, setViewingApp] = useState<CtplApplication | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  // Look up from `data` (rather than holding a snapshot) so the modal stays
+  // in sync as the payment field changes.
+  const viewingApp = viewingId ? data.find((d) => d.id === viewingId) ?? null : null;
+
+  const notify = (message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 2500);
+  };
+
+  const handleViewDoc = (key: string) => setViewingDoc(key);
+  const handleSendDoc = (key: string) => {
+    const doc = CTPL_DOCUMENTS.find((d) => d.key === key);
+    notify(`${doc?.label ?? 'Document'} emailed to ${viewingApp?.email}.`);
+  };
 
   const tabCounts: Record<string, number> = {
     'All': data.length,
@@ -180,7 +208,7 @@ export default function CtplApplicationList({ data, onCreateNew }: Props) {
                     </td>
                     <td className="py-3.5 px-2 text-center">
                       <button
-                        onClick={() => setViewingApp(row)}
+                        onClick={() => setViewingId(row.id)}
                         className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-[#002f6c] hover:text-white transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                         title="View Application Details"
                       >
@@ -228,7 +256,7 @@ export default function CtplApplicationList({ data, onCreateNew }: Props) {
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 my-8 dark:bg-slate-900 dark:border-slate-800">
             <div className="flex justify-between items-center border-b pb-4 border-slate-100 dark:border-slate-800">
               <h2 className="text-base font-bold uppercase text-slate-900 dark:text-white">Application {viewingApp.id}</h2>
-              <button onClick={() => setViewingApp(null)} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+              <button onClick={() => setViewingId(null)} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
@@ -257,14 +285,136 @@ export default function CtplApplicationList({ data, onCreateNew }: Props) {
                   <span className="font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱60.00 verification fee via DBP-DCI.</span>
                 </div>
               )}
+
+              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">
+                Payment
+              </div>
+              {!viewingApp.isPaid && (
+                <div className="sm:col-span-2 flex items-center justify-between px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Awaiting client payment</span>
+                  <button
+                    type="button"
+                    onClick={() => { onUpdate?.(viewingApp.id, { isPaid: true }); notify('Payment confirmed — documents are now available.'); }}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-[11px] font-bold hover:bg-amber-700 cursor-pointer"
+                  >
+                    Simulate Payment Received
+                  </button>
+                </div>
+              )}
+
+              <PolicyDocumentsSection
+                isPaid={viewingApp.isPaid}
+                documents={CTPL_DOCUMENTS}
+                onView={handleViewDoc}
+                onSend={handleSendDoc}
+                lockedMessage="Documents will be available once the client completes payment on the website."
+              />
             </div>
 
             <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button onClick={() => setViewingApp(null)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+              <button onClick={() => setViewingId(null)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                 Close
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Printable Document Modal */}
+      {viewingApp && viewingDoc && (
+        <PrintableDocumentModal
+          title={CTPL_DOCUMENTS.find((d) => d.key === viewingDoc)?.label ?? 'Document'}
+          onClose={() => setViewingDoc(null)}
+        >
+          {viewingDoc === 'policySchedule' ? (
+            // Matches the real EMCC Policy Schedule template.
+            <>
+              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Policy Schedule</p>
+              <DocRow label="Policy No." value={viewingApp.id} />
+              <DocRow label="Confirmation of Cover No." value={`COC-${viewingApp.id}`} />
+              <DocRow label="Official Receipt No." value={`OR-${viewingApp.id}`} />
+              <DocRow label="Registered Owner" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+              <div className="border border-slate-300">
+                <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Schedule of Vehicle</p>
+                <div className="grid grid-cols-2 text-[10px]">
+                  <div className="px-2 py-1.5 border-b border-r border-dashed border-slate-200"><span className="text-slate-500 font-bold">Type / MV Type</span><br /><span className="font-extrabold">{viewingApp.policyType} &mdash; {viewingApp.mvType}</span></div>
+                  <div className="px-2 py-1.5 border-b border-dashed border-slate-200"><span className="text-slate-500 font-bold">MV File No.</span><br /><span className="font-extrabold">{viewingApp.mvFileNumber}</span></div>
+                  <div className="px-2 py-1.5 border-r border-dashed border-slate-200"><span className="text-slate-500 font-bold">Plate No.</span><br /><span className="font-extrabold font-mono">{viewingApp.plateNumber}</span></div>
+                  <div className="px-2 py-1.5"><span className="text-slate-500 font-bold">Serial / Chassis No.</span><br /><span className="font-extrabold font-mono">{viewingApp.chassisNumber}</span></div>
+                </div>
+              </div>
+              <div className="border border-slate-300">
+                <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Section I / II &mdash; Third Party Liability (subject to schedule of indemnity)</p>
+                <div className="flex justify-between px-2 py-1.5 text-[10px]"><span className="font-bold text-slate-600">Limit of Liability: ₱200,000.00</span><span className="font-extrabold">{viewingApp.premium}</span></div>
+              </div>
+              <div className="border border-slate-300 text-[10px]">
+                <p className="bg-slate-100 font-extrabold uppercase px-2 py-1 border-b border-slate-300">Section III &amp; IV &mdash; Own Damage / Bodily Injury &amp; Property Damage</p>
+                <p className="px-2 py-1.5 text-slate-500 font-semibold">Not Covered &mdash; CTPL-only policy</p>
+              </div>
+              <DocRow label="Total Premium" value={viewingApp.premium} />
+            </>
+          ) : viewingDoc === 'coc' ? (
+            // Matches the real Confirmation of Cover template — Land Transportation
+            // Operators Vehicle (commercial, with passenger liability) vs.
+            // Non-Land Transportation Operators Vehicle (private, TPL only).
+            <>
+              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">"Original" Confirmation of Cover</p>
+              <p className="text-center text-[10px] font-bold uppercase text-slate-500 pb-2 border-b border-dashed border-slate-300">
+                {viewingApp.policyType === 'Commercial Vehicle' ? 'Land Transportation Operators Vehicle' : 'Non-Land Transportation Operators Vehicle'}
+              </p>
+              <DocRow label="Policy No." value={viewingApp.id} />
+              <DocRow label="Confirmation of Cover No." value={`COC-${viewingApp.id}`} />
+              <DocRow label="Name and Address of Insured" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+              <DocRow label="Vehicle" value={`${viewingApp.mvType} — Plate ${viewingApp.plateNumber}`} />
+              <div className="border border-slate-300">
+                <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Limits of Liability (Subject to Schedule of Indemnities)</p>
+                <div className="flex justify-between px-2 py-1.5 text-[10px] border-b border-dashed border-slate-200"><span className="font-bold text-slate-600">A. Third Party Liability</span><span className="font-extrabold">₱200,000.00</span></div>
+                {viewingApp.policyType === 'Commercial Vehicle' && (
+                  <div className="flex justify-between px-2 py-1.5 text-[10px]"><span className="font-bold text-slate-600">B. Passenger Liability</span><span className="font-extrabold">₱200,000.00</span></div>
+                )}
+              </div>
+              <DocRow label="Premiums Paid (Inclusive of Taxes)" value={viewingApp.premium} />
+              <p className="text-[9px] text-slate-500 leading-relaxed pt-1">This Confirmation of Cover is evidence of the policy of insurance required under Chapter VI, Compulsory Motor Vehicle Liability Insurance of the Insurance Code, as amended by Presidential Decree No. 1814.</p>
+              <p className="text-[10px] text-slate-500 pt-2 text-right">Reynaldo M. Saris, SAVP &mdash; Underwriting<br />Authorized Signature</p>
+            </>
+          ) : viewingDoc === 'serviceInvoice' ? (
+            // Matches the real Service Invoice template.
+            <>
+              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Service Invoice</p>
+              <DocRow label="Invoice No." value={`INV-${viewingApp.id}`} />
+              <DocRow label="Invoice Date" value={viewingApp.dateReceived} />
+              <DocRow label="Policy No." value={viewingApp.id} />
+              <DocRow label="Name" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+              <table className="w-full text-[10px] border border-slate-300 mt-1">
+                <thead><tr className="bg-[#002f6c] text-white"><th className="text-left px-2 py-1.5">Item Description / Nature of Service</th><th className="text-right px-2 py-1.5">Amount</th></tr></thead>
+                <tbody>
+                  <tr><td className="px-2 py-1.5 border-b border-dashed border-slate-200">CTPL Insurance Premium &mdash; {viewingApp.mvType}</td><td className="px-2 py-1.5 border-b border-dashed border-slate-200 text-right font-bold">{viewingApp.premium}</td></tr>
+                  {viewingApp.requiresCOV && (
+                    <tr><td className="px-2 py-1.5">Certificate of Validation (COV) Fee</td><td className="px-2 py-1.5 text-right font-bold">₱60.00</td></tr>
+                  )}
+                </tbody>
+              </table>
+              <DocRow label="Total Amount" value={viewingApp.premium} />
+              <p className="text-[10px] text-slate-500 pt-2">Please make check payments payable to Paramount Life &amp; General Insurance Corporation.</p>
+            </>
+          ) : (
+            <>
+              <DocRow label="Reference No." value={viewingApp.id} />
+              <DocRow label="Registered Owner" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+              <DocRow label="Policy Type" value={viewingApp.policyType} />
+              <DocRow label="MV Type" value={viewingApp.mvType} />
+              <DocRow label="Plate Number" value={viewingApp.plateNumber} />
+              <DocRow label="Premium" value={viewingApp.premium} />
+            </>
+          )}
+        </PrintableDocumentModal>
+      )}
+
+      {/* Toast */}
+      {notification && (
+        <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center space-x-3">
+          <CheckCircle2 className="w-5 h-5 text-white" />
+          <span>{notification}</span>
         </div>
       )}
 

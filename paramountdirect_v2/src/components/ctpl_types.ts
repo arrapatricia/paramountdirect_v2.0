@@ -27,6 +27,11 @@ export interface CtplApplication {
   dateReceived: string;
   status: CtplStatus;
   screenedBy: string;
+
+  // CTPL is straight-through payment on the client's website (unlike OFW,
+  // there's no employment-verification-style gate) - documents unlock as
+  // soon as isPaid is true.
+  isPaid: boolean;
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;

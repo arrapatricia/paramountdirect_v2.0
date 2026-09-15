@@ -25,6 +25,11 @@ export interface GtpApplication {
   dateReceived: string;
   status: GtpStatus;
   screenedBy: string;
+
+  // GTP is straight-through payment on the client's website (unlike OFW,
+  // there's no employment-verification-style gate) - documents unlock as
+  // soon as isPaid is true.
+  isPaid: boolean;
 }
 
 export const GTP_PLAN_VARIANTS = ['Single Trip', 'Multi-Trip 90', 'Multi-Trip 180'] as const;

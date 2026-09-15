@@ -64,6 +64,9 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
     status: 'Completed',
     screenedBy: currentUser,
+    // Straight-through payment on the client's website - by the time it
+    // reaches this admin system, it's already paid.
+    isPaid: true,
   });
 
   const handleReview = (e: React.FormEvent) => {

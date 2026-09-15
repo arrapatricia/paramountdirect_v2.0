@@ -96,12 +96,20 @@ export function PrintableDocumentModal({
         </div>
 
         {/* Emulates a printed paper document - intentionally plain light
-            styling in both themes, same convention as payment_transactions.tsx. */}
+            styling in both themes, same convention as payment_transactions.tsx.
+            Letterhead matches the real head-office letterhead used on the
+            company's actual policy schedule / COC / invoice templates. */}
         <div id="printable-policy-document" className="p-8 border-2 border-slate-300 bg-white space-y-4 font-sans text-xs text-slate-800">
-          <div className="border-b border-slate-300 pb-3 text-center">
-            <h1 className="text-base font-extrabold text-[#d0112b] font-['Montserrat'] uppercase">
+          <div className="border-b border-slate-300 pb-3 flex justify-between items-start gap-4">
+            <h1 className="text-base font-extrabold text-[#002f6c] font-['Montserrat'] uppercase leading-snug">
               Paramount Life &amp; General Insurance Corporation
             </h1>
+            <div className="text-right text-[9px] font-semibold text-slate-500 leading-tight whitespace-nowrap">
+              <p>15th Floor, Sage House, 110 V.A. Rufino St.,</p>
+              <p>Legaspi Village, Makati City 1229, Philippines</p>
+              <p>Tel. No.: +632 8772 9200 &bull; insure@paramount.com.ph</p>
+              <p>www.paramount.com.ph &bull; TIN 000-487-644-000 VAT</p>
+            </div>
           </div>
           {children}
         </div>
