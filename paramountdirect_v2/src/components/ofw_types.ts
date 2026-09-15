@@ -43,6 +43,14 @@ export interface OfwApplication {
   dateReceived: string;
   status: OfwStatus;
   screenedBy: string;
+
+  // OFW-only caveat: unlike CTPL/GTP's straight-through website payment,
+  // an issuer must first verify the employment contract before the client
+  // is even sent instructions to pay. Documents only unlock once isPaid is
+  // true, which itself can't happen until a payment instruction was sent.
+  employmentVerified: 'Pending' | 'Yes' | 'No';
+  paymentInstructionSent: boolean;
+  isPaid: boolean;
 }
 
 export type OfwStatus = 'Received' | 'Cancelled' | 'Duplicate' | 'Reversed';

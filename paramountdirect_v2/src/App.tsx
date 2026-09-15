@@ -143,6 +143,11 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, 
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
     status,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
+    // A few rows carry the full verify -> instruction -> paid flow through to
+    // completion so the Documents section has something to demo unlocked.
+    employmentVerified: (i % 4 === 0 ? 'Yes' : i % 7 === 0 ? 'No' : 'Pending') as 'Pending' | 'Yes' | 'No',
+    paymentInstructionSent: i % 4 === 0,
+    isPaid: i % 8 === 0,
   };
 });
 
@@ -362,6 +367,7 @@ export default function App() {
             <OfwApplicationList
               data={ofwApplications}
               onCreateNew={() => setIsCreatingOfwApp(true)}
+              onUpdate={(id, patch) => setOfwApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app))}
             />
           )
         )}

@@ -121,6 +121,9 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
     dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
     status: 'Received',
     screenedBy: currentUser,
+    employmentVerified: 'Pending',
+    paymentInstructionSent: false,
+    isPaid: false,
   });
 
   const handleReview = (e: React.FormEvent) => {
