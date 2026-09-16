@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  ShieldCheck, 
-  Layers, 
-  Save, 
-  CheckCircle2, 
-  Lock, 
+import {
+  Layers,
+  Save,
+  CheckCircle2,
   X,
   SlidersHorizontal,
-  FolderTree
+  FolderTree,
+  Search,
+  RotateCcw,
+  CheckCheck,
+  Ban
 } from 'lucide-react';
 
 export type ProductSystem = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
@@ -210,9 +212,27 @@ const getDefaultPermissions = (product: ProductSystem, role: string): ModulePerm
   }));
 };
 
+function StatCard({ label, value, tone = 'default' }: { label: string; value: string | number; tone?: 'default' | 'brand' | 'emerald' | 'slate' }) {
+  const valueColor = tone === 'brand'
+    ? 'text-[#d0112b]'
+    : tone === 'emerald'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : tone === 'slate'
+        ? 'text-slate-500 dark:text-slate-400'
+        : 'text-slate-900 dark:text-white';
+
+  return (
+    <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">{label}</h3>
+      <p className={`text-2xl font-black ${valueColor}`}>{value}</p>
+    </div>
+  );
+}
+
 export default function RoleAccessMaintenance() {
   const [selectedProduct, setSelectedProduct] = useState<ProductSystem>('PD Life');
   const [selectedRole, setSelectedRole] = useState<string>(PRODUCT_ROLES_MAP['PD Life'][0]);
+  const [moduleSearch, setModuleSearch] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
 
   const [permissionMatrix, setPermissionMatrix] = useState<ModulePermission[]>(
@@ -223,6 +243,7 @@ export default function RoleAccessMaintenance() {
     const firstRole = PRODUCT_ROLES_MAP[prod][0];
     setSelectedProduct(prod);
     setSelectedRole(firstRole);
+    setModuleSearch('');
     setPermissionMatrix(getDefaultPermissions(prod, firstRole));
   };
 
@@ -231,18 +252,47 @@ export default function RoleAccessMaintenance() {
     setPermissionMatrix(getDefaultPermissions(selectedProduct, role));
   };
 
+  const handleResetToDefault = () => {
+    setPermissionMatrix(getDefaultPermissions(selectedProduct, selectedRole));
+    triggerBanner(`Matrix reset to the default template for ${selectedRole}.`);
+  };
+
   const handleToggle = (moduleName: string, key: 'canRead' | 'canWrite' | 'canDelete') => {
     setPermissionMatrix(prev => prev.map(p => p.moduleName === moduleName ? { ...p, [key]: !p[key] } : p));
   };
 
-  const handleSaveMatrix = () => {
-    setNotification(`Permissions saved for ${selectedRole} under ${selectedProduct} system.`);
+  const handleToggleColumn = (key: 'canRead' | 'canWrite' | 'canDelete') => {
+    const visibleNames = new Set(filteredMatrix.map((m) => m.moduleName));
+    const allOn = filteredMatrix.every((m) => m[key]);
+    setPermissionMatrix(prev => prev.map(p => visibleNames.has(p.moduleName) ? { ...p, [key]: !allOn } : p));
+  };
+
+  const handleRowFullAccess = (moduleName: string) => {
+    setPermissionMatrix(prev => prev.map(p => p.moduleName === moduleName ? { ...p, canRead: true, canWrite: true, canDelete: true } : p));
+  };
+
+  const handleRowNoAccess = (moduleName: string) => {
+    setPermissionMatrix(prev => prev.map(p => p.moduleName === moduleName ? { ...p, canRead: false, canWrite: false, canDelete: false } : p));
+  };
+
+  const triggerBanner = (msg: string) => {
+    setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const handleSaveMatrix = () => {
+    triggerBanner(`Permissions saved for ${selectedRole} under ${selectedProduct} system.`);
+  };
+
+  const filteredMatrix = permissionMatrix.filter((m) => m.moduleName.toLowerCase().includes(moduleSearch.toLowerCase()));
+
+  const fullAccessCount = permissionMatrix.filter((m) => m.canRead && m.canWrite && m.canDelete).length;
+  const readOnlyCount = permissionMatrix.filter((m) => m.canRead && !m.canWrite && !m.canDelete).length;
+  const noAccessCount = permissionMatrix.filter((m) => !m.canRead && !m.canWrite && !m.canDelete).length;
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100 relative">
-      
+
       {notification && (
         <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center justify-between space-x-3">
           <CheckCircle2 className="w-5 h-5 text-white" />
@@ -252,21 +302,35 @@ export default function RoleAccessMaintenance() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-        <div className="flex items-center space-x-3">
-          <FolderTree className="w-6 h-6 text-[#d0112b]" />
+      <div className="flex flex-wrap justify-between items-center gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
+        <div className="flex items-center space-x-2.5">
+          <FolderTree className="h-6 w-6 text-[#d0112b]" />
           <div>
-            <h1 className="text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
+            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
               ROLE & MODULE ACCESS MAINTENANCE
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Configure module access matrices across Paramount multi-product systems</p>
           </div>
         </div>
 
-        <button onClick={handleSaveMatrix} className="flex items-center space-x-2 bg-[#008cb4] hover:bg-[#007396] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md">
-          <Save className="w-4 h-4" />
-          <span>Save Access Matrix</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleResetToDefault} className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200">
+            <RotateCcw className="w-4 h-4" />
+            <span>Reset to Default</span>
+          </button>
+          <button onClick={handleSaveMatrix} className="flex items-center space-x-2 bg-[#008cb4] hover:bg-[#007396] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md">
+            <Save className="w-4 h-4" />
+            <span>Save Access Matrix</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label={`Modules in ${selectedProduct}`} value={permissionMatrix.length} />
+        <StatCard label="Full Access Modules" value={fullAccessCount} tone="brand" />
+        <StatCard label="Read-Only Modules" value={readOnlyCount} />
+        <StatCard label="No Access" value={noAccessCount} tone="slate" />
       </div>
 
       {/* Product Selection Tabs */}
@@ -278,7 +342,7 @@ export default function RoleAccessMaintenance() {
             className={`p-4 rounded-2xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between shadow-sm ${
               selectedProduct === prod
                 ? 'bg-[#d0112b] text-white border-[#d0112b] shadow-md'
-                : 'bg-white/80 hover:bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800'
+                : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800'
             }`}
           >
             <span>{prod} System</span>
@@ -287,43 +351,56 @@ export default function RoleAccessMaintenance() {
         ))}
       </div>
 
-      {/* Role Selection Dropdown */}
-      <div className="p-4 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-md shadow-lg flex flex-wrap items-center gap-3 dark:bg-slate-900/70 dark:border-slate-800">
-        <SlidersHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-        <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Target Role ({selectedProduct}):</span>
-        <select
-          value={selectedRole}
-          onChange={(e) => handleRoleChange(e.target.value)}
-          className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer max-w-md dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-        >
-          {selectedProduct === 'PD Life' ? (
-            <>
-              <optgroup label="Direct Marketing Roles">
-                {DIRECT_MARKETING_ROLES.map((role) => (
+      {/* Role Selection + Module Search */}
+      <div className="p-4 rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-wrap items-center gap-4 dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Target Role ({selectedProduct}):</span>
+          <select
+            value={selectedRole}
+            onChange={(e) => handleRoleChange(e.target.value)}
+            className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer max-w-md dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+          >
+            {selectedProduct === 'PD Life' ? (
+              <>
+                <optgroup label="Direct Marketing Roles">
+                  {DIRECT_MARKETING_ROLES.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Other PD Life Product Roles">
+                  {PRODUCT_ROLES_MAP['PD Life']
+                    .filter((role) => !DIRECT_MARKETING_ROLES.includes(role))
+                    .map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                </optgroup>
+              </>
+            ) : (
+              <optgroup label={`${selectedProduct} Product Roles`}>
+                {PRODUCT_ROLES_MAP[selectedProduct].map((role) => (
                   <option key={role} value={role}>{role}</option>
                 ))}
               </optgroup>
-              <optgroup label="Other PD Life Product Roles">
-                {PRODUCT_ROLES_MAP['PD Life']
-                  .filter((role) => !DIRECT_MARKETING_ROLES.includes(role))
-                  .map((role) => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-              </optgroup>
-            </>
-          ) : (
-            <optgroup label={`${selectedProduct} Product Roles`}>
-              {PRODUCT_ROLES_MAP[selectedProduct].map((role) => (
+            )}
+            <optgroup label="System Core & Global Roles">
+              {SHARED_CORE_ROLES.map((role) => (
                 <option key={role} value={role}>{role}</option>
               ))}
             </optgroup>
-          )}
-          <optgroup label="System Core & Global Roles">
-            {SHARED_CORE_ROLES.map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </optgroup>
-        </select>
+          </select>
+        </div>
+
+        <div className="relative flex-1 min-w-[200px]">
+          <input
+            type="text"
+            value={moduleSearch}
+            onChange={(e) => setModuleSearch(e.target.value)}
+            placeholder="Search modules..."
+            className="w-full pl-9 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-500"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+        </div>
       </div>
 
       {selectedProduct === 'PD Life' && DIRECT_MARKETING_ROLES.includes(selectedRole) && (
@@ -335,19 +412,40 @@ export default function RoleAccessMaintenance() {
       )}
 
       {/* Access Control Matrix Table */}
-      <div className="bg-white/80 backdrop-blur-md border border-white/60 rounded-3xl p-6 shadow-xl overflow-x-auto dark:bg-slate-900/80 dark:border-slate-800">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-x-auto dark:bg-slate-900 dark:border-slate-800">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-slate-200 text-slate-600 font-extrabold uppercase dark:border-slate-800 dark:text-slate-400">
               <th className="py-3 px-3">Module Name ({selectedProduct})</th>
-              <th className="py-3 px-3 text-center">Read / View</th>
-              <th className="py-3 px-3 text-center">Write / Edit</th>
-              <th className="py-3 px-3 text-center">Delete Privilege</th>
+              <th className="py-3 px-3 text-center">
+                <button onClick={() => handleToggleColumn('canRead')} className="flex items-center justify-center gap-1 mx-auto cursor-pointer hover:text-[#008cb4]" title="Toggle all visible rows">
+                  <span>Read / View</span>
+                </button>
+              </th>
+              <th className="py-3 px-3 text-center">
+                <button onClick={() => handleToggleColumn('canWrite')} className="flex items-center justify-center gap-1 mx-auto cursor-pointer hover:text-[#008cb4]" title="Toggle all visible rows">
+                  <span>Write / Edit</span>
+                </button>
+              </th>
+              <th className="py-3 px-3 text-center">
+                <button onClick={() => handleToggleColumn('canDelete')} className="flex items-center justify-center gap-1 mx-auto cursor-pointer hover:text-[#d0112b]" title="Toggle all visible rows">
+                  <span>Delete Privilege</span>
+                </button>
+              </th>
+              <th className="py-3 px-3 text-center">Quick Set</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {permissionMatrix.map((item) => (
-              <tr key={item.moduleName} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+            {filteredMatrix.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-10 text-center text-slate-400 dark:text-slate-500">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="font-bold">No modules match "{moduleSearch}".</p>
+                </td>
+              </tr>
+            )}
+            {filteredMatrix.map((item) => (
+              <tr key={item.moduleName} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                 <td className="py-4 px-3">
                   <div className="flex items-center space-x-2">
                     <span className="font-bold text-slate-800 dark:text-slate-100">{item.moduleName}</span>
@@ -384,6 +482,24 @@ export default function RoleAccessMaintenance() {
                     onChange={() => handleToggle(item.moduleName, 'canDelete')}
                     className="h-4 w-4 rounded border-slate-300 text-[#d0112b] focus:ring-[#d0112b] cursor-pointer dark:border-slate-600 dark:bg-slate-800"
                   />
+                </td>
+                <td className="py-4 px-3">
+                  <div className="flex items-center justify-center space-x-1.5">
+                    <button
+                      onClick={() => handleRowFullAccess(item.moduleName)}
+                      title="Grant full access"
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-500 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-400"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleRowNoAccess(item.moduleName)}
+                      title="Revoke all access"
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-500 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-400"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
