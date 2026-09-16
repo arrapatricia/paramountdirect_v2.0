@@ -36,7 +36,9 @@ import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
 import UserManagement from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
-import PremiumMaintenance from './components/premium_maintenance';
+// Premium Maintenance removed from nav per request - see the commented-out
+// render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
+// import PremiumMaintenance from './components/premium_maintenance';
 import { INITIAL_PREMIUM_RATES, type PremiumRate } from './components/premium_rates';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
@@ -256,6 +258,14 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [screeningData, setScreeningData] = useState<ScreeningItem[]>(initialMockData);
+  // Shared between Follow-up Signature and Signed Applications - both pages
+  // show/act on the same "has the client's signed form been received back"
+  // state for a given issued policy, so marking it signed from either page
+  // needs to be visible on the other.
+  const [signedFollowUpIds, setSignedFollowUpIds] = useState<string[]>([]);
+  const handleMarkSigned = (id: string) => {
+    setSignedFollowUpIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
   const [ofwApplications, setOfwApplications] = useState<OfwApplication[]>(initialOfwMockData);
   const [isCreatingOfwApp, setIsCreatingOfwApp] = useState(false);
   const [ctplApplications, setCtplApplications] = useState<CtplApplication[]>(initialCtplMockData);
@@ -360,9 +370,9 @@ export default function App() {
         {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" />}
         {activeTab === 'life-daily' && <LifeApplicationsOverview period="Daily" />}
         {activeTab === 'life-followup-calls' && <LifeFollowupCalls />}
-        {activeTab === 'life-signed' && <LifeSignedApplications />}
+        {activeTab === 'life-signed' && <LifeSignedApplications data={screeningData} signedIds={signedFollowUpIds} onMarkSigned={handleMarkSigned} />}
         {activeTab === 'life-screened' && <LifeScreenedApplications data={screeningData} />}
-        {activeTab === 'life-followup-signature' && <LifeFollowupSignature data={screeningData} />}
+        {activeTab === 'life-followup-signature' && <LifeFollowupSignature data={screeningData} signedIds={signedFollowUpIds} onMarkSigned={handleMarkSigned} />}
         {activeTab === 'life-application-statuses' && <LifeApplicationStatuses />}
 
         {/* OFW Dashboard */}
@@ -469,8 +479,11 @@ export default function App() {
             <UserManagement />
           ) : activeSubTab === 'roles' ? (
             <RoleAccessMaintenance />
-          ) : activeSubTab === 'premiums' ? (
-            <PremiumMaintenance rates={premiumRates} onSave={setPremiumRates} />
+          // Premium Maintenance removed from nav per request - see
+          // sidebar.tsx's commented-out 'premiums' entry. Left here
+          // commented rather than deleted in case it's needed again.
+          // ) : activeSubTab === 'premiums' ? (
+          //   <PremiumMaintenance rates={premiumRates} onSave={setPremiumRates} />
           ) : (
             <Maintenance 
               activeSubTab={activeSubTab} 
