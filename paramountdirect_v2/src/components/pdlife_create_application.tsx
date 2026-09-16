@@ -13,6 +13,9 @@ import {
   type NonForfeitureOption,
 } from './pdlife_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
+import { getHcpPremium, getHcpAvailableTiers, type HcpInsuredOption } from './pdlife_rates_hcp';
+import { getHipPremium, HIP_TIERS, type HipInsuredOption } from './pdlife_rates_hip';
+import { getGlaPremium, GLA_MAX_UNITS } from './pdlife_rates_gla';
 
 interface Props {
   onCreate: (app: PdLifeApplication) => void;
@@ -145,6 +148,9 @@ function PdLifeCategoryForm({
   const [insuredOption, setInsuredOption] = useState<'Individual' | 'Married Couple' | 'Family'>('Individual');
   const [hasLegalSpouse, setHasLegalSpouse] = useState(false);
   const [children, setChildren] = useState<ChildBeneficiary[]>([]);
+  // Benefit/plan amount tier - only meaningful for HCP and HIP so far, whose
+  // real rate cards are wired in (pdlife_rates_hcp.ts / pdlife_rates_hip.ts).
+  const [benefitTier, setBenefitTier] = useState(500);
 
   // Life & Accident / Comprehensive shared
   const [paymentOption, setPaymentOption] = useState<(typeof PAYMENT_OPTIONS)[number]>('Monthly');
@@ -173,7 +179,22 @@ function PdLifeCategoryForm({
 
   const age = calculateAge(owner.birthdate);
   const planName = planOptions.find((p) => p.code === planCode)?.name ?? '';
-  const premiumValue = planCode ? getPremiumRate(rates, 'PD Life', planCode, 500) : 0;
+
+  const hcpTiers = age !== null ? getHcpAvailableTiers(insuredOption as HcpInsuredOption, age) : [];
+  // HCP/HIP need the applicant's age to price at all - without it, showing
+  // any number (even a placeholder) misleadingly looks like a real premium
+  // that just isn't reacting to Payment Option/Benefit Amount yet.
+  const premiumNeedsAge = (planCode === 'HCP' || planCode === 'HIP') && age === null;
+
+  const premiumValue =
+    !planCode ? 0 :
+    planCode === 'HCP' && age !== null
+      ? getHcpPremium(insuredOption as HcpInsuredOption, age, Math.min(benefitTier, hcpTiers[hcpTiers.length - 1] ?? benefitTier), paymentOption)
+      : planCode === 'HIP' && age !== null
+      ? getHipPremium(insuredOption as HipInsuredOption, age, benefitTier, paymentOption)
+      : planCode === 'GLA'
+      ? getGlaPremium(units, paymentOption)
+      : getPremiumRate(rates, 'PD Life', planCode, 500);
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<PdLifeApplication | null>(null);
@@ -287,7 +308,11 @@ function PdLifeCategoryForm({
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">Estimated Premium</p>
-          <p className="text-xl font-black text-[#d0112b]">₱{premiumValue.toFixed(2)}</p>
+          {premiumNeedsAge ? (
+            <p className="text-xs font-bold text-amber-600 dark:text-amber-400 max-w-[160px]">Enter birthdate below to calculate</p>
+          ) : (
+            <p className="text-xl font-black text-[#d0112b]">₱{premiumValue.toFixed(2)}</p>
+          )}
         </div>
       </div>
 
@@ -344,7 +369,20 @@ function PdLifeCategoryForm({
               <div>
                 <label className={labelClass}>Units</label>
                 <select value={units} onChange={(e) => setUnits(Number(e.target.value))} className={inputClass}>
-                  {[1, 2, 3, 5, 7, 10, 15, 20].map((u) => <option key={u} value={u}>{u} Unit(s)</option>)}
+                  {(planCode === 'GLA' ? Array.from({ length: GLA_MAX_UNITS }, (_, i) => i + 1) : [1, 2, 3, 5, 7, 10, 15, 20]).map((u) => (
+                    <option key={u} value={u}>{u} Unit(s)</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {category === 'Health' && (planCode === 'HCP' || planCode === 'HIP') && (
+              <div>
+                <label className={labelClass}>Benefit Amount</label>
+                <select value={benefitTier} onChange={(e) => setBenefitTier(Number(e.target.value))} className={inputClass}>
+                  {(planCode === 'HCP' ? (hcpTiers.length ? hcpTiers : [500]) : HIP_TIERS).map((t) => (
+                    <option key={t} value={t}>₱{t.toLocaleString()}</option>
+                  ))}
                 </select>
               </div>
             )}

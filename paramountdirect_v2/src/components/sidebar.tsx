@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
+import logoImgWhite from '../assets/PD Logo_white.png';
 
 export type ProductLine = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
 
@@ -159,9 +160,9 @@ export default function Sidebar({
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5">
           <div className="flex items-center justify-between h-12 mb-6">
             <div className="flex items-center space-x-2 overflow-hidden">
-              <img 
-                src={logoImg} 
-                alt="Paramount Direct" 
+              <img
+                src={darkMode ? logoImgWhite : logoImg}
+                alt="Paramount Direct"
                 className={`transition-all duration-300 object-contain ${
                   isCollapsed ? 'h-7 max-w-[50px]' : 'h-8 max-w-[150px]'
                 }`} 

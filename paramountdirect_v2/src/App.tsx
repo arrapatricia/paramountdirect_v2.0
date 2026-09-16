@@ -35,7 +35,8 @@ import UserManagement from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
 import PremiumMaintenance from './components/premium_maintenance';
 import { INITIAL_PREMIUM_RATES, type PremiumRate } from './components/premium_rates';
-import logoImg from './assets/logo.png';
+import logoImg from './assets/PD Logo_full color.png';
+import logoImgWhite from './assets/PD Logo_white.png';
 
 const CURRENT_USER = {
   name: 'Juan Dela Cruz',
@@ -317,7 +318,7 @@ export default function App() {
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 cursor-pointer">
             <Menu className="h-5 w-5" />
           </button>
-          <img src={logoImg} alt="Paramount Direct" className="h-8 w-auto" />
+          <img src={darkMode ? logoImgWhite : logoImg} alt="Paramount Direct" className="h-8 w-auto" />
         </div>
         <button onClick={toggleDarkMode} className="p-2 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-yellow-400 cursor-pointer">
           {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
