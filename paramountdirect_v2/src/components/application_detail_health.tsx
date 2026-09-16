@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
+import { UserCircle2, MapPin, Users, Wallet, ClipboardList } from 'lucide-react';
+import {
+  NotificationBanner, DetailHeader, StatusControl, Section, Field, AddRowButton,
+  editInputClass, editSelectClass, type NotificationState,
+} from './application_detail_ui';
 
 interface Props {
   applicationId: string;
@@ -7,14 +11,18 @@ interface Props {
   initialStatus: string;
   onUpdateStatus: (status: string) => void;
   onBack: () => void;
+  // Application Inquiry is a lookup view - opened from there, this page is
+  // fully read-only (no status changes, no section editing).
+  readOnly?: boolean;
 }
 
-export default function ApplicationDetailHealth({ 
-  applicationId, 
-  planCode, 
-  initialStatus, 
-  onUpdateStatus, 
-  onBack 
+export default function ApplicationDetailHealth({
+  applicationId,
+  planCode,
+  initialStatus,
+  onUpdateStatus,
+  onBack,
+  readOnly = false
 }: Props) {
   const productNames: Record<string, string> = {
     'HCP': 'HealthCare Cash Plan',
@@ -29,11 +37,7 @@ export default function ApplicationDetailHealth({
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusOptions = ['For Verification', 'For Evaluation', 'Paid', 'Issued'];
 
-  // Notification Banner State
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'error' | 'info';
-    message: string;
-  } | null>(null);
+  const [notification, setNotification] = useState<NotificationState>(null);
 
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [birthdate, setBirthdate] = useState('2007-02-01');
@@ -62,450 +66,221 @@ export default function ApplicationDetailHealth({
   };
 
   const toggleEdit = (section: string) => {
+    if (readOnly) return;
     setEditingSection(editingSection === section ? null : section);
   };
 
-  // Immediate Status Update & Banner Trigger Handler
   const handleSelectStatus = (newStatus: string) => {
     setStatus(newStatus);
     setIsStatusMenuOpen(false);
 
-    const simulateError = false; // Toggle to true to test error banner
-
     if (newStatus === 'Issued') {
-      if (simulateError) {
-        setNotification({
-          type: 'error',
-          message: 'There is an error upon issuance of application.'
-        });
-        return;
-      }
-
       setSavedStatus('Issued');
       onUpdateStatus('Issued');
-      setNotification({
-        type: 'success',
-        message: 'The application has been successfully issued and transmitted to iPeak'
-      });
+      setNotification({ type: 'success', message: 'The application has been successfully issued and transmitted to iPeak' });
     } else {
       setSavedStatus(newStatus);
       onUpdateStatus(newStatus);
-      setNotification({
-        type: 'info',
-        message: `The application is updated to ${newStatus}`
-      });
+      setNotification({ type: 'info', message: `The application is updated to ${newStatus}` });
     }
 
-    // Auto-dismiss banner after 5 seconds
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
-  };
-
-  const getInputProps = (section: string, defaultValue: string, placeholder?: string) => {
-    const isEditing = editingSection === section;
-    return {
-      defaultValue,
-      placeholder,
-      readOnly: !isEditing,
-      disabled: !isEditing,
-      className: `w-full px-3 py-2 rounded outline-none transition-colors ${
-        isEditing 
-          ? 'bg-white border border-[#008cb4] focus:ring-2 focus:ring-[#008cb4]/20 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' 
-          : 'bg-gray-100 border border-gray-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-      }`
-    };
-  };
-
-  const getSelectProps = (section: string) => {
-    const isEditing = editingSection === section;
-    return {
-      disabled: !isEditing,
-      className: `flex-1 w-full px-3 py-2 rounded outline-none transition-colors ${
-        isEditing 
-          ? 'bg-white border border-[#008cb4] focus:ring-2 focus:ring-[#008cb4]/20 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' 
-          : 'bg-gray-100 border border-gray-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-      }`
-    };
-  };
-
-  const EditButton = ({ section }: { section: string }) => {
-    const isEditing = editingSection === section;
-    return (
-      <button 
-        onClick={() => toggleEdit(section)}
-        className={`mt-6 ${isEditing ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#008cb4] hover:bg-[#007396]'} text-white px-4 py-2 rounded text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-sm`}
-      >
-        {isEditing ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Edit className="w-3.5 h-3.5" />}
-        <span>{isEditing ? 'Save Changes' : 'Edit'}</span>
-      </button>
-    );
+    setTimeout(() => setNotification(null), 5000);
   };
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-200">
 
-      {/* Top Banner Alert Prompt */}
-      {notification && (
-        <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold shadow-md animate-fadeIn ${
-          notification.type === 'success'
-            ? 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300'
-            : notification.type === 'error'
-            ? 'bg-rose-50 border-rose-300 text-rose-800 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300'
-            : 'bg-blue-50 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300'
-        }`}>
-          <div className="flex items-center space-x-2.5">
-            {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
-            {notification.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
-            {notification.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />}
-            <span>{notification.message}</span>
-          </div>
-          <button onClick={() => setNotification(null)} className="cursor-pointer p-1 rounded-lg hover:bg-black/5">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300"
-            title="Back to Screening List"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-black uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
-              APPLICATION ID: {applicationId}
-            </h1>
-            <div className="flex items-center space-x-3 mt-1.5">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-500">Viewing Application Details</p>
-              <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{productName} ({planCode})</span>
-              <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-              <span className="text-xs font-black text-[#d0112b] bg-red-50 border border-red-100 px-2.5 py-0.5 rounded-md tracking-wide dark:bg-red-950/30 dark:border-red-900/40">
-                Premium: ₱500.00
-              </span>
-            </div>
-          </div>
-        </div>
+      <DetailHeader
+        applicationId={applicationId}
+        productName={productName}
+        planCode={planCode}
+        premium="Premium: ₱500.00"
+        onBack={onBack}
+        statusControl={
+          <StatusControl
+            status={status}
+            savedStatus={savedStatus}
+            isMenuOpen={isStatusMenuOpen}
+            setIsMenuOpen={setIsStatusMenuOpen}
+            statusOptions={statusOptions}
+            onSelect={handleSelectStatus}
+            locked={readOnly}
+          />
+        }
+      />
 
-        {/* Current Status Dropdown */}
-        <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider dark:text-slate-400">Current Status:</span>
-
-          {savedStatus === 'Issued' ? (
-            <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300">
-              <span>Issued</span>
-              <Lock className="w-3.5 h-3.5" />
-            </span>
-          ) : (
-            <div className="relative">
-              <button
-                onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-                className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-700"
-              >
-                <span>{status}</span>
-                <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              </button>
-
-              {isStatusMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 dark:bg-slate-900 dark:border-slate-800">
-                  <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1 dark:text-slate-500 dark:border-slate-800">
-                    Update Status To:
-                  </div>
-                  {statusOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => handleSelectStatus(opt)}
-                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                        status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      <span>{opt}</span>
-                      {status === opt && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Form Content */}
       <div className="space-y-6 pb-20">
-        
+
         {/* 1. General Details */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl text-xs">
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Campaign Source</label>
-              <select {...getSelectProps('general')}>
-                <option>Telemarketing</option>
-                <option>PD Website</option>
-                <option>Google</option>
-                <option>Facebook Ads</option>
-              </select>
-            </div>
-            <div className="hidden md:block"></div>
-            
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Insured Option</label>
-              <select
-                value={insuredOption}
-                onChange={(e) => setInsuredOption(e.target.value as typeof insuredOption)}
-                {...getSelectProps('general')}
-              >
-                <option>Individual</option>
-                <option>Married Couple</option>
-                <option>Family</option>
-              </select>
-            </div>
-            <div className="hidden md:block"></div>
+        <Section icon={ClipboardList} title="General Details" isEditing={editingSection === 'general'} onToggleEdit={() => toggleEdit('general')} hideEditButton={readOnly}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <Field
+              label="Campaign Source" editing={editingSection === 'general'} view="Telemarketing"
+              edit={<select className={editSelectClass}><option>Telemarketing</option><option>PD Website</option><option>Google</option><option>Facebook Ads</option></select>}
+            />
+            <div className="hidden md:block" />
 
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Plan</label>
-              <select {...getSelectProps('general')}>
-                <option>Plan 500 - {insuredOption}</option>
-                <option>Plan 1000 - {insuredOption}</option>
-                <option>Plan 2000 - {insuredOption}</option>
-              </select>
-            </div>
-            <div className="hidden md:block"></div>
+            <Field
+              label="Insured Option" editing={editingSection === 'general'} view={insuredOption}
+              edit={
+                <select value={insuredOption} onChange={(e) => setInsuredOption(e.target.value as typeof insuredOption)} className={editSelectClass}>
+                  <option>Individual</option><option>Married Couple</option><option>Family</option>
+                </select>
+              }
+            />
+            <div className="hidden md:block" />
 
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Payment Option</label>
-              <select {...getSelectProps('general')}>
-                <option>Monthly</option>
-                <option>Quarterly</option>
-                <option>Semi-Annual</option>
-                <option>Annual</option>
-              </select>
-            </div>
+            <Field
+              label="Plan" editing={editingSection === 'general'} view={`Plan 500 - ${insuredOption}`}
+              edit={<select className={editSelectClass}><option>Plan 500 - {insuredOption}</option><option>Plan 1000 - {insuredOption}</option><option>Plan 2000 - {insuredOption}</option></select>}
+            />
+            <div className="hidden md:block" />
+
+            <Field
+              label="Payment Option" editing={editingSection === 'general'} view="Monthly"
+              edit={<select className={editSelectClass}><option>Monthly</option><option>Quarterly</option><option>Semi-Annual</option><option>Annual</option></select>}
+            />
           </div>
-          <EditButton section="general" />
-        </div>
+        </Section>
 
         {/* 2. Personal Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Personal Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Title</label>
-              <select {...getSelectProps('personal')} className={`${getSelectProps('personal').className} max-w-[120px]`}>
-                <option>Mr</option>
-                <option>Ms</option>
-                <option>Mrs</option>
-              </select>
-            </div>
-            
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Name</label>
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" {...getInputProps('personal', 'Paramount', 'First Name')} />
-                <input type="text" {...getInputProps('personal', 'Life & General Insurance', 'Middle Name')} />
-                <input type="text" {...getInputProps('personal', 'Corp', 'Last Name')} />
-              </div>
-            </div>
+        <Section icon={UserCircle2} title="Personal Information" isEditing={editingSection === 'personal'} onToggleEdit={() => toggleEdit('personal')} hideEditButton={readOnly}>
+          <Field
+            label="Title" editing={editingSection === 'personal'} view="Mr"
+            edit={<select className={`${editSelectClass} max-w-[120px]`}><option>Mr</option><option>Ms</option><option>Mrs</option></select>}
+          />
 
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Birthdate</label>
-              <div className="flex-1 flex items-center space-x-4">
-                <input 
-                  type="date" 
-                  value={birthdate}
-                  onChange={(e) => setBirthdate(e.target.value)}
-                  disabled={editingSection !== 'personal'}
-                  className={`w-48 px-3 py-2 rounded outline-none transition-colors ${
-                    editingSection === 'personal' 
-                      ? 'bg-white border border-[#008cb4] focus:ring-2 focus:ring-[#008cb4]/20 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' 
-                      : 'bg-gray-100 border border-gray-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-                  }`} 
-                />
+          <Field
+            label="Name" editing={editingSection === 'personal'} view="Paramount Life & General Insurance Corp"
+            edit={
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input type="text" defaultValue="Paramount" placeholder="First Name" className={editInputClass} />
+                <input type="text" defaultValue="Life & General Insurance" placeholder="Middle Name" className={editInputClass} />
+                <input type="text" defaultValue="Corp" placeholder="Last Name" className={editInputClass} />
+              </div>
+            }
+          />
+
+          <Field
+            label="Birthdate" editing={editingSection === 'personal'}
+            view={<span>{birthdate} <span className="ml-2 px-2 py-0.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span></span>}
+            edit={
+              <div className="flex items-center space-x-4">
+                <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={`w-48 ${editInputClass}`} />
                 <div className="flex items-center space-x-2">
                   <span className="text-slate-500 font-semibold dark:text-slate-400">Current Age:</span>
-                  <span className="px-3 py-1.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">
-                    {calculateAge(birthdate)} yrs
-                  </span>
+                  <span className="px-3 py-1.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span>
                 </div>
               </div>
-            </div>
+            }
+          />
 
-            <div className="flex items-start">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300 mt-2">Place Of Birth<br/><span className="text-[10px] font-normal text-slate-400 dark:text-slate-500">(Optional)</span></label>
-              <div className="flex-1">
-                <input type="text" {...getInputProps('personal', '')} />
-              </div>
-            </div>
+          <Field
+            label="Place Of Birth" editing={editingSection === 'personal'} align="start" view={null}
+            edit={<input type="text" className={editInputClass} />}
+          />
 
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Nationality</label>
-              <select {...getSelectProps('personal')} className={`${getSelectProps('personal').className} max-w-[192px]`}>
-                <option>Filipino</option>
-              </select>
-            </div>
-          </div>
-          <EditButton section="personal" />
-        </div>
+          <Field
+            label="Nationality" editing={editingSection === 'personal'} view="Filipino"
+            edit={<select className={`${editSelectClass} max-w-[192px]`}><option>Filipino</option></select>}
+          />
+        </Section>
 
         {/* 3. Contact Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Contact Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-start">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300 mt-2">Address</label>
-              <div className="flex-1 space-y-3">
+        <Section icon={MapPin} title="Contact Information" isEditing={editingSection === 'contact'} onToggleEdit={() => toggleEdit('contact')} hideEditButton={readOnly}>
+          <Field
+            label="Address" editing={editingSection === 'contact'} align="start"
+            view={`12313 1231, ${barangay}, ${city}, ${region} 1300`}
+            edit={
+              <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input type="text" {...getInputProps('contact', '12313')} placeholder="Unit / House No." />
-                  <input type="text" {...getInputProps('contact', '1231')} placeholder="Street" />
-                  <input type="text" {...getInputProps('contact', '', 'Building Name (Optional)')} />
+                  <input type="text" defaultValue="12313" placeholder="Unit / House No." className={editInputClass} />
+                  <input type="text" defaultValue="1231" placeholder="Street" className={editInputClass} />
+                  <input type="text" placeholder="Building Name (Optional)" className={editInputClass} />
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <select 
-                    value={barangay} 
-                    onChange={(e) => setBarangay(e.target.value)} 
-                    {...getSelectProps('contact')}
-                  >
-                    {phBarangays.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                  <select 
-                    value={city} 
-                    onChange={(e) => setCity(e.target.value)} 
-                    {...getSelectProps('contact')}
-                  >
-                    {phCities.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select 
-                    value={region} 
-                    onChange={(e) => setRegion(e.target.value)} 
-                    {...getSelectProps('contact')}
-                  >
-                    {phRegions.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  <select value={barangay} onChange={(e) => setBarangay(e.target.value)} className={editSelectClass}>{phBarangays.map(b => <option key={b} value={b}>{b}</option>)}</select>
+                  <select value={city} onChange={(e) => setCity(e.target.value)} className={editSelectClass}>{phCities.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                  <select value={region} onChange={(e) => setRegion(e.target.value)} className={editSelectClass}>{phRegions.map(r => <option key={r} value={r}>{r}</option>)}</select>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input type="text" {...getInputProps('contact', '1300')} placeholder="Zip Code" />
+                  <input type="text" defaultValue="1300" placeholder="Zip Code" className={editInputClass} />
                 </div>
               </div>
-            </div>
+            }
+          />
 
-            <div className="flex items-center pt-2">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Mobile Number</label>
-              <div className="w-48">
-                <input type="text" {...getInputProps('contact', '09087161263')} />
-              </div>
-            </div>
+          <Field label="Mobile Number" editing={editingSection === 'contact'} view="09087161263" edit={<input type="text" defaultValue="09087161263" className={`w-48 ${editInputClass}`} />} />
+          <Field label="Telephone Number" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
+          <Field label="Email Address" editing={editingSection === 'contact'} view="jeoffrey.balaga@paramount.com.ph" edit={<input type="text" defaultValue="jeoffrey.balaga@paramount.com.ph" className={`w-72 ${editInputClass}`} />} />
+        </Section>
 
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Telephone Number</label>
-              <div className="w-48">
-                <input type="text" {...getInputProps('contact', '')} />
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
-              <div className="w-72">
-                <input type="text" {...getInputProps('contact', 'jeoffrey.balaga@paramount.com.ph')} />
-              </div>
-            </div>
-          </div>
-          <EditButton section="contact" />
-        </div>
-
-        {/* 4. Other Information: Persons to be Insured (Married Couple / Family only) */}
+        {/* 4. Persons to be Insured (Married Couple / Family only) */}
         {insuredOption !== 'Individual' && (
-          <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-            <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Persons to be Insured</h2>
-            <div className="space-y-4 text-xs max-w-5xl">
-              {insuredOption === 'Family' && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
-                  <label className="font-semibold text-slate-700 dark:text-slate-300">Do you have a legal spouse that you want to include in the coverage?</label>
-                  <select {...getSelectProps('otherInfo')} className={`${getSelectProps('otherInfo').className} max-w-[100px]`}>
-                    <option>No</option><option>Yes</option>
-                  </select>
-                </div>
-              )}
-              <div className="flex items-center text-slate-500 font-semibold dark:text-slate-400">
-                <div className="flex-1 px-1">Full Name</div><div className="w-48 px-1">Birthdate</div><div className="w-48 px-1">Relationship</div>
-              </div>
-              <div className="flex items-center">
-                <div className="flex-1 px-1"><input type="text" {...getInputProps('otherInfo', '')} placeholder="Full Name" /></div>
-                <div className="w-48 px-1"><input type="date" {...getInputProps('otherInfo', '')} /></div>
-                <div className="w-48 px-1">
-                  <select {...getSelectProps('otherInfo')}>
-                    <option>Spouse</option>
-                    <option>Child</option>
-                  </select>
-                </div>
-              </div>
-              {insuredOption === 'Family' && (
-                <div className="pt-2">
-                  <button disabled={editingSection !== 'otherInfo'} className={`w-full font-bold py-2 rounded flex items-center justify-center space-x-1 transition-colors ${editingSection === 'otherInfo' ? 'bg-gray-200 hover:bg-gray-300 text-slate-700 cursor-pointer dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600'}`}>
-                    <Plus className="w-4 h-4" /><span>ADD CHILD</span>
-                  </button>
-                </div>
-              )}
+          <Section icon={Users} title="Persons to be Insured" isEditing={editingSection === 'otherInfo'} onToggleEdit={() => toggleEdit('otherInfo')} hideEditButton={readOnly}>
+            {insuredOption === 'Family' && (
+              <Field
+                label="Include spouse?" editing={editingSection === 'otherInfo'} view="No"
+                edit={<select className={`${editSelectClass} max-w-[100px]`}><option>No</option><option>Yes</option></select>}
+              />
+            )}
+            <div className="flex items-center text-slate-400 font-extrabold uppercase text-[10px] tracking-wide pt-2 dark:text-slate-500">
+              <div className="flex-1 px-1">Full Name</div><div className="w-48 px-1">Birthdate</div><div className="w-48 px-1">Relationship</div>
             </div>
-            <EditButton section="otherInfo" />
-          </div>
+            <div className="flex items-center">
+              <div className="flex-1 px-1">{editingSection === 'otherInfo' ? <input type="text" placeholder="Full Name" className={editInputClass} /> : <span className="text-slate-300 dark:text-slate-700">&mdash;</span>}</div>
+              <div className="w-48 px-1">{editingSection === 'otherInfo' ? <input type="date" className={editInputClass} /> : null}</div>
+              <div className="w-48 px-1">{editingSection === 'otherInfo' ? <select className={editSelectClass}><option>Spouse</option><option>Child</option></select> : null}</div>
+            </div>
+            {insuredOption === 'Family' && (
+              <div className="pt-2"><AddRowButton label="Add Child" disabled={editingSection !== 'otherInfo'} /></div>
+            )}
+          </Section>
         )}
 
         {/* 5. Payor Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Payor Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-center mb-4">
-              <div className="w-40"></div>
-              <label className="flex items-center space-x-2 text-slate-700 font-medium dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={isPayorSameAsInsured}
-                  onChange={(e) => setIsPayorSameAsInsured(e.target.checked)}
-                  disabled={editingSection !== 'payor'}
-                  className="w-3.5 h-3.5 accent-[#008cb4] rounded"
-                />
-                <span>Is Payor the same with the Insured?</span>
-              </label>
-            </div>
-            {!isPayorSameAsInsured && (
-              <>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Name</label>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="text" {...getInputProps('payor', '', 'First Name')} />
-                    <input type="text" {...getInputProps('payor', '', 'Middle Name (Optional)')} />
-                    <input type="text" {...getInputProps('payor', '', 'Last Name')} />
+        <Section icon={Wallet} title="Payor Information" isEditing={editingSection === 'payor'} onToggleEdit={() => toggleEdit('payor')} hideEditButton={readOnly}>
+          <label className="flex items-center space-x-2 text-slate-700 font-semibold dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={isPayorSameAsInsured}
+              onChange={(e) => setIsPayorSameAsInsured(e.target.checked)}
+              disabled={editingSection !== 'payor'}
+              className="w-3.5 h-3.5 accent-[#008cb4] rounded"
+            />
+            <span>Is Payor the same with the Insured?</span>
+          </label>
+          {!isPayorSameAsInsured && (
+            <>
+              <Field
+                label="Name" editing={editingSection === 'payor'} view={null}
+                edit={
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" placeholder="First Name" className={editInputClass} />
+                    <input type="text" placeholder="Middle Name (Optional)" className={editInputClass} />
+                    <input type="text" placeholder="Last Name" className={editInputClass} />
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Contact Number</label>
-                  <div className="w-48"><input type="text" {...getInputProps('payor', '')} /></div>
-                </div>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
-                  <div className="w-72"><input type="text" {...getInputProps('payor', '')} /></div>
-                </div>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Relationship</label>
-                  <select {...getSelectProps('payor')} className={`${getSelectProps('payor').className} max-w-xs`}>
+                }
+              />
+              <Field label="Contact Number" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
+              <Field label="Email Address" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
+              <Field
+                label="Relationship" editing={editingSection === 'payor'} view={null}
+                edit={
+                  <select className={`${editSelectClass} max-w-xs`}>
                     <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
                     <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
                     <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
                     <option>Nephew</option><option>Niece</option><option>Other</option>
                     <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
                   </select>
-                </div>
-              </>
-            )}
-          </div>
-          <EditButton section="payor" />
-        </div>
+                }
+              />
+            </>
+          )}
+        </Section>
 
       </div>
     </div>

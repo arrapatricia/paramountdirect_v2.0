@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, X, ChevronDown, CheckCircle2, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ClipboardList, UserCircle2, Briefcase, Users, ShieldQuestion, FileWarning, ListChecks, Wallet } from 'lucide-react';
+import {
+  NotificationBanner, DetailHeader, StatusControl, Section, Field, AddRowButton,
+  editInputClass, editSelectClass, type NotificationState,
+} from './application_detail_ui';
 
 interface Props {
   applicationId: string;
@@ -7,6 +11,9 @@ interface Props {
   initialStatus: string;
   onUpdateStatus: (status: string) => void;
   onBack: () => void;
+  // Application Inquiry is a lookup view - opened from there, this page is
+  // fully read-only (no status changes, no section editing).
+  readOnly?: boolean;
 }
 
 export default function ApplicationDetailComprehensive({
@@ -14,7 +21,8 @@ export default function ApplicationDetailComprehensive({
   planCode,
   initialStatus,
   onUpdateStatus,
-  onBack
+  onBack,
+  readOnly = false
 }: Props) {
   // Map Plan Code to Product Name
   const productNames: Record<string, string> = {
@@ -32,10 +40,7 @@ export default function ApplicationDetailComprehensive({
   const statusOptions = ['For Verification', 'For Evaluation', 'Paid', 'Issued'];
 
   // Notification Prompt State
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'error' | 'info';
-    message: string;
-  } | null>(null);
+  const [notification, setNotification] = useState<NotificationState>(null);
 
   // Edit Mode Tracking
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -58,7 +63,10 @@ export default function ApplicationDetailComprehensive({
     return age;
   };
 
-  const toggleEdit = (section: string) => setEditingSection(editingSection === section ? null : section);
+  const toggleEdit = (section: string) => {
+    if (readOnly) return;
+    setEditingSection(editingSection === section ? null : section);
+  };
 
   // Immediate Status Update & Notification Trigger Handler
   const handleSelectStatus = (newStatus: string) => {
@@ -97,324 +105,262 @@ export default function ApplicationDetailComprehensive({
     }, 5000);
   };
 
-  const getInputProps = (section: string, defaultValue: string, placeholder?: string) => ({
-    defaultValue,
-    placeholder,
-    readOnly: editingSection !== section,
-    disabled: editingSection !== section,
-    className: `w-full px-3 py-2 rounded outline-none transition-colors ${
-      editingSection === section ? 'bg-white border border-[#008cb4] focus:ring-2 focus:ring-[#008cb4]/20 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'bg-gray-100 border border-gray-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-    }`
-  });
-
-  const getSelectProps = (section: string) => ({
-    disabled: editingSection !== section,
-    className: `flex-1 w-full px-3 py-2 rounded outline-none transition-colors ${
-      editingSection === section ? 'bg-white border border-[#008cb4] focus:ring-2 focus:ring-[#008cb4]/20 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'bg-gray-100 border border-gray-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-    }`
-  });
-
-  const EditButton = ({ section }: { section: string }) => {
-    const isEditing = editingSection === section;
-    return (
-      <button
-        onClick={() => toggleEdit(section)}
-        className={`mt-6 ${isEditing ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#008cb4] hover:bg-[#007396]'} text-white px-4 py-2 rounded text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-sm`}
-      >
-        {isEditing ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Edit className="w-3.5 h-3.5" />}
-        <span>{isEditing ? 'Save Changes' : 'Edit'}</span>
-      </button>
-    );
-  };
-
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-100">
+    <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-200">
 
-      {/* Top Dynamic Status Notification Prompt Banner */}
-      {notification && (
-        <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold shadow-md animate-fadeIn ${
-          notification.type === 'success'
-            ? 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300'
-            : notification.type === 'error'
-            ? 'bg-rose-50 border-rose-300 text-rose-800 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300'
-            : 'bg-blue-50 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300'
-        }`}>
-          <div className="flex items-center space-x-2.5">
-            {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />}
-            {notification.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />}
-            {notification.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />}
-            <span>{notification.message}</span>
-          </div>
-          <button onClick={() => setNotification(null)} className="cursor-pointer p-1 rounded-lg hover:bg-black/5">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-        <div className="flex items-center space-x-4">
-          <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-black uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
-              APPLICATION ID: {applicationId}
-            </h1>
-            <div className="flex items-center space-x-3 mt-1.5">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Viewing Application Details</p>
-              <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{productName} ({planCode})</span>
-              <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-              <span className="text-xs font-black text-[#d0112b] bg-red-50 border border-red-100 px-2.5 py-0.5 rounded-md tracking-wide dark:bg-red-950/30 dark:border-red-900">
-                Premium: ₱892.00
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Current Status Dropdown */}
-        <div className="flex items-center space-x-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider dark:text-slate-400">Current Status:</span>
-
-          {savedStatus === 'Issued' ? (
-            <span className="flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300">
-              <span>Issued</span>
-              <Lock className="w-3.5 h-3.5" />
-            </span>
-          ) : (
-            <div className="relative">
-              <button
-                onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-                className="flex items-center space-x-2 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-200 cursor-pointer transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-700"
-              >
-                <span>{status}</span>
-                <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              </button>
-
-              {isStatusMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 dark:bg-slate-900 dark:border-slate-800">
-                  <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase border-b border-slate-100 mb-1 dark:text-slate-500 dark:border-slate-800">
-                    Update Status To:
-                  </div>
-                  {statusOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => handleSelectStatus(opt)}
-                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                        status === opt ? 'bg-[#d0112b] text-white' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      <span>{opt}</span>
-                      {status === opt && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <DetailHeader
+        applicationId={applicationId}
+        productName={productName}
+        planCode={planCode}
+        premium="Premium: ₱892.00"
+        onBack={onBack}
+        statusControl={
+          <StatusControl
+            status={status}
+            savedStatus={savedStatus}
+            isMenuOpen={isStatusMenuOpen}
+            setIsMenuOpen={setIsStatusMenuOpen}
+            statusOptions={statusOptions}
+            onSelect={handleSelectStatus}
+            locked={readOnly}
+          />
+        }
+      />
 
       <div className="space-y-6 pb-20">
+
         {/* General Details */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl text-xs">
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Campaign Source</label><select {...getSelectProps('general')}><option>Facebook</option></select></div><div className="hidden md:block"></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Plan</label><select {...getSelectProps('general')}><option>Plan 100 - 10 years to pay</option><option>Plan 200 - 10 years to pay</option></select></div><div className="hidden md:block"></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Payment Option</label><select {...getSelectProps('general')}><option>Monthly</option></select></div>
+        <Section icon={ClipboardList} title="General Details" isEditing={editingSection === 'general'} onToggleEdit={() => toggleEdit('general')} hideEditButton={readOnly}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <Field
+              label="Campaign Source" editing={editingSection === 'general'} view="Facebook"
+              edit={<select className={editSelectClass}><option>Facebook</option></select>}
+            />
+            <div className="hidden md:block" />
+
+            <Field
+              label="Plan" editing={editingSection === 'general'} view="Plan 100 - 10 years to pay"
+              edit={<select className={editSelectClass}><option>Plan 100 - 10 years to pay</option><option>Plan 200 - 10 years to pay</option></select>}
+            />
+            <div className="hidden md:block" />
+
+            <Field
+              label="Payment Option" editing={editingSection === 'general'} view="Monthly"
+              edit={<select className={editSelectClass}><option>Monthly</option></select>}
+            />
           </div>
-          <EditButton section="general" />
-        </div>
+        </Section>
 
         {/* Personal Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Personal Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Title</label><select {...getSelectProps('personal')} className={`${getSelectProps('personal').className} max-w-[120px]`}><option>Ms</option><option>Mr</option></select></div>
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Name</label>
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" {...getInputProps('personal', 'Rea', 'First Name')} />
-                <input type="text" {...getInputProps('personal', '', 'Middle Name (Optional)')} />
-                <input type="text" {...getInputProps('personal', 'Test To', 'Last Name')} />
-              </div>
-            </div>
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Birthdate</label>
-              <div className="flex-1 flex items-center space-x-4">
-                <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} disabled={editingSection !== 'personal'} className={`w-48 px-3 py-2 rounded outline-none transition-colors ${editingSection === 'personal' ? 'bg-white border border-[#008cb4] text-slate-900 dark:bg-slate-900 dark:text-white' : 'bg-gray-100 border border-gray-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`} />
-                <div className="flex items-center space-x-2"><span className="text-slate-500 font-semibold dark:text-slate-400">Age:</span><span className="px-3 py-1.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900">{calculateAge(birthdate)} yrs</span></div>
-              </div>
-            </div>
-            <div className="flex items-start"><label className="w-40 font-semibold text-slate-700 mt-2 dark:text-slate-300">Place Of Birth</label><div className="flex-1"><input type="text" {...getInputProps('personal', '')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Nationality</label><select {...getSelectProps('personal')} className={`${getSelectProps('personal').className} max-w-[192px]`}><option>Filipino</option></select></div>
+        <Section icon={UserCircle2} title="Personal Information" isEditing={editingSection === 'personal'} onToggleEdit={() => toggleEdit('personal')} hideEditButton={readOnly}>
+          <Field
+            label="Title" editing={editingSection === 'personal'} view="Ms"
+            edit={<select className={`${editSelectClass} max-w-[120px]`}><option>Ms</option><option>Mr</option></select>}
+          />
 
-            {/* SSP Specific Fields */}
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Weight (kg)</label><div className="w-48 relative"><input type="number" {...getInputProps('personal', '')} /><span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">kg</span></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Height (cm)</label><div className="w-48 relative"><input type="number" {...getInputProps('personal', '')} /><span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">cm</span></div></div>
-          </div>
-          <EditButton section="personal" />
-        </div>
+          <Field
+            label="Name" editing={editingSection === 'personal'} view="Rea Test To"
+            edit={
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input type="text" defaultValue="Rea" placeholder="First Name" className={editInputClass} />
+                <input type="text" defaultValue="" placeholder="Middle Name (Optional)" className={editInputClass} />
+                <input type="text" defaultValue="Test To" placeholder="Last Name" className={editInputClass} />
+              </div>
+            }
+          />
+
+          <Field
+            label="Birthdate" editing={editingSection === 'personal'}
+            view={<span>{birthdate} <span className="ml-2 px-2 py-0.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span></span>}
+            edit={
+              <div className="flex items-center space-x-4">
+                <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={`w-48 ${editInputClass}`} />
+                <div className="flex items-center space-x-2">
+                  <span className="text-slate-500 font-semibold dark:text-slate-400">Age:</span>
+                  <span className="px-3 py-1.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span>
+                </div>
+              </div>
+            }
+          />
+
+          <Field
+            label="Place Of Birth" editing={editingSection === 'personal'} align="start" view={null}
+            edit={<input type="text" className={editInputClass} />}
+          />
+
+          <Field
+            label="Nationality" editing={editingSection === 'personal'} view="Filipino"
+            edit={<select className={`${editSelectClass} max-w-[192px]`}><option>Filipino</option></select>}
+          />
+
+          {/* SSP Specific Fields */}
+          <Field
+            label="Weight (kg)" editing={editingSection === 'personal'} view={null}
+            edit={
+              <div className="w-48 relative">
+                <input type="number" className={editInputClass} />
+                <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">kg</span>
+              </div>
+            }
+          />
+          <Field
+            label="Height (cm)" editing={editingSection === 'personal'} view={null}
+            edit={
+              <div className="w-48 relative">
+                <input type="number" className={editInputClass} />
+                <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">cm</span>
+              </div>
+            }
+          />
+        </Section>
 
         {/* Employment Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Employment Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Occupation</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Adult Literacy, Remedial Education, and GED Teachers')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Specific duties</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Teacher')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Office address</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Sta. Ana Manila')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Zipcode</label><div className="w-48"><input type="text" {...getInputProps('employment', '1009')} /></div></div>
-            <div className="flex items-center">
-              <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Office Tel. No.</label>
+        <Section icon={Briefcase} title="Employment Information" isEditing={editingSection === 'employment'} onToggleEdit={() => toggleEdit('employment')} hideEditButton={readOnly}>
+          <Field label="Occupation" editing={editingSection === 'employment'} view="Adult Literacy, Remedial Education, and GED Teachers" edit={<input type="text" defaultValue="Adult Literacy, Remedial Education, and GED Teachers" className={editInputClass} />} />
+          <Field label="Specific duties" editing={editingSection === 'employment'} view="Teacher" edit={<input type="text" defaultValue="Teacher" className={editInputClass} />} />
+          <Field label="Office address" editing={editingSection === 'employment'} view="Sta. Ana Manila" edit={<input type="text" defaultValue="Sta. Ana Manila" className={editInputClass} />} />
+          <Field label="Zipcode" editing={editingSection === 'employment'} view="1009" edit={<input type="text" defaultValue="1009" className={`w-48 ${editInputClass}`} />} />
+          <Field
+            label="Office Tel. No." editing={editingSection === 'employment'} view="000 0000000"
+            edit={
               <div className="flex items-center space-x-2">
-                <input type="text" {...getInputProps('employment', '000')} placeholder="Area Code" className={`${getInputProps('employment','').className} w-20`} />
-                <input type="text" {...getInputProps('employment', '0000000')} placeholder="Phone number" className={`${getInputProps('employment','').className} w-32`} />
+                <input type="text" defaultValue="000" placeholder="Area Code" className={`w-20 ${editInputClass}`} />
+                <input type="text" defaultValue="0000000" placeholder="Phone number" className={`w-32 ${editInputClass}`} />
               </div>
-            </div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Source of Funds</label><div className="flex-1"><input type="text" {...getInputProps('employment', 'Salary')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">TIN</label><div className="w-48"><input type="text" {...getInputProps('employment', '125447555844799929')} /></div></div>
-            <div className="flex items-center"><label className="w-40 font-semibold text-slate-700 dark:text-slate-300">GSIS / SSS</label><div className="w-48"><input type="text" {...getInputProps('employment', '484948982')} /></div></div>
-          </div>
-          <EditButton section="employment" />
-        </div>
+            }
+          />
+          <Field label="Source of Funds" editing={editingSection === 'employment'} view="Salary" edit={<input type="text" defaultValue="Salary" className={editInputClass} />} />
+          <Field label="TIN" editing={editingSection === 'employment'} view="125447555844799929" edit={<input type="text" defaultValue="125447555844799929" className={`w-48 ${editInputClass}`} />} />
+          <Field label="GSIS / SSS" editing={editingSection === 'employment'} view="484948982" edit={<input type="text" defaultValue="484948982" className={`w-48 ${editInputClass}`} />} />
+        </Section>
 
         {/* Beneficiaries */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Beneficiaries</h2>
-          <div className="space-y-4 text-xs max-w-5xl">
-            <div className="flex items-center text-slate-500 font-semibold dark:text-slate-400">
-              <div className="flex-1 px-1">Full Name</div><div className="w-48 px-1">Relationship to you</div><div className="w-48 px-1">Birthdate</div><div className="w-32 px-1">Revocable?</div>
+        <Section icon={Users} title="Beneficiaries" isEditing={editingSection === 'beneficiaries'} onToggleEdit={() => toggleEdit('beneficiaries')} hideEditButton={readOnly}>
+          <div className="flex items-center text-slate-400 font-extrabold uppercase text-[10px] tracking-wide dark:text-slate-500">
+            <div className="flex-1 px-1">Full Name</div><div className="w-48 px-1">Relationship to you</div><div className="w-48 px-1">Birthdate</div><div className="w-32 px-1">Revocable?</div>
+          </div>
+          <div className="flex items-center">
+            <div className="flex-1 px-1">
+              {editingSection === 'beneficiaries'
+                ? <input type="text" defaultValue="TEST TORIBIO" className={editInputClass} />
+                : <span className="text-xs font-bold text-slate-900 dark:text-white">TEST TORIBIO</span>}
             </div>
-            <div className="flex items-center">
-              <div className="flex-1 px-1"><input type="text" {...getInputProps('beneficiaries', 'TEST TORIBIO')} /></div>
-              <div className="w-48 px-1">
-                <select {...getSelectProps('beneficiaries')}>
+            <div className="w-48 px-1">
+              {editingSection === 'beneficiaries' ? (
+                <select className={editSelectClass}>
                   <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
                   <option>Cousin</option><option>Granddaughter</option><option>Grandparent</option>
                   <option>Grandson</option><option>In-Law</option><option>Nephew</option>
                   <option>Niece</option><option>Parent</option><option>Sibling</option>
                   <option>Spouse</option><option>Uncle</option>
                 </select>
-              </div>
-              <div className="w-48 px-1"><input type="date" {...getInputProps('beneficiaries', '')} /></div>
-              <div className="w-32 px-1">
-                <select {...getSelectProps('beneficiaries')}>
-                  <option>Revocable</option><option>Irrevocable</option>
-                </select>
-              </div>
+              ) : <span className="text-xs font-bold text-slate-900 dark:text-white">Aunt</span>}
             </div>
-            <div className="pt-2"><button disabled={editingSection !== 'beneficiaries'} className={`w-full font-bold py-2 rounded flex items-center justify-center space-x-1 transition-colors ${editingSection === 'beneficiaries' ? 'bg-gray-200 hover:bg-gray-300 text-slate-700 cursor-pointer dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600'}`}><Plus className="w-4 h-4" /><span>ADD BENEFICIARY</span></button></div>
+            <div className="w-48 px-1">
+              {editingSection === 'beneficiaries'
+                ? <input type="date" className={editInputClass} />
+                : <span className="text-slate-300 dark:text-slate-700">&mdash;</span>}
+            </div>
+            <div className="w-32 px-1">
+              {editingSection === 'beneficiaries' ? (
+                <select className={editSelectClass}><option>Revocable</option><option>Irrevocable</option></select>
+              ) : <span className="text-xs font-bold text-slate-900 dark:text-white">Revocable</span>}
+            </div>
           </div>
-          <EditButton section="beneficiaries" />
-        </div>
+          <div className="pt-2"><AddRowButton label="Add Beneficiary" disabled={editingSection !== 'beneficiaries'} /></div>
+        </Section>
 
         {/* Non-forfeiture Options */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Non-forfeiture Options</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <p className="text-slate-600 font-medium mb-2 dark:text-slate-400">If premium is unpaid on expiry of grace period, apply cash value, if any, to effect:</p>
-            <select {...getSelectProps('forfeiture')} className={`${getSelectProps('forfeiture').className} max-w-xs`}>
+        <Section icon={ShieldQuestion} title="Non-forfeiture Options" isEditing={editingSection === 'forfeiture'} onToggleEdit={() => toggleEdit('forfeiture')} hideEditButton={readOnly}>
+          <p className="text-slate-600 font-medium dark:text-slate-300">If premium is unpaid on expiry of grace period, apply cash value, if any, to effect:</p>
+          {editingSection === 'forfeiture' ? (
+            <select className={`${editSelectClass} max-w-xs`}>
               <option>Paid-up Insurance</option>
               <option>Automatic Payment of Premium</option>
               <option>Cash Surrender</option>
             </select>
-          </div>
-          <EditButton section="forfeiture" />
-        </div>
+          ) : (
+            <span className="text-xs font-bold text-slate-900 dark:text-white">Paid-up Insurance</span>
+          )}
+        </Section>
 
         {/* Declaration on Existing Policies */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Declaration on Existing Policy(ies)</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-center space-x-4">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">Do you have other life insurance policies inforce with other insurance companies?</label>
+        <Section icon={FileWarning} title="Declaration on Existing Policy(ies)" isEditing={editingSection === 'declaration'} onToggleEdit={() => toggleEdit('declaration')} hideEditButton={readOnly}>
+          <div className="flex items-center space-x-4">
+            <label className="font-semibold text-slate-700 dark:text-slate-300">Do you have other life insurance policies inforce with other insurance companies?</label>
+            {editingSection === 'declaration' ? (
               <select
                 value={hasOtherLifeInsurance ? 'Yes' : 'No'}
                 onChange={(e) => setHasOtherLifeInsurance(e.target.value === 'Yes')}
-                {...getSelectProps('declaration')}
-                className={`${getSelectProps('declaration').className} max-w-[100px]`}
+                className={`${editSelectClass} max-w-[100px]`}
               >
                 <option>No</option><option>Yes</option>
               </select>
-            </div>
-            {hasOtherLifeInsurance && (
-              <div className="flex items-start">
-                <label className="w-40 font-semibold text-slate-700 mt-2 dark:text-slate-300">If yes, please provide details</label>
-                <div className="flex-1">
-                  <textarea
-                    {...getInputProps('declaration', '')}
-                    rows={2}
-                    className={getInputProps('declaration', '').className}
-                  />
-                </div>
-              </div>
+            ) : (
+              <span className="text-xs font-bold text-slate-900 dark:text-white">{hasOtherLifeInsurance ? 'Yes' : 'No'}</span>
             )}
           </div>
-          <EditButton section="declaration" />
-        </div>
+          {hasOtherLifeInsurance && (
+            <Field
+              label="If yes, please provide details" editing={editingSection === 'declaration'} align="start" view={null}
+              edit={<textarea rows={2} className={editInputClass} />}
+            />
+          )}
+        </Section>
 
         {/* Benefits Table */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Benefits Included</h2>
-          <div className="border border-slate-200 rounded overflow-hidden text-xs max-w-2xl dark:border-slate-800">
+        <Section icon={ListChecks} title="Benefits Included" isEditing={false} onToggleEdit={() => {}} hideEditButton>
+          <div className="border border-slate-200 rounded-xl overflow-hidden text-xs max-w-2xl dark:border-slate-800">
             <div className="flex border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/60"><div className="flex-1 p-3 font-semibold text-slate-700 dark:text-slate-300">Life Benefit</div><div className="w-40 p-3 text-right font-bold">100,000.00</div></div>
             <div className="flex border-b border-slate-200 dark:border-slate-800"><div className="flex-1 p-3 font-semibold text-slate-700 dark:text-slate-300">Hospital Income Benefit</div><div className="w-40 p-3 text-right font-bold">500.00</div></div>
             <div className="flex border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/60"><div className="flex-1 p-3 font-semibold text-slate-700 dark:text-slate-300">Accidental Death Benefit</div><div className="w-40 p-3 text-right font-bold">100,000.00</div></div>
             <div className="flex"><div className="flex-1 p-3 font-semibold text-slate-700 dark:text-slate-300">Waiver of Premium</div><div className="w-40 p-3 text-right font-bold">Yes</div></div>
           </div>
-        </div>
+        </Section>
 
         {/* Payor Information */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-slate-100 dark:border-slate-800">Payor Information</h2>
-          <div className="space-y-4 text-xs max-w-4xl">
-            <div className="flex items-center mb-4">
-              <div className="w-40"></div>
-              <label className="flex items-center space-x-2 text-slate-700 font-medium dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={isPayorSameAsInsured}
-                  onChange={(e) => setIsPayorSameAsInsured(e.target.checked)}
-                  disabled={editingSection !== 'payor'}
-                  className="w-3.5 h-3.5 accent-[#008cb4] rounded"
-                />
-                <span>Is Payor the same with the Insured?</span>
-              </label>
-            </div>
-            {!isPayorSameAsInsured && (
-              <>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Name</label>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="text" {...getInputProps('payor', '', 'First Name')} />
-                    <input type="text" {...getInputProps('payor', '', 'Middle Name (Optional)')} />
-                    <input type="text" {...getInputProps('payor', '', 'Last Name')} />
+        <Section icon={Wallet} title="Payor Information" isEditing={editingSection === 'payor'} onToggleEdit={() => toggleEdit('payor')} hideEditButton={readOnly}>
+          <label className="flex items-center space-x-2 text-slate-700 font-semibold dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={isPayorSameAsInsured}
+              onChange={(e) => setIsPayorSameAsInsured(e.target.checked)}
+              disabled={editingSection !== 'payor'}
+              className="w-3.5 h-3.5 accent-[#008cb4] rounded"
+            />
+            <span>Is Payor the same with the Insured?</span>
+          </label>
+          {!isPayorSameAsInsured && (
+            <>
+              <Field
+                label="Name" editing={editingSection === 'payor'} view={null}
+                edit={
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" placeholder="First Name" className={editInputClass} />
+                    <input type="text" placeholder="Middle Name (Optional)" className={editInputClass} />
+                    <input type="text" placeholder="Last Name" className={editInputClass} />
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Contact Number</label>
-                  <div className="w-48"><input type="text" {...getInputProps('payor', '')} /></div>
-                </div>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
-                  <div className="w-72"><input type="text" {...getInputProps('payor', '')} /></div>
-                </div>
-                <div className="flex items-center">
-                  <label className="w-40 font-semibold text-slate-700 dark:text-slate-300">Relationship</label>
-                  <select {...getSelectProps('payor')} className={`${getSelectProps('payor').className} max-w-xs`}>
+                }
+              />
+              <Field label="Contact Number" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
+              <Field label="Email Address" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
+              <Field
+                label="Relationship" editing={editingSection === 'payor'} view={null}
+                edit={
+                  <select className={`${editSelectClass} max-w-xs`}>
                     <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
                     <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
                     <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
                     <option>Nephew</option><option>Niece</option><option>Other</option>
                     <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
                   </select>
-                </div>
-              </>
-            )}
-          </div>
-          <EditButton section="payor" />
-        </div>
+                }
+              />
+            </>
+          )}
+        </Section>
 
       </div>
     </div>

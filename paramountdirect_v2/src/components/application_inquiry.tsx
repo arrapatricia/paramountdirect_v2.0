@@ -48,14 +48,13 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
   };
 
   // 1. Filter Records
-  const filteredRecords = data.filter((item) => {
+  const matchesFilterBar = (item: ScreeningItem) => {
     const formattedNumber = formatPolicyNumber(item);
-    const matchesSearch = 
-      item.payor.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch =
+      item.payor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.id.includes(searchTerm) ||
       formattedNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
     const paymentStatus = getPaymentStatus(item.status);
     const matchesPayment = paymentFilter === 'All' || paymentStatus === paymentFilter;
 
@@ -69,8 +68,18 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
       if (toDate && itemDateStr > toDate) matchesDate = false;
     }
 
-    return matchesSearch && matchesStatus && matchesPayment && matchesDate;
+    return matchesSearch && matchesPayment && matchesDate;
+  };
+
+  const filteredRecords = data.filter((item) => {
+    const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+    return matchesStatus && matchesFilterBar(item);
   });
+
+  // Drives the status counts strip - reflects search/payment/date but not
+  // the App Status dropdown itself, so every status's count stays visible
+  // within the current search/date context.
+  const dataForStatusBar = data.filter(matchesFilterBar);
 
   // 2. Paginate Data (20 records per page)
   const totalItems = filteredRecords.length;
@@ -194,92 +203,92 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
         </div>
       </div>
 
-      <ApplicationStatusBar data={data} />
+      <ApplicationStatusBar data={dataForStatusBar} />
 
-      <div className="p-6 md:p-8 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
-        {/* Search & Filter Bar */}
-        <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-wrap items-center gap-4 dark:bg-slate-800/60 dark:border-slate-700">
+      {/* Search & Filter Bar */}
+      <div className="p-4 rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-wrap items-center gap-4 dark:bg-slate-900 dark:border-slate-800">
 
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              placeholder="Search App ID, Policy No., or Payor..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-900 dark:border-slate-700"
-            />
-          </div>
-
-          {/* Application Status Filter */}
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">App Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-900 dark:border-slate-700"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Received">Received</option>
-              <option value="For Verification">For Verification</option>
-              <option value="For Evaluation">For Evaluation</option>
-              <option value="Paid">Paid</option>
-              <option value="Issued">Issued</option>
-            </select>
-          </div>
-
-          {/* Payment Status Filter Matrix */}
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">Payment Status:</span>
-            <select
-              value={paymentFilter}
-              onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-900 dark:border-slate-700"
-            >
-              <option value="All">All Payments</option>
-              <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
-            </select>
-          </div>
-
-          {/* Date Filters */}
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">From</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-900 dark:border-slate-700"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">To</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-900 dark:border-slate-700"
-            />
-          </div>
-
-          {(fromDate || toDate || searchTerm || statusFilter !== 'All' || paymentFilter !== 'All') && (
-            <button
-              onClick={() => { setFromDate(''); setToDate(''); setSearchTerm(''); setStatusFilter('All'); setPaymentFilter('All'); setCurrentPage(1); }}
-              className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#d0112b] hover:bg-red-50 transition-colors cursor-pointer dark:border-slate-700 dark:hover:bg-red-950/30"
-              title="Clear Filters"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            placeholder="Search App ID, Policy No., or Payor..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700"
+          />
         </div>
 
-        {/* General Table */}
+        {/* Application Status Filter */}
+        <div className="flex items-center space-x-1.5">
+          <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">App Status</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Received">Received</option>
+            <option value="For Verification">For Verification</option>
+            <option value="For Evaluation">For Evaluation</option>
+            <option value="Paid">Paid</option>
+            <option value="Issued">Issued</option>
+          </select>
+        </div>
+
+        {/* Payment Status Filter Matrix */}
+        <div className="flex items-center space-x-1.5">
+          <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">Payment Status</span>
+          <select
+            value={paymentFilter}
+            onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700"
+          >
+            <option value="All">All Payments</option>
+            <option value="Paid">Paid</option>
+            <option value="Unpaid">Unpaid</option>
+          </select>
+        </div>
+
+        {/* Date Filters */}
+        <div className="flex items-center space-x-2">
+          <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">From</span>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700"
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-100">To</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700"
+          />
+        </div>
+
+        {(fromDate || toDate || searchTerm || statusFilter !== 'All' || paymentFilter !== 'All') && (
+          <button
+            onClick={() => { setFromDate(''); setToDate(''); setSearchTerm(''); setStatusFilter('All'); setPaymentFilter('All'); setCurrentPage(1); }}
+            className="ml-auto p-1.5 rounded-xl border border-slate-200 text-slate-400 hover:text-[#d0112b] hover:bg-red-50 transition-colors cursor-pointer dark:border-slate-700 dark:hover:bg-red-950/30"
+            title="Clear Filters"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-800 font-extrabold uppercase tracking-wider dark:border-slate-800 dark:text-slate-100">
+              <tr className="border-b border-slate-300 text-slate-800 font-extrabold uppercase tracking-wider dark:border-slate-700 dark:text-slate-100">
                 <th className="py-3 px-2 w-8">
                   <button onClick={handleSelectAll} className="cursor-pointer">
                     {selectedIds.length === paginatedData.length && paginatedData.length > 0 ? (
@@ -289,17 +298,17 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
                     )}
                   </button>
                 </th>
-                <th className="py-3.5 px-3">App ID / Policy Number</th>
-                <th className="py-3.5 px-3">Policy Holder</th>
-                <th className="py-3.5 px-3">Application Status</th>
-                <th className="py-3.5 px-3">Payment Status</th>
-                <th className="py-3.5 px-3 text-center">Actions</th>
+                <th className="py-3 px-2">App ID / Policy Number</th>
+                <th className="py-3 px-2">Policy Holder</th>
+                <th className="py-3 px-2">Application Status</th>
+                <th className="py-3 px-2">Payment Status</th>
+                <th className="py-3 px-2 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 font-bold dark:text-slate-500">
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
                     No applications match the current filters.
                   </td>
                 </tr>
@@ -309,8 +318,8 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
                   const displayPolicyNumber = formatPolicyNumber(item);
 
                   return (
-                    <tr key={item.id} className="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800">
-                      <td className="py-4 px-2">
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/60">
+                      <td className="py-3.5 px-2">
                         <button onClick={() => handleSelectItem(item.id)} className="cursor-pointer">
                           {selectedIds.includes(item.id) ? (
                             <CheckSquare className="h-4 w-4 text-[#d0112b]" />
@@ -319,11 +328,11 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
                           )}
                         </button>
                       </td>
-                      <td className="py-4 px-3 font-bold text-slate-900 dark:text-white">{displayPolicyNumber}</td>
-                      <td className="py-4 px-3 font-extrabold text-slate-800 dark:text-slate-100">{item.payor}</td>
-                      <td className="py-4 px-3">{getStatusBadge(item.status)}</td>
-                      <td className="py-4 px-3">{getPaymentBadge(paymentStatus)}</td>
-                      <td className="py-4 px-3 text-center">
+                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{displayPolicyNumber}</td>
+                      <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{item.payor}</td>
+                      <td className="py-3.5 px-2">{getStatusBadge(item.status)}</td>
+                      <td className="py-3.5 px-2">{getPaymentBadge(paymentStatus)}</td>
+                      <td className="py-3.5 px-2 text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <button
                             onClick={() => onSelectApplication && onSelectApplication(item.id, item.planCode)}
@@ -352,15 +361,15 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
 
         {/* Pagination Footer */}
         {totalPages > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-y-2 pt-4 border-t border-slate-100 text-xs text-slate-500 font-semibold dark:border-slate-800 dark:text-slate-400">
-            <span>
+          <div className="flex flex-wrap items-center justify-between gap-y-2 pt-4 mt-4 border-t border-slate-200 px-2 dark:border-slate-800">
+            <span className="text-xs text-slate-500 font-semibold dark:text-slate-400">
               Showing <span className="font-bold text-slate-900 dark:text-white">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-bold text-slate-900 dark:text-white">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> of <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> records
             </span>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center space-x-1 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 <span>Prev</span>
@@ -371,7 +380,7 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center space-x-1 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <span>Next</span>
                 <ChevronRight className="h-3.5 w-3.5" />

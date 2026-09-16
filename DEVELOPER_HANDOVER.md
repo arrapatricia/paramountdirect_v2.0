@@ -1,11 +1,15 @@
 # Paramount Direct Admin Dashboard — Developer Handover
 
-**Prepared:** 2026-09-15
+**Prepared:** 2026-09-15 · **Last updated:** 2026-09-16
 **Scope of this document:** the admin dashboard prototype built in this engagement (frontend + backend scaffold), and how it maps against the existing **Gap Analysis** and **BRD: PD System Enhancement** documents.
 
 Reference documents this handover cross-maps against:
 - *Paramount Direct System: Gap Analysis*
 - *BRD: PD System Enhancement* (Business Requirements, System Batch Process, Implementation Plan, Migration Phasing Plan, UI of PD 2, Test Plan – Phase 1)
+
+### Change Log
+
+- **2026-09-16:** Generated policy documents (Policy Schedule/Jacket, COC/OR, Service Invoice) with real Paramount templates for OFW & CTPL, gated behind payment (and, for OFW, an Employment Contract Verification step) — see §3, §5. Added a PD Life "Applications" hub landing page, a revamped Follow-up Signature page (master-detail UI), an Application Status counts bar on Inquiry/Screening, and a shared read/edit UI kit for the three PD Life application-detail pages (with a read-only mode for Application Inquiry's lookup view). Fixed Montserrat not actually loading as a webfont app-wide.
 
 ---
 
@@ -84,10 +88,13 @@ Requires a local PostgreSQL instance. Not currently deployed anywhere; not conne
 |---|---|---|
 | Auth | `login.tsx`, `forgot_password.tsx` | Mock only; dark-mode aware |
 | Dashboard | `dashboard.tsx` | PD Life sales/YTD summary, mock data |
-| PD Life screening | `application_screening.tsx`, `application_inquiry.tsx`, `application_detail_{health,lifeaccident,comprehensive}.tsx` | Status workflow: Received → For Verification → For Evaluation → Paid → Issued |
+| PD Life Applications hub | `pdlife_applications_hub.tsx` | Landing page for the "Applications" sidebar group — overview stats + a nav card each for Inquiry/Screening/Follow-up Signature |
+| PD Life screening | `application_screening.tsx`, `application_inquiry.tsx`, `application_detail_{health,lifeaccident,comprehensive}.tsx`, `application_detail_ui.tsx`, `application_status_bar.tsx` | Status workflow: Received → For Verification → For Evaluation → Paid → Issued. The three detail pages share one UI kit (`application_detail_ui.tsx`: header, status control, section cards with inline edit, field rows) and both list pages show a filter-aware status-counts strip (`application_status_bar.tsx`). Application Inquiry opens the detail page in **read-only** mode (`readOnly` prop — no status changes, no section editing); Application Screening opens it fully editable. |
+| PD Life Follow-up Signature | `life_followup_signature.tsx`, `followup_signature_data.ts` | Tracks Issued PD Life applications awaiting the client's signed application form back. Master-detail UI (searchable/filterable list + a detail panel with a visual timeline and "log follow-up sent today" actions), not a table. Row data is derived from the same screening data as Application Screening/Inquiry (`followup_signature_data.ts`) so all three stay consistent. |
 | PD Life create application | `pdlife_create_application.tsx`, `pdlife_types.ts` | Category picker (Health / Life & Accident / Comprehensive), live premium, Review step, inline confirmation |
-| OFW | `ofw_dashboard.tsx`, `ofw_application_list.tsx`, `ofw_create_application.tsx`, `ofw_types.ts` | Real rate card: $0.0954/day × contract months (No. of Months auto-computed, 6-month minimum enforced) |
-| CTPL | `ctpl_dashboard.tsx`, `ctpl_application_list.tsx`, `ctpl_create_application.tsx`, `ctpl_types.ts` | Real rate table by Policy Type × MV Type |
+| OFW | `ofw_dashboard.tsx`, `ofw_application_list.tsx`, `ofw_create_application.tsx`, `ofw_types.ts` | Real rate card: $0.0954/day × contract months (No. of Months auto-computed, 6-month minimum enforced). Generated documents (below) gated behind an Employment Contract Verification step (Yes/No) → Send Payment Instruction → payment confirmation. |
+| CTPL | `ctpl_dashboard.tsx`, `ctpl_application_list.tsx`, `ctpl_create_application.tsx`, `ctpl_types.ts` | Real rate table by Policy Type × MV Type. Straight-through payment (no verification gate) before documents unlock. |
+| Generated policy documents | `policy_documents.tsx` (shared modal chrome), used from `ofw_application_list.tsx` / `ctpl_application_list.tsx` | Policy Schedule, Policy Jacket, COC (CTPL)/OR (OFW), and Service Invoice only become viewable/printable once `isPaid` is true. OFW's and CTPL's templates were rebuilt to match the real Paramount forms (OFW: Certificate of Insurance, Balik Manggagawa vs. Direct Hired variant; CTPL: real Policy Schedule + Confirmation of Cover, Land vs. Non-Land Transportation Operators Vehicle variant chosen from Commercial vs. Private/Motorcycle policy type). GTP still uses the earlier generic layout — no real GTP templates were provided yet. |
 | GTP | `gtp_dashboard.tsx`, `gtp_application_list.tsx`, `gtp_create_application.tsx`, `gtp_types.ts` | Real day-bracket rate card by destination category (auto-detected Including/Excluding USA-Canada-HK, or Domestic) × Individual/Family; Schengen coverage auto-applied |
 | Premium Maintenance | `premium_maintenance.tsx`, `premium_rates.ts` | Centralizes what used to be hardcoded per-product rate constants into one editable table |
 | Payments | `payment_transactions.tsx` | View/search/print ledger, mock data |
@@ -133,7 +140,7 @@ Legend: 🟢 Covered by this prototype · 🟡 Partially addressed (UI exists, n
 | Policy Maintenance (no structured module) | High | 🔴 | Not built. No policy-maintenance workflow (beneficiary changes, status updates) exists anywhere in the prototype |
 | System Integration (no real-time iPeak sync) | High | 🔴 | Out of scope — no iPeak/AS400 connection exists or was attempted |
 | Payment Logging | High | 🟡 | `PaymentTransaction` + `PaymentLedgerItem` models exist and the backend API logs creates/updates via Audit Logs, but there's no real payment gateway to log *against* — this addresses the "structure" half of the gap, not the "accurate posting" half |
-| SI Issuance | High | 🔴 | No Service Invoice generation logic anywhere |
+| SI Issuance | High | 🔴 | No Service Invoice generation logic for PD Life specifically — PD Life applications don't yet have the document-gating feature that OFW/CTPL got (see below) |
 | Reports | High | 🔴 | No reporting/export module; Life Statistics pages (§3) are dashboards, not extractable reports |
 | UI / UX | Medium | 🟢 | Full redesign done: dark mode, mobile-responsive, consistent card/table patterns, per-product branding |
 | Audit Logs | Medium | 🟡 | Backend logs every write with user/action/module/timestamp/IP — structurally addresses the gap, but the frontend viewer isn't wired in (§2), and it isn't connected to any real user session yet |
@@ -146,7 +153,7 @@ Legend: 🟢 Covered by this prototype · 🟡 Partially addressed (UI exists, n
 | Payment Tracking (static reference numbers, no TTL) | High | 🔴 | Not addressed — the prototype's OFW application IDs (`800XXXXX` format) don't expire; no TTL logic exists |
 | Renewal Process (no new-vs-renewal detection) | High | 🔴 | Not addressed — Create Application always creates a new record; there's no lookup-by-reference-number or renewal path |
 | Payment Transaction Logging | High | 🟡 | Same as PD Life — backend audit logging exists structurally, no real payment events to log |
-| SI & Official Receipt Issuance | High | 🔴 | Not built |
+| SI & Official Receipt Issuance | High | 🟡 | Service Invoice and OR are now generated (view/print/"send to client") once `isPaid` is true, using the real Paramount templates — see §3. Still frontend-only mock data, not tied to a real payment event or a persisted document store |
 | *(New, not in Gap Analysis)* Premium accuracy | — | 🟢 | Replaced the placeholder flat land/sea premium with the real $0.0954/day rate card, verified against the live site's own published table |
 
 ### CTPL

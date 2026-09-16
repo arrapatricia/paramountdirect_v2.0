@@ -37,12 +37,11 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
   };
 
   // 1. Filter Data
-  const filteredData = data.filter((item) => {
-    const matchesTab = activeTab === 'All' || item.status === activeTab;
+  const matchesFilterBar = (item: ScreeningItem) => {
     const matchesSearch = item.payor.toLowerCase().includes(searchTerm.toLowerCase()) || item.id.includes(searchTerm);
     const matchesSource = selectedSource === 'All' || item.source === selectedSource;
     const matchesProduct = selectedProduct === 'All' || item.planCode === selectedProduct;
-    
+
     let matchesDate = true;
     if (fromDate || toDate) {
       const datePart = item.dateReceived.split(' at ')[0];
@@ -53,8 +52,19 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
       if (toDate && itemDateStr > toDate) matchesDate = false;
     }
 
-    return matchesTab && matchesSearch && matchesSource && matchesProduct && matchesDate;
+    return matchesSearch && matchesSource && matchesProduct && matchesDate;
+  };
+
+  const filteredData = data.filter((item) => {
+    const matchesTab = activeTab === 'All' || item.status === activeTab;
+    return matchesTab && matchesFilterBar(item);
   });
+
+  // Drives the status counts strip - reflects the search/source/product/date
+  // filters but not the status tab itself, so it still shows every status's
+  // count within the current search/date context rather than collapsing to
+  // just the active tab.
+  const dataForStatusBar = data.filter(matchesFilterBar);
 
   // 2. Paginate Data
   const totalItems = filteredData.length;
@@ -153,7 +163,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
         )}
       </div>
 
-      <ApplicationStatusBar data={data} />
+      <ApplicationStatusBar data={dataForStatusBar} />
 
       {accessWarning && (
         <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-800 flex items-center justify-between text-xs font-bold animate-fadeIn dark:bg-amber-950/30 dark:text-amber-300">

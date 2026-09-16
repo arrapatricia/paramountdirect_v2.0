@@ -282,7 +282,7 @@ export default function App() {
     ));
   };
 
-  const renderApplicationDetail = () => {
+  const renderApplicationDetail = (readOnly: boolean = false) => {
     if (!selectedApp) return null;
 
     const healthPlans = ['HCP', 'HIP', 'PCP', 'PHC'];
@@ -297,7 +297,8 @@ export default function App() {
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,
-      onBack: () => setSelectedApp(null)
+      onBack: () => setSelectedApp(null),
+      readOnly
     };
 
     if (healthPlans.includes(selectedApp.planCode)) return <ApplicationDetailHealth {...props} />;
@@ -430,7 +431,7 @@ export default function App() {
 
         {/* Application Inquiry */}
         {activeTab === 'inquiry' && (
-          selectedApp ? renderApplicationDetail() : isCreatingPdLifeApp ? (
+          selectedApp ? renderApplicationDetail(true) : isCreatingPdLifeApp ? (
             <PdLifeCreateApplication
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingPdLifeApp(false)}

@@ -1061,7 +1061,8 @@ export default function PaymentTransactions() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {activeLedgerPolicy.ledgerHistory.map((item, idx) => (
+                  {/* Latest installment first - the underlying ledger array is generated chronologically ascending (Jan -> Dec) */}
+                  {[...activeLedgerPolicy.ledgerHistory].reverse().map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/80 transition-colors dark:hover:bg-slate-800/60">
                       <td className="py-3 px-2">
                         <button onClick={() => handleToggleLedgerInstal(item.yrInstal)} className="cursor-pointer">
