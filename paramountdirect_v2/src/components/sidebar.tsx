@@ -103,14 +103,17 @@ export default function Sidebar({
     'OFW': [
       { id: 'ofw-dashboard', label: 'OFW Dashboard', icon: LayoutDashboard },
       { id: 'ofw-applications', label: 'OFW Applications', icon: ClipboardCheck },
+      { id: 'ofw-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
     'CTPL': [
       { id: 'ctpl-dashboard', label: 'CTPL Dashboard', icon: LayoutDashboard },
       { id: 'ctpl-applications', label: 'CTPL Applications', icon: ClipboardCheck },
+      { id: 'ctpl-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
     'GTP': [
       { id: 'gtp-dashboard', label: 'GTP Dashboard', icon: LayoutDashboard },
       { id: 'gtp-applications', label: 'GTP Applications', icon: ClipboardCheck },
+      { id: 'gtp-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
   };
   const navItems = navItemsByProduct[activeProduct];

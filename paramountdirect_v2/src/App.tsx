@@ -30,6 +30,9 @@ import ApplicationDetailHealth from './components/application_detail_health';
 import ApplicationDetailLifeAccident from './components/application_detail_lifeaccident';
 import ApplicationDetailComprehensive from './components/application_detail_comprehensive';
 import PaymentTransactions from './components/payment_transactions';
+import OfwPaymentTransactions from './components/ofw_payment_transactions';
+import CtplPaymentTransactions from './components/ctpl_payment_transactions';
+import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
 import UserManagement from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
@@ -383,6 +386,9 @@ export default function App() {
           )
         )}
 
+        {/* OFW Payment Transactions */}
+        {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} />}
+
         {/* CTPL Dashboard */}
         {activeTab === 'ctpl-dashboard' && <CtplDashboard />}
 
@@ -404,6 +410,9 @@ export default function App() {
           )
         )}
 
+        {/* CTPL Payment Transactions */}
+        {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} />}
+
         {/* GTP Dashboard */}
         {activeTab === 'gtp-dashboard' && <GtpDashboard />}
 
@@ -424,6 +433,9 @@ export default function App() {
             />
           )
         )}
+
+        {/* GTP Payment Transactions */}
+        {activeTab === 'gtp-payments' && <GtpPaymentTransactions data={gtpApplications} />}
 
         {/* Applications hub */}
         {activeTab === 'applications' && (
