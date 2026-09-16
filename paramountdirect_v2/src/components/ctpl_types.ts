@@ -11,6 +11,10 @@ export interface CtplApplication {
   ownerFirstName: string;
   ownerMiddleName: string;
   ownerSurname: string;
+  ownerAddress: string;
+  ownerRegion: string;
+  ownerCity: string;
+  ownerBarangay: string;
   sameAsOwner: boolean;
   applicantFirstName: string;
   applicantSurname: string;

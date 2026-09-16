@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
 import { CTPL_MV_TYPES, CTPL_POLICY_TYPES, type CtplApplication } from './ctpl_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
+import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
 interface Props {
   onCreate: (app: CtplApplication) => void;
@@ -27,6 +28,10 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [ownerFirstName, setOwnerFirstName] = useState('');
   const [ownerMiddleName, setOwnerMiddleName] = useState('');
   const [ownerSurname, setOwnerSurname] = useState('');
+  const [ownerAddress, setOwnerAddress] = useState('');
+  const [ownerRegion, setOwnerRegion] = useState(PH_REGIONS[0].name);
+  const [ownerCity, setOwnerCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
+  const [ownerBarangay, setOwnerBarangay] = useState(GENERIC_BARANGAYS[0]);
   const [sameAsOwner, setSameAsOwner] = useState(true);
   const [applicantFirstName, setApplicantFirstName] = useState('');
   const [applicantSurname, setApplicantSurname] = useState('');
@@ -45,7 +50,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 
   const canSubmit =
     policyType && mvType &&
-    ownerFirstName && ownerSurname && email && mobileNumber &&
+    ownerFirstName && ownerSurname && ownerAddress && email && mobileNumber &&
     plateNumber && mvFileNumber && chassisNumber &&
     (sameAsOwner || (applicantFirstName && applicantSurname));
 
@@ -53,6 +58,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     id: `MCOC${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`,
     policyType: policyType as typeof CTPL_POLICY_TYPES[number], mvType, renewalType,
     clientType, ownerFirstName, ownerMiddleName, ownerSurname,
+    ownerAddress, ownerRegion, ownerCity, ownerBarangay,
     sameAsOwner,
     applicantFirstName: sameAsOwner ? ownerFirstName : applicantFirstName,
     applicantSurname: sameAsOwner ? ownerSurname : applicantSurname,
@@ -138,6 +144,10 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           ownerFirstName={ownerFirstName}
           ownerMiddleName={ownerMiddleName}
           ownerSurname={ownerSurname}
+          ownerAddress={ownerAddress}
+          ownerRegion={ownerRegion}
+          ownerCity={ownerCity}
+          ownerBarangay={ownerBarangay}
           sameAsOwner={sameAsOwner}
           applicantFirstName={applicantFirstName}
           applicantSurname={applicantSurname}
@@ -205,6 +215,30 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             <div><label className={labelClass}>First Name</label><input required value={ownerFirstName} onChange={(e) => setOwnerFirstName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Middle Name</label><input value={ownerMiddleName} onChange={(e) => setOwnerMiddleName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Surname</label><input required value={ownerSurname} onChange={(e) => setOwnerSurname(e.target.value)} className={inputClass} /></div>
+
+            <div className="md:col-span-3"><label className={labelClass}>Address (House No., Street)</label><input required value={ownerAddress} onChange={(e) => setOwnerAddress(e.target.value)} className={inputClass} /></div>
+            <div>
+              <label className={labelClass}>Region</label>
+              <select
+                value={ownerRegion}
+                onChange={(e) => { const r = e.target.value; setOwnerRegion(r); setOwnerCity(citiesForRegion(r)[0]); }}
+                className={inputClass}
+              >
+                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>City/Municipality</label>
+              <select value={ownerCity} onChange={(e) => setOwnerCity(e.target.value)} className={inputClass}>
+                {citiesForRegion(ownerRegion).map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Barangay</label>
+              <select value={ownerBarangay} onChange={(e) => setOwnerBarangay(e.target.value)} className={inputClass}>
+                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
+              </select>
+            </div>
 
             <div className="md:col-span-3">
               <label className={labelClass}>Is the Applicant the same as the Registered Owner?</label>
@@ -284,6 +318,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 
 function CtplReviewSummary({
   renewalType, policyType, mvType, clientType, ownerFirstName, ownerMiddleName, ownerSurname,
+  ownerAddress, ownerRegion, ownerCity, ownerBarangay,
   sameAsOwner, applicantFirstName, applicantSurname, email, mobileNumber,
   plateNumber, mvFileNumber, chassisNumber, requiresCOV, premiumValue, onEdit, onConfirm,
 }: {
@@ -294,6 +329,10 @@ function CtplReviewSummary({
   ownerFirstName: string;
   ownerMiddleName: string;
   ownerSurname: string;
+  ownerAddress: string;
+  ownerRegion: string;
+  ownerCity: string;
+  ownerBarangay: string;
   sameAsOwner: boolean;
   applicantFirstName: string;
   applicantSurname: string;
@@ -331,6 +370,7 @@ function CtplReviewSummary({
         <div className="text-xs">
           {row('Client Type', clientType)}
           {row('Registered Owner', `${ownerFirstName} ${ownerMiddleName} ${ownerSurname}`.replace(/\s+/g, ' ').trim())}
+          {row('Owner Address', [ownerAddress, ownerBarangay !== 'N/A' ? ownerBarangay : null, ownerCity, ownerRegion].filter(Boolean).join(', ') || '-')}
           {row('Applicant', sameAsOwner ? 'Same as Registered Owner' : `${applicantFirstName} ${applicantSurname}`.trim())}
           {row('Email', email || '-')}
           {row('Mobile Number', mobileNumber || '-')}

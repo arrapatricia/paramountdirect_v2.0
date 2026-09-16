@@ -264,6 +264,7 @@ export default function CtplApplicationList({ data, onCreateNew, onUpdate }: Pro
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Registered Owner</span><span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.ownerFirstName} {viewingApp.ownerMiddleName} {viewingApp.ownerSurname}</span></div>
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Client Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.clientType}</span></div>
+              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">Owner Address</span><span className="font-bold text-slate-800 dark:text-slate-200">{[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}</span></div>
 
               {!viewingApp.sameAsOwner && (
                 <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">Applicant (if different from owner)</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.applicantFirstName} {viewingApp.applicantSurname}</span></div>
@@ -364,7 +365,7 @@ export default function CtplApplicationList({ data, onCreateNew, onUpdate }: Pro
               </p>
               <DocRow label="Policy No." value={viewingApp.id} />
               <DocRow label="Confirmation of Cover No." value={`COC-${viewingApp.id}`} />
-              <DocRow label="Name and Address of Insured" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+              <DocRow label="Name and Address of Insured" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}, ${[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}`} />
               <DocRow label="Vehicle" value={`${viewingApp.mvType} — Plate ${viewingApp.plateNumber}`} />
               <div className="border border-slate-300">
                 <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Limits of Liability (Subject to Schedule of Indemnities)</p>
