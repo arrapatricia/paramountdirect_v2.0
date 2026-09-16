@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ClipboardList, UserCircle2, Briefcase, Users, ShieldQuestion, FileWarning, ListChecks, Wallet } from 'lucide-react';
+import { ClipboardList, UserCircle2, MapPin, Briefcase, Users, ShieldQuestion, FileWarning, ListChecks, Wallet, Stethoscope } from 'lucide-react';
 import {
-  NotificationBanner, DetailHeader, StatusControl, Section, Field, AddRowButton,
+  NotificationBanner, DetailHeader, StatusControl, Section, Field, FieldGrid, AddRowButton,
   editInputClass, editSelectClass, type NotificationState,
 } from './application_detail_ui';
+import { PD_LIFE_REFERRAL_SOURCES } from './pdlife_types';
 
 interface Props {
   applicationId: string;
@@ -49,7 +50,19 @@ export default function ApplicationDetailComprehensive({
   const [birthdate, setBirthdate] = useState('1994-01-08');
 
   const [hasOtherLifeInsurance, setHasOtherLifeInsurance] = useState(false);
+  const [intendsToReplace, setIntendsToReplace] = useState(false);
   const [isPayorSameAsInsured, setIsPayorSameAsInsured] = useState(true);
+  const [mailToDifferentAddress, setMailToDifferentAddress] = useState(false);
+  const [medicalAnswers, setMedicalAnswers] = useState({ consulted: false, advised: false, impairment: false });
+
+  // Philippine Geo Tracking
+  const [region, setRegion] = useState('NCR');
+  const [city, setCity] = useState('Manila City');
+  const [barangay, setBarangay] = useState('Barangay 101');
+
+  const phRegions = ['NCR', 'CAR', 'Region III'];
+  const phCities = ['Bangued', 'Makati City', 'Manila City'];
+  const phBarangays = ['Agtangao', 'Barangay 101', 'Barangay 102'];
 
   // Calculate Age dynamically
   const calculateAge = (dobString: string) => {
@@ -106,7 +119,7 @@ export default function ApplicationDetailComprehensive({
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-200">
+    <div className="p-4 md:p-6 space-y-4 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-200">
 
       <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} />
 
@@ -129,37 +142,28 @@ export default function ApplicationDetailComprehensive({
         }
       />
 
-      <div className="space-y-6 pb-20">
+      <div className="space-y-4 pb-10">
 
         {/* General Details */}
         <Section icon={ClipboardList} title="General Details" isEditing={editingSection === 'general'} onToggleEdit={() => toggleEdit('general')} hideEditButton={readOnly}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+          <FieldGrid>
             <Field
               label="Campaign Source" editing={editingSection === 'general'} view="Facebook"
-              edit={<select className={editSelectClass}><option>Facebook</option></select>}
+              edit={<select className={editSelectClass}>{PD_LIFE_REFERRAL_SOURCES.map(s => <option key={s}>{s}</option>)}</select>}
             />
-            <div className="hidden md:block" />
-
             <Field
               label="Plan" editing={editingSection === 'general'} view="Plan 100 - 10 years to pay"
               edit={<select className={editSelectClass}><option>Plan 100 - 10 years to pay</option><option>Plan 200 - 10 years to pay</option></select>}
             />
-            <div className="hidden md:block" />
-
             <Field
               label="Payment Option" editing={editingSection === 'general'} view="Monthly"
               edit={<select className={editSelectClass}><option>Monthly</option></select>}
             />
-          </div>
+          </FieldGrid>
         </Section>
 
         {/* Personal Information */}
         <Section icon={UserCircle2} title="Personal Information" isEditing={editingSection === 'personal'} onToggleEdit={() => toggleEdit('personal')} hideEditButton={readOnly}>
-          <Field
-            label="Title" editing={editingSection === 'personal'} view="Ms"
-            edit={<select className={`${editSelectClass} max-w-[120px]`}><option>Ms</option><option>Mr</option></select>}
-          />
-
           <Field
             label="Name" editing={editingSection === 'personal'} view="Rea Test To"
             edit={
@@ -171,69 +175,142 @@ export default function ApplicationDetailComprehensive({
             }
           />
 
+          <FieldGrid>
+            <Field
+              label="Title" editing={editingSection === 'personal'} view="Ms"
+              edit={<select className={`${editSelectClass} max-w-[120px]`}><option>Ms</option><option>Mr</option></select>}
+            />
+
+            <Field
+              label="Birthdate" editing={editingSection === 'personal'}
+              view={<span>{birthdate} <span className="ml-2 px-2 py-0.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span></span>}
+              edit={
+                <div className="flex items-center space-x-4">
+                  <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={`w-48 ${editInputClass}`} />
+                  <div className="flex items-center space-x-2">
+                    <span className="text-slate-500 font-semibold dark:text-slate-400">Age:</span>
+                    <span className="px-3 py-1.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span>
+                  </div>
+                </div>
+              }
+            />
+
+            <Field
+              label="Nationality" editing={editingSection === 'personal'} view="Filipino"
+              edit={<select className={`${editSelectClass} max-w-[192px]`}><option>Filipino</option></select>}
+            />
+
+            <Field
+              label="Place Of Birth" editing={editingSection === 'personal'} view={null}
+              edit={<input type="text" className={editInputClass} />}
+            />
+
+            {/* SSP Specific Fields */}
+            <Field
+              label="Weight (kg)" editing={editingSection === 'personal'} view={null}
+              edit={
+                <div className="w-48 relative">
+                  <input type="number" className={editInputClass} />
+                  <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">kg</span>
+                </div>
+              }
+            />
+            <Field
+              label="Height (cm)" editing={editingSection === 'personal'} view={null}
+              edit={
+                <div className="w-48 relative">
+                  <input type="number" className={editInputClass} />
+                  <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">cm</span>
+                </div>
+              }
+            />
+          </FieldGrid>
+        </Section>
+
+        {/* Contact Information */}
+        <Section icon={MapPin} title="Contact Information" isEditing={editingSection === 'contact'} onToggleEdit={() => toggleEdit('contact')} hideEditButton={readOnly}>
           <Field
-            label="Birthdate" editing={editingSection === 'personal'}
-            view={<span>{birthdate} <span className="ml-2 px-2 py-0.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span></span>}
+            label="Address" editing={editingSection === 'contact'} align="start"
+            view={`${barangay}, ${city}, ${region}`}
             edit={
-              <div className="flex items-center space-x-4">
-                <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={`w-48 ${editInputClass}`} />
-                <div className="flex items-center space-x-2">
-                  <span className="text-slate-500 font-semibold dark:text-slate-400">Age:</span>
-                  <span className="px-3 py-1.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input type="text" placeholder="Unit / House No." className={editInputClass} />
+                  <input type="text" placeholder="Street" className={editInputClass} />
+                  <input type="text" placeholder="Building Name (Optional)" className={editInputClass} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <select value={barangay} onChange={(e) => setBarangay(e.target.value)} className={editSelectClass}>{phBarangays.map(b => <option key={b} value={b}>{b}</option>)}</select>
+                  <select value={city} onChange={(e) => setCity(e.target.value)} className={editSelectClass}>{phCities.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                  <select value={region} onChange={(e) => setRegion(e.target.value)} className={editSelectClass}>{phRegions.map(r => <option key={r} value={r}>{r}</option>)}</select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input type="text" placeholder="Zip Code" className={editInputClass} />
                 </div>
               </div>
             }
           />
 
-          <Field
-            label="Place Of Birth" editing={editingSection === 'personal'} align="start" view={null}
-            edit={<input type="text" className={editInputClass} />}
-          />
+          <FieldGrid>
+            <Field label="Mobile Number" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
+            <Field label="Telephone Number" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
+            <Field label="Email Address" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
+          </FieldGrid>
 
-          <Field
-            label="Nationality" editing={editingSection === 'personal'} view="Filipino"
-            edit={<select className={`${editSelectClass} max-w-[192px]`}><option>Filipino</option></select>}
-          />
-
-          {/* SSP Specific Fields */}
-          <Field
-            label="Weight (kg)" editing={editingSection === 'personal'} view={null}
-            edit={
-              <div className="w-48 relative">
-                <input type="number" className={editInputClass} />
-                <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">kg</span>
-              </div>
-            }
-          />
-          <Field
-            label="Height (cm)" editing={editingSection === 'personal'} view={null}
-            edit={
-              <div className="w-48 relative">
-                <input type="number" className={editInputClass} />
-                <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">cm</span>
-              </div>
-            }
-          />
+          <label className="flex items-center space-x-2 text-slate-700 font-semibold dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={mailToDifferentAddress}
+              onChange={(e) => setMailToDifferentAddress(e.target.checked)}
+              disabled={editingSection !== 'contact'}
+              className="w-3.5 h-3.5 accent-[#008cb4] rounded"
+            />
+            <span>Mail to a different address?</span>
+          </label>
+          {mailToDifferentAddress && (
+            <Field
+              label="Mailing Address" editing={editingSection === 'contact'} align="start" view={null}
+              edit={
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" placeholder="Unit / House No." className={editInputClass} />
+                    <input type="text" placeholder="Street" className={editInputClass} />
+                    <input type="text" placeholder="Building Name (Optional)" className={editInputClass} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select className={editSelectClass}>{phBarangays.map(b => <option key={b} value={b}>{b}</option>)}</select>
+                    <select className={editSelectClass}>{phCities.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                    <select className={editSelectClass}>{phRegions.map(r => <option key={r} value={r}>{r}</option>)}</select>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" placeholder="Zip Code" className={editInputClass} />
+                  </div>
+                </div>
+              }
+            />
+          )}
         </Section>
 
         {/* Employment Information */}
         <Section icon={Briefcase} title="Employment Information" isEditing={editingSection === 'employment'} onToggleEdit={() => toggleEdit('employment')} hideEditButton={readOnly}>
-          <Field label="Occupation" editing={editingSection === 'employment'} view="Adult Literacy, Remedial Education, and GED Teachers" edit={<input type="text" defaultValue="Adult Literacy, Remedial Education, and GED Teachers" className={editInputClass} />} />
-          <Field label="Specific duties" editing={editingSection === 'employment'} view="Teacher" edit={<input type="text" defaultValue="Teacher" className={editInputClass} />} />
-          <Field label="Office address" editing={editingSection === 'employment'} view="Sta. Ana Manila" edit={<input type="text" defaultValue="Sta. Ana Manila" className={editInputClass} />} />
-          <Field label="Zipcode" editing={editingSection === 'employment'} view="1009" edit={<input type="text" defaultValue="1009" className={`w-48 ${editInputClass}`} />} />
-          <Field
-            label="Office Tel. No." editing={editingSection === 'employment'} view="000 0000000"
-            edit={
-              <div className="flex items-center space-x-2">
-                <input type="text" defaultValue="000" placeholder="Area Code" className={`w-20 ${editInputClass}`} />
-                <input type="text" defaultValue="0000000" placeholder="Phone number" className={`w-32 ${editInputClass}`} />
-              </div>
-            }
-          />
-          <Field label="Source of Funds" editing={editingSection === 'employment'} view="Salary" edit={<input type="text" defaultValue="Salary" className={editInputClass} />} />
-          <Field label="TIN" editing={editingSection === 'employment'} view="125447555844799929" edit={<input type="text" defaultValue="125447555844799929" className={`w-48 ${editInputClass}`} />} />
-          <Field label="GSIS / SSS" editing={editingSection === 'employment'} view="484948982" edit={<input type="text" defaultValue="484948982" className={`w-48 ${editInputClass}`} />} />
+          <FieldGrid>
+            <Field label="Occupation" editing={editingSection === 'employment'} view="Adult Literacy, Remedial Education, and GED Teachers" edit={<input type="text" defaultValue="Adult Literacy, Remedial Education, and GED Teachers" className={editInputClass} />} />
+            <Field label="Specific duties" editing={editingSection === 'employment'} view="Teacher" edit={<input type="text" defaultValue="Teacher" className={editInputClass} />} />
+            <Field label="Office address" editing={editingSection === 'employment'} view="Sta. Ana Manila" edit={<input type="text" defaultValue="Sta. Ana Manila" className={editInputClass} />} />
+            <Field label="Zipcode" editing={editingSection === 'employment'} view="1009" edit={<input type="text" defaultValue="1009" className={`w-48 ${editInputClass}`} />} />
+            <Field
+              label="Office Tel. No." editing={editingSection === 'employment'} view="000 0000000"
+              edit={
+                <div className="flex items-center space-x-2">
+                  <input type="text" defaultValue="000" placeholder="Area Code" className={`w-20 ${editInputClass}`} />
+                  <input type="text" defaultValue="0000000" placeholder="Phone number" className={`w-32 ${editInputClass}`} />
+                </div>
+              }
+            />
+            <Field label="Source of Funds" editing={editingSection === 'employment'} view="Salary" edit={<input type="text" defaultValue="Salary" className={editInputClass} />} />
+            <Field label="TIN" editing={editingSection === 'employment'} view="125447555844799929" edit={<input type="text" defaultValue="125447555844799929" className={`w-48 ${editInputClass}`} />} />
+            <Field label="GSIS / SSS" editing={editingSection === 'employment'} view="484948982" edit={<input type="text" defaultValue="484948982" className={`w-48 ${editInputClass}`} />} />
+          </FieldGrid>
         </Section>
 
         {/* Beneficiaries */}
@@ -308,6 +385,50 @@ export default function ApplicationDetailComprehensive({
               edit={<textarea rows={2} className={editInputClass} />}
             />
           )}
+          <div className="flex items-center space-x-4">
+            <label className="font-semibold text-slate-700 dark:text-slate-300">Is the policy applied for intended to change or replace any existing inforce policies?</label>
+            {editingSection === 'declaration' ? (
+              <select
+                value={intendsToReplace ? 'Yes' : 'No'}
+                onChange={(e) => setIntendsToReplace(e.target.value === 'Yes')}
+                className={`${editSelectClass} max-w-[100px]`}
+              >
+                <option>No</option><option>Yes</option>
+              </select>
+            ) : (
+              <span className="text-xs font-bold text-slate-900 dark:text-white">{intendsToReplace ? 'Yes' : 'No'}</span>
+            )}
+          </div>
+        </Section>
+
+        {/* Medical Questionnaire */}
+        <Section icon={Stethoscope} title="Medical Questionnaire" isEditing={editingSection === 'medical'} onToggleEdit={() => toggleEdit('medical')} hideEditButton={readOnly}>
+          {([
+            { key: 'consulted' as const, label: 'Have you consulted any doctor for medical treatment, or advice for treatment, or confined in a hospital, clinic or similar institution during the past five years?' },
+            { key: 'advised' as const, label: 'Have you ever been advised that you had: heart trouble, high blood pressure, cancer, diabetes, epilepsy or tuberculosis?' },
+            { key: 'impairment' as const, label: 'Are you aware of any impairment in your health, or physical condition?' },
+          ]).map(q => (
+            <div key={q.key} className="flex items-center justify-between gap-4">
+              <label className="font-semibold text-slate-700 dark:text-slate-300">{q.label}</label>
+              {editingSection === 'medical' ? (
+                <select
+                  value={medicalAnswers[q.key] ? 'Yes' : 'No'}
+                  onChange={(e) => setMedicalAnswers(prev => ({ ...prev, [q.key]: e.target.value === 'Yes' }))}
+                  className={`${editSelectClass} max-w-[100px] shrink-0`}
+                >
+                  <option>No</option><option>Yes</option>
+                </select>
+              ) : (
+                <span className="text-xs font-bold text-slate-900 dark:text-white shrink-0">{medicalAnswers[q.key] ? 'Yes' : 'No'}</span>
+              )}
+            </div>
+          ))}
+          {(medicalAnswers.consulted || medicalAnswers.advised || medicalAnswers.impairment) && (
+            <Field
+              label="If yes to any, please give full details" editing={editingSection === 'medical'} align="start" view={null}
+              edit={<textarea rows={3} placeholder="Person treated, physician's name, address/name of hospital, date and nature of consultation/sickness/impairment" className={editInputClass} />}
+            />
+          )}
         </Section>
 
         {/* Benefits Table */}
@@ -344,20 +465,22 @@ export default function ApplicationDetailComprehensive({
                   </div>
                 }
               />
-              <Field label="Contact Number" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
-              <Field label="Email Address" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
-              <Field
-                label="Relationship" editing={editingSection === 'payor'} view={null}
-                edit={
-                  <select className={`${editSelectClass} max-w-xs`}>
-                    <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
-                    <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
-                    <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
-                    <option>Nephew</option><option>Niece</option><option>Other</option>
-                    <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
-                  </select>
-                }
-              />
+              <FieldGrid>
+                <Field label="Contact Number" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
+                <Field label="Email Address" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
+                <Field
+                  label="Relationship" editing={editingSection === 'payor'} view={null}
+                  edit={
+                    <select className={`${editSelectClass} max-w-xs`}>
+                      <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
+                      <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
+                      <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
+                      <option>Nephew</option><option>Niece</option><option>Other</option>
+                      <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
+                    </select>
+                  }
+                />
+              </FieldGrid>
             </>
           )}
         </Section>

@@ -12,6 +12,14 @@
 
 export type PdLifePlanCategory = 'Health' | 'Life & Accident' | 'Comprehensive';
 
+// "Where did you hear about us?" options on the real apply.paramountdirect.com
+// wizard (shared across all three categories' forms).
+export const PD_LIFE_REFERRAL_SOURCES = [
+  'Panorama', 'Starweek', 'Balita', 'Bulgar', 'Pilipino Star Ngayon',
+  'Manila Bulletin', 'Philippine Star', 'Facebook', 'Google', 'iMoney',
+  'Google Ads', 'Facebook Voyager', 'Google Voyager', 'Display_Ads', 'ERP', 'Influencers',
+];
+
 export const PD_LIFE_PLAN_CODES: Record<PdLifePlanCategory, { code: string; name: string }[]> = {
   'Health': [
     { code: 'HCP', name: 'HealthCARE Cash Plan' },
@@ -84,12 +92,20 @@ export interface Beneficiary {
 
 export type NonForfeitureOption = 'Paid-up Insurance' | 'Automatic Payment of Premium' | 'Cash Surrender';
 
-// Health-specific
+// Health-specific - weight/height and occupation/business address are on
+// every real Health application form (PrimeCARE, HealthCARE Cash Plan)
+// alongside the family-enrollment table, but weren't previously modeled here.
 export interface HealthDetails {
   insuredOption: 'Individual' | 'Married Couple' | 'Family';
   paymentOption: 'Monthly' | 'Quarterly' | 'Semi-Annual' | 'Annual';
   hasLegalSpouse: boolean;
   children: ChildBeneficiary[];
+  weightKg: number;
+  heightCm: number;
+  occupation: string;
+  officeAddress: string;
+  officeZipcode: string;
+  officeTelephone: string;
 }
 
 // Life & Accident-specific
@@ -100,6 +116,16 @@ export interface LifeAccidentDetails {
   nonForfeitureOption: NonForfeitureOption;
   hasExistingPolicy: boolean;
   existingPolicyDetails: string;
+  // "Is the policy applied for intended to change or replace any existing
+  // inforce policies?" - a separate Yes/No question on the real form from
+  // whether any other policy exists at all.
+  intendsToReplaceExistingPolicy: boolean;
+  // Occupation and business address are on every real Life & Accident form
+  // (Golden Life Advantage, Guaranteed Life) but weren't previously modeled.
+  occupation: string;
+  officeAddress: string;
+  officeZipcode: string;
+  officeTelephone: string;
 }
 
 // Comprehensive-specific - modeled on the paper-form fields (MPR/SSP), which
@@ -121,6 +147,7 @@ export interface ComprehensiveDetails {
   nonForfeitureOption: NonForfeitureOption;
   hasExistingPolicy: boolean;
   existingPolicyDetails: string;
+  intendsToReplaceExistingPolicy: boolean;
   medicalQuestionnaire: {
     consultedDoctorPast5Years: boolean;
     advisedOfSeriousCondition: boolean;
