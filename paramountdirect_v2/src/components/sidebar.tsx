@@ -26,7 +26,7 @@ import {
   ListChecks,
   Sun,
   Moon,
-  Wallet,
+  // Wallet removed from imports along with the Premium Maintenance nav entry below
   Stamp,
   LayoutGrid
 } from 'lucide-react';
@@ -133,7 +133,10 @@ export default function Sidebar({
   const maintenanceSubItems = [
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'roles', label: 'Role Access Matrix', icon: FolderTree },
-    { id: 'premiums', label: 'Premium Maintenance', icon: Wallet },
+    // Premium Maintenance removed from nav per request - the page and its
+    // data (premium_maintenance.tsx, premium_rates.ts) still exist, just not
+    // linked from anywhere, in case this gets revisited later.
+    // { id: 'premiums', label: 'Premium Maintenance', icon: Wallet },
     { id: 'branch', label: 'Branch Directory', icon: Building2 },
     { id: 'marketing', label: 'Marketing Dashboard', icon: BarChart3 },
     { id: 'cms', label: 'CMS (Website Content)', icon: Globe },
@@ -153,7 +156,7 @@ export default function Sidebar({
         fixed lg:static top-0 left-0 h-screen z-50 overflow-hidden
         bg-white border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800
         flex flex-col justify-between p-4 transition-all duration-300 ease-in-out font-sans
-        ${isCollapsed ? 'w-20' : 'w-64 max-w-[80vw]'}
+        ${isCollapsed ? 'w-24' : 'w-64 max-w-[80vw]'}
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         
@@ -161,18 +164,21 @@ export default function Sidebar({
             (Statistics + Maintenance both expanded) don't get clipped on
             short screens; the user section below stays pinned. */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5">
-          <div className="flex items-center justify-between h-12 mb-6">
+          <div className={`flex mb-6 ${isCollapsed ? 'flex-col items-center space-y-3' : 'items-center justify-between h-14'}`}>
             <div className="flex items-center space-x-2 overflow-hidden">
               <img
                 src={darkMode ? logoImgWhite : logoImg}
                 alt="Paramount Direct"
                 className={`transition-all duration-300 object-contain ${
-                  isCollapsed ? 'h-7 max-w-[50px]' : 'h-8 max-w-[150px]'
-                }`} 
+                  isCollapsed ? 'h-8 max-w-[60px]' : 'h-12 max-w-[190px]'
+                }`}
               />
             </div>
 
-            <div className="hidden lg:flex items-center space-x-1.5 flex-shrink-0">
+            {/* Collapsed: buttons stack under the logo instead of sitting
+                beside it, since both together don't fit the 80px rail width
+                and were getting clipped by the sidebar's own edge. */}
+            <div className={`hidden lg:flex items-center flex-shrink-0 ${isCollapsed ? 'flex-col space-y-1.5' : 'space-x-1.5'}`}>
               {/* Desktop Dark Mode Toggle */}
               {onToggleDarkMode && (
                 <button

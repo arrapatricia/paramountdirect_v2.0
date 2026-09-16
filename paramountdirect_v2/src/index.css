@@ -5,6 +5,21 @@
    button - not the OS setting - controls dark mode. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Every dark-mode surface in this app uses Tailwind slate-950/900/800/700
+   (dark:bg-slate-900 etc, dozens of components), all resolving to a
+   var(--color-slate-*) custom property. Those shades carry a noticeable
+   blue tint, which made the brand navy (002f6c, used for OFW/CTPL/GTP
+   active-state highlights) disappear into the background. Overriding the
+   variables here, scoped to :root.dark so light mode is untouched, makes
+   every dark:bg-slate-* / dark:border-slate-* class resolve to true
+   near-black instead, app-wide, without touching each component. */
+:root.dark {
+  --color-slate-950: #000000;
+  --color-slate-900: #0d0d0d;
+  --color-slate-800: #1a1a1a;
+  --color-slate-700: #2b2b2b;
+}
+
 :root {
   --color-paramount: #d0112b;
   --font-sans: 'Montserrat', sans-serif;
@@ -28,7 +43,7 @@ body {
 }
 
 .dark body {
-  background-color: #020617;
+  background-color: #000000;
   color: #e2e8f0;
 }
 
@@ -47,7 +62,7 @@ td, th, p, span, label, div, input, select {
 
 /* Any element explicitly set to white text (buttons on a colored
    background, badges, etc.) keeps white text - the rule above only
-   targets elements that didn't ask for a specific color, but its bare
+   targets elements that did not ask for a specific color, but its bare
    element selectors still have enough specificity to beat an inherited
    text-white from a parent, so this override is needed for every button
    background color, not just the original red one. */
