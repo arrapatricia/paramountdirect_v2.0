@@ -14,6 +14,7 @@ export interface FollowUpRow {
   policyStatus: 'INFORCE' | 'LAPSED';
   latestPrintFollowUp: string; // '' = none sent yet
   latestEmailFollowUp: string; // '' = none sent yet
+  signed: boolean; // client's physical application form has been received back
 }
 
 export function addDays(dateStr: string, days: number): string {
@@ -28,7 +29,11 @@ export function addDays(dateStr: string, days: number): string {
 // wet-ink signature for, so the queue is built from the same `screeningData`
 // as Application Screening, filtered to Issued rows and deterministically
 // enriched with the follow-up-specific fields the real system tracks.
-export function buildFollowUpRows(data: ScreeningItem[]): FollowUpRow[] {
+// `signedIds` is the shared "has this one been signed" set that both
+// Follow-up Signature and Signed Applications read from and write to, so a
+// row built here reflects whichever page last marked it signed.
+export function buildFollowUpRows(data: ScreeningItem[], signedIds: string[] = []): FollowUpRow[] {
+  const signedSet = new Set(signedIds);
   return data
     .filter((item) => item.status === 'Issued')
     .map((item) => {
@@ -56,10 +61,14 @@ export function buildFollowUpRows(data: ScreeningItem[]): FollowUpRow[] {
         policyStatus,
         latestPrintFollowUp,
         latestEmailFollowUp,
+        signed: signedSet.has(item.id),
       };
     });
 }
 
+// Whether staff has followed up on this policy at all (print or email) -
+// distinct from `row.signed`, which tracks whether the client's signed form
+// has actually come back. A row can be followed-up but still unsigned.
 export function isUnsigned(row: FollowUpRow): boolean {
   return !row.latestPrintFollowUp && !row.latestEmailFollowUp;
 }

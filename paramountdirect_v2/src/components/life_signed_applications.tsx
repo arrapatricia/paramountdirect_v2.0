@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown, FileSignature } from 'lucide-react';
+import type { ScreeningItem } from '../App';
+import { buildFollowUpRows } from './followup_signature_data';
+
+interface Props {
+  data: ScreeningItem[];
+  // Shared with Follow-up Signature - marking a policy signed here also
+  // marks it signed there, and vice versa.
+  signedIds: string[];
+  onMarkSigned: (id: string) => void;
+}
 
 // Paid figures match the "paid" column on the Monthly Applications page so
 // the two views agree with each other.
@@ -15,22 +25,6 @@ const MONTHLY_TREND = [
   { month: 'Sep', paid: 20, signed: 16 }, // month-to-date
 ];
 
-interface UnsignedApp {
-  id: string;
-  payor: string;
-  planCode: string;
-  premium: string;
-  datePaid: string;
-}
-
-const INITIAL_UNSIGNED: UnsignedApp[] = [
-  { id: '392007', payor: 'Christian Bukid', planCode: 'HIP', premium: '₱500.00', datePaid: '09/10/2026' },
-  { id: '392014', payor: 'Lorena Tanguan', planCode: 'GLA', premium: '₱413.00', datePaid: '09/11/2026' },
-  { id: '392019', payor: 'Eleonora Sunga', planCode: 'SSP', premium: '₱892.00', datePaid: '09/12/2026' },
-  { id: '392026', payor: 'Karlo Bautista', planCode: 'PHC', premium: '₱1,000.00', datePaid: '09/13/2026' },
-  { id: '392031', payor: 'Juan Dela Cruz', planCode: 'MPR', premium: '₱600.00', datePaid: '09/13/2026' },
-];
-
 const totalPaid = MONTHLY_TREND.reduce((s, m) => s + m.paid, 0);
 const totalSigned = MONTHLY_TREND.reduce((s, m) => s + m.signed, 0);
 const totalUnsigned = totalPaid - totalSigned;
@@ -41,13 +35,12 @@ const average = Math.round(MONTHLY_TREND.slice(0, -1).reduce((s, m) => s + m.pai
 const delta = current.paid - previous.paid;
 const maxTrendValue = Math.max(...MONTHLY_TREND.map((m) => m.paid));
 
-export default function LifeSignedApplications() {
-  const unsigned: UnsignedApp[] = INITIAL_UNSIGNED;
-  const [signedIds, setSignedIds] = useState<string[]>([]);
-
-  const markSigned = (id: string) => {
-    setSignedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  };
+export default function LifeSignedApplications({ data, signedIds, onMarkSigned }: Props) {
+  // Same derivation Follow-up Signature uses - this is the identical queue
+  // of issued-but-unsigned policies, not a separate fabricated list, so
+  // marking one signed here is instantly reflected there too.
+  const rows = useMemo(() => buildFollowUpRows(data, signedIds), [data, signedIds]);
+  const unsigned = rows.filter((row) => !row.signed);
 
   return (
     <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -106,10 +99,12 @@ export default function LifeSignedApplications() {
         </div>
       </div>
 
-      {/* Unsigned queue */}
+      {/* Unsigned queue - same live data/action as Follow-up Signature's "Unsigned" + "Followed Up" tabs combined */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-        <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-slate-100">Paid, Awaiting Signature</h2>
-        <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">Applications that have been paid but still need the client's signature</p>
+        <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-slate-100">Issued, Awaiting Signature</h2>
+        <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">
+          {unsigned.length} of {rows.length} issued policies still need the client's signed form back - the same queue tracked on Follow-up Signature.
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -118,30 +113,32 @@ export default function LifeSignedApplications() {
                 <th className="py-3 px-2">Payor</th>
                 <th className="py-3 px-2">Plan</th>
                 <th className="py-3 px-2">Premium</th>
-                <th className="py-3 px-2">Date Paid</th>
+                <th className="py-3 px-2">Date Issued</th>
                 <th className="py-3 px-2 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {unsigned.map((app) => (
-                <tr key={app.id}>
-                  <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{app.id}</td>
-                  <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{app.payor}</td>
-                  <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{app.planCode}</td>
-                  <td className="py-3.5 px-2 font-black text-[#d0112b]">{app.premium}</td>
-                  <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{app.datePaid}</td>
+              {unsigned.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400 dark:text-slate-500 font-semibold">
+                    No issued policies are currently awaiting a signature.
+                  </td>
+                </tr>
+              )}
+              {unsigned.map((row) => (
+                <tr key={row.id}>
+                  <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.id}</td>
+                  <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.payor}</td>
+                  <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{row.planCode}</td>
+                  <td className="py-3.5 px-2 font-black text-[#d0112b]">{row.premium}</td>
+                  <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{row.dateIssued}</td>
                   <td className="py-3.5 px-2 text-center">
                     <button
-                      onClick={() => markSigned(app.id)}
-                      disabled={signedIds.includes(app.id)}
-                      className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
-                        signedIds.includes(app.id)
-                          ? 'bg-emerald-50 text-emerald-600 cursor-default dark:bg-emerald-950/30 dark:text-emerald-400'
-                          : 'bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300'
-                      }`}
+                      onClick={() => onMarkSigned(row.id)}
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                     >
                       <FileSignature className="w-3.5 h-3.5" />
-                      <span>{signedIds.includes(app.id) ? 'Signed' : 'Mark as Signed'}</span>
+                      <span>Mark as Signed</span>
                     </button>
                   </td>
                 </tr>
