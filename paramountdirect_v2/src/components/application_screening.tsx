@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, CheckSquare, Square, X, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck, UserPlus } from 'lucide-react';
 import type { ScreeningItem } from '../App';
+import ApplicationStatusBar from './application_status_bar';
 
 interface Props {
   data: ScreeningItem[];
@@ -151,6 +152,8 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
           </button>
         )}
       </div>
+
+      <ApplicationStatusBar data={data} />
 
       {accessWarning && (
         <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-800 flex items-center justify-between text-xs font-bold animate-fadeIn dark:bg-amber-950/30 dark:text-amber-300">

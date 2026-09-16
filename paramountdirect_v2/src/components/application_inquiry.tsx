@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Search, Eye, Printer, ChevronLeft, ChevronRight, X, CheckSquare, Square, ShieldCheck, Clock, FileCheck, AlertCircle } from 'lucide-react';
+import { Search, Eye, Printer, ChevronLeft, ChevronRight, X, CheckSquare, Square, ShieldCheck, Clock, FileCheck, AlertCircle, UserPlus } from 'lucide-react';
 import type { ScreeningItem } from '../App';
+import ApplicationStatusBar from './application_status_bar';
 
 interface Props {
   data: ScreeningItem[];
   onSelectApplication?: (id: string, planCode: string) => void;
+  onCreateNew?: () => void;
 }
 
 const ITEMS_PER_PAGE = 20;
 
-export default function ApplicationInquiry({ data, onSelectApplication }: Props) {
+export default function ApplicationInquiry({ data, onSelectApplication, onCreateNew }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -157,23 +159,18 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
     <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100">
 
       {/* Header */}
-      <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
-        <div className="text-xs text-slate-400 font-medium dark:text-slate-500">
-          Home &gt; <span className="text-[#d0112b] font-bold">Application Inquiry</span>
-        </div>
-      </div>
-
-      <div className="p-6 md:p-8 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-wrap justify-between items-center gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
+        <div className="flex items-center space-x-2.5">
+          <Search className="h-6 w-6 text-[#d0112b]" />
           <div>
-            <h1 className="text-xl font-black text-slate-900 font-['Montserrat'] uppercase tracking-wider dark:text-white">
+            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
               APPLICATION INQUIRY
             </h1>
-            <p className="text-xs text-slate-400 font-semibold mt-1 dark:text-slate-500">
-              General inquiry registry for all insurance applications and policy documents
-            </p>
+            <p className="text-xs text-slate-500 font-semibold dark:text-slate-500">General inquiry registry for all insurance applications and policy documents</p>
           </div>
+        </div>
 
+        <div className="flex items-center space-x-3">
           {/* Batch Print Button */}
           {selectedIds.length > 0 && (
             <button
@@ -184,8 +181,22 @@ export default function ApplicationInquiry({ data, onSelectApplication }: Props)
               <span>Batch Print ({selectedIds.length})</span>
             </button>
           )}
-        </div>
 
+          {onCreateNew && (
+            <button
+              onClick={onCreateNew}
+              className="flex items-center space-x-2 bg-[#d0112b] hover:bg-[#a80d22] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>New Application</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <ApplicationStatusBar data={data} />
+
+      <div className="p-6 md:p-8 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
         {/* Search & Filter Bar */}
         <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-wrap items-center gap-4 dark:bg-slate-800/60 dark:border-slate-700">
 

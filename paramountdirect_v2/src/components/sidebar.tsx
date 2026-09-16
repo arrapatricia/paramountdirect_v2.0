@@ -27,7 +27,8 @@ import {
   Sun,
   Moon,
   Wallet,
-  Stamp
+  Stamp,
+  LayoutGrid
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -90,13 +91,12 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
   const [isStatisticsOpen, setIsStatisticsOpen] = useState(true);
-  const [isScreeningOpen, setIsScreeningOpen] = useState(true);
+  const [isApplicationsOpen, setIsApplicationsOpen] = useState(true);
 
   const navItemsByProduct: Record<ProductLine, { id: string; label: string; icon: typeof LayoutDashboard }[]> = {
     'PD Life': [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'inquiry', label: 'Application Inquiry', icon: Search },
-      { id: 'screening', label: 'Application Screening', icon: ClipboardCheck },
+      { id: 'applications', label: 'Applications', icon: LayoutGrid },
       { id: 'payments', label: 'Payment Transactions', icon: CreditCard },
     ],
     'OFW': [
@@ -246,18 +246,23 @@ export default function Sidebar({
               const Icon = item.icon;
               const isActive = activeTab === item.id;
 
-              // Application Screening (PD Life only) is an accordion so
-              // Follow-up Signature can live underneath it - the header
-              // button still navigates straight to the screening queue,
-              // same as before, it just also toggles the sub-menu open.
-              if (item.id === 'screening' && activeProduct === 'PD Life') {
-                const isGroupActive = isActive || activeTab === 'life-followup-signature';
+              // Applications (PD Life only) is an accordion grouping the
+              // application hub page with its three sub-areas - the header
+              // button navigates to the hub page and also toggles the
+              // sub-menu open.
+              if (item.id === 'applications' && activeProduct === 'PD Life') {
+                const applicationsSubItems = [
+                  { id: 'inquiry', label: 'Application Inquiry', icon: Search },
+                  { id: 'screening', label: 'Application Screening', icon: ClipboardCheck },
+                  { id: 'life-followup-signature', label: 'Follow-up Signature', icon: Stamp },
+                ];
+                const isGroupActive = isActive || applicationsSubItems.some((s) => s.id === activeTab);
                 return (
                   <div key={item.id}>
                     <button
                       onClick={() => {
-                        setActiveTab('screening');
-                        setIsScreeningOpen(!isScreeningOpen);
+                        setActiveTab('applications');
+                        setIsApplicationsOpen(!isApplicationsOpen);
                         if (onClose) onClose();
                       }}
                       title={isCollapsed ? item.label : undefined}
@@ -276,26 +281,33 @@ export default function Sidebar({
                         {!isCollapsed && <span className="truncate">{item.label}</span>}
                       </div>
                       {!isCollapsed && (
-                        <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isGroupActive ? 'text-white' : 'text-slate-400'} ${isScreeningOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isGroupActive ? 'text-white' : 'text-slate-400'} ${isApplicationsOpen ? 'rotate-180' : ''}`} />
                       )}
                     </button>
 
-                    {isScreeningOpen && !isCollapsed && (
+                    {isApplicationsOpen && !isCollapsed && (
                       <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3 dark:border-slate-800">
-                        <button
-                          onClick={() => {
-                            setActiveTab('life-followup-signature');
-                            if (onClose) onClose();
-                          }}
-                          className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
-                            activeTab === 'life-followup-signature'
-                              ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
-                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-                          }`}
-                        >
-                          <Stamp className={`w-3.5 h-3.5 flex-shrink-0 ${activeTab === 'life-followup-signature' ? 'text-[#d0112b]' : 'text-slate-400'}`} />
-                          <span className="truncate">Follow-up Signature</span>
-                        </button>
+                        {applicationsSubItems.map((sub) => {
+                          const SubIcon = sub.icon;
+                          const isSubActive = activeTab === sub.id;
+                          return (
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                setActiveTab(sub.id);
+                                if (onClose) onClose();
+                              }}
+                              className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
+                                isSubActive
+                                  ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
+                                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
+                              <span className="truncate">{sub.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

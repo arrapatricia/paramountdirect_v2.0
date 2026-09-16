@@ -23,6 +23,7 @@ import LifeFollowupSignature from './components/life_followup_signature';
 import LifeApplicationStatuses from './components/life_application_statuses';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
+import PdLifeApplicationsHub from './components/pdlife_applications_hub';
 import PdLifeCreateApplication from './components/pdlife_create_application';
 import type { PdLifeApplication } from './components/pdlife_types';
 import ApplicationDetailHealth from './components/application_detail_health';
@@ -422,12 +423,25 @@ export default function App() {
           )
         )}
 
+        {/* Applications hub */}
+        {activeTab === 'applications' && (
+          <PdLifeApplicationsHub data={screeningData} onNavigate={setActiveTab} />
+        )}
+
         {/* Application Inquiry */}
         {activeTab === 'inquiry' && (
-          selectedApp ? renderApplicationDetail() : (
-            <ApplicationInquiry 
-              data={screeningData} 
-              onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })} 
+          selectedApp ? renderApplicationDetail() : isCreatingPdLifeApp ? (
+            <PdLifeCreateApplication
+              currentUser={CURRENT_USER.name}
+              onBack={() => setIsCreatingPdLifeApp(false)}
+              onCreate={(app: PdLifeApplication) => setScreeningData(prev => [app, ...prev])}
+              rates={premiumRates}
+            />
+          ) : (
+            <ApplicationInquiry
+              data={screeningData}
+              onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })}
+              onCreateNew={() => setIsCreatingPdLifeApp(true)}
             />
           )
         )}
