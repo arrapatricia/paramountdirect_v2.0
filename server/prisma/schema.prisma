@@ -157,8 +157,89 @@ model PdLifeApplication {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
+  // Policy number assigned once the application is transmitted to iPeak
+  // (LEAP Services); doubles as iPeak's ApplicationID/PolicyNo.
+  policyNumber     String?      @unique
+  // Insured's personal details, mirroring the frontend's PolicyOwnerInfo -
+  // in this product line the insured is always their own policy owner.
+  firstName        String?
+  middleName       String?
+  lastName         String?
+  otherName        String?
+  gender           Gender?
+  civilStatus      CivilStatus?
+  birthdate        DateTime?
+  placeOfBirth     String?
+  nationality      String?
+  billingAddress   String?
+  residingAddress  String?
+  heightCm         Float?
+  weightKg         Float?
+  // Employment / financial details, mirroring the category `details` blob.
+  occupation       String?
+  companyAddress   String?
+  sourceOfFunds    String?
+  tin              String?
+  sssNo            String?
+  mobileNumber     String?
+  telephoneNumber  String?
+  email            String?
+
+  beneficiaries PdLifeBeneficiary[]
+  ipeakRequests PdLifeIpeakRequest[]
+
   @@index([status])
   @@index([planCategory])
+}
+
+model PdLifeBeneficiary {
+  id             String            @id @default(cuid())
+  applicationId  String
+  application    PdLifeApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fullName       String
+  birthdate      DateTime
+  relationship   String
+  sharePercent   Float?
+  designation    String?
+  trusteeName    String?
+  createdAt      DateTime          @default(now())
+
+  @@index([applicationId])
+}
+
+enum PdLifeIpeakMethod {
+  NewBusiness
+  UpdateStatus
+}
+
+// Audit / retry trail for every call made to iPeak (LEAP Services) for a PD
+// Life application - mirrors the legacy system's LifeMbPendingRequest.
+model PdLifeIpeakRequest {
+  id             String            @id @default(cuid())
+  applicationId  String
+  application    PdLifeApplication @relation(fields: [applicationId], references: [id])
+  policyNumber   String
+  method         PdLifeIpeakMethod
+  requestPayload Json
+  responseBody   Json?
+  statusCode     Int?
+  success        Boolean           @default(false)
+  errorMessage   String?
+  retryCount     Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([applicationId])
+  @@index([policyNumber])
+}
+
+// One row per PD Life plan code, holding the last sequential number used in
+// that plan's policy number (format PLANCODE-NNNNNN-D, e.g. "HCP-043385-0" -
+// matches the real numbering scheme used on Paramount's own AS400 side).
+// Incremented atomically so concurrent submissions never collide.
+model PdLifePolicyNumberSequence {
+  planCode   String @id
+  lastNumber Int    @default(0)
 }
 
 // ---------------------------------------------------------------------------

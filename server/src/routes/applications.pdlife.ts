@@ -5,6 +5,8 @@ import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import { Prisma, type PdLifeStatus } from '@prisma/client';
+import { submitNewBusinessToIpeak } from '../services/ipeak/submitNewBusiness';
+import { updateIpeakStatus } from '../services/ipeak/updateStatus';
 
 const router = Router();
 router.use(requireAuth);
@@ -93,9 +95,25 @@ router.patch(
         status,
         ...(existing.dateScreened ? {} : { dateScreened: new Date() }),
       },
+      include: { beneficiaries: true },
     });
 
     await recordAudit(req, { action: 'UPDATE', module: 'Application Screening', details: `Updated status of PD Life application ${application.id} to ${status}` });
+
+    const processorEmail = req.user?.email ?? 'unknown';
+    try {
+      if (existing.status === 'Received' && status !== 'Received') {
+        await submitNewBusinessToIpeak(application, processorEmail);
+      } else if (status === 'Issued') {
+        await updateIpeakStatus(application, 'APR', processorEmail);
+      }
+    } catch (err) {
+      // Transmission to iPeak must never block the screener's status
+      // update - failures are already persisted on PdLifeIpeakRequest by
+      // the services above; this only guards against an unexpected throw.
+      console.error('iPeak transmission failed for PD Life application', application.id, err);
+    }
+
     res.json(application);
   })
 );
