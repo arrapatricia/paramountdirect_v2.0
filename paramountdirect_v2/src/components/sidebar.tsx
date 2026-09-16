@@ -26,7 +26,8 @@ import {
   ListChecks,
   Sun,
   Moon,
-  Wallet
+  Wallet,
+  Stamp
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -89,6 +90,7 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
   const [isStatisticsOpen, setIsStatisticsOpen] = useState(true);
+  const [isScreeningOpen, setIsScreeningOpen] = useState(true);
 
   const navItemsByProduct: Record<ProductLine, { id: string; label: string; icon: typeof LayoutDashboard }[]> = {
     'PD Life': [
@@ -243,6 +245,62 @@ export default function Sidebar({
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
+
+              // Application Screening (PD Life only) is an accordion so
+              // Follow-up Signature can live underneath it - the header
+              // button still navigates straight to the screening queue,
+              // same as before, it just also toggles the sub-menu open.
+              if (item.id === 'screening' && activeProduct === 'PD Life') {
+                const isGroupActive = isActive || activeTab === 'life-followup-signature';
+                return (
+                  <div key={item.id}>
+                    <button
+                      onClick={() => {
+                        setActiveTab('screening');
+                        setIsScreeningOpen(!isScreeningOpen);
+                        if (onClose) onClose();
+                      }}
+                      title={isCollapsed ? item.label : undefined}
+                      className={`
+                        w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
+                        ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-3'}
+                        ${isGroupActive
+                          ? 'text-white shadow-md'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                        }
+                      `}
+                      style={isGroupActive ? { backgroundColor: '#d0112b' } : undefined}
+                    >
+                      <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+                        <Icon className={`w-5 h-5 flex-shrink-0 ${isGroupActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                        {!isCollapsed && <span className="truncate">{item.label}</span>}
+                      </div>
+                      {!isCollapsed && (
+                        <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isGroupActive ? 'text-white' : 'text-slate-400'} ${isScreeningOpen ? 'rotate-180' : ''}`} />
+                      )}
+                    </button>
+
+                    {isScreeningOpen && !isCollapsed && (
+                      <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3 dark:border-slate-800">
+                        <button
+                          onClick={() => {
+                            setActiveTab('life-followup-signature');
+                            if (onClose) onClose();
+                          }}
+                          className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
+                            activeTab === 'life-followup-signature'
+                              ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
+                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <Stamp className={`w-3.5 h-3.5 flex-shrink-0 ${activeTab === 'life-followup-signature' ? 'text-[#d0112b]' : 'text-slate-400'}`} />
+                          <span className="truncate">Follow-up Signature</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
               return (
                 <button

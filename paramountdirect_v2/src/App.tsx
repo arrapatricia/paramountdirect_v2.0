@@ -19,6 +19,7 @@ import LifeApplicationsOverview from './components/life_applications_overview';
 import LifeFollowupCalls from './components/life_followup_calls';
 import LifeSignedApplications from './components/life_signed_applications';
 import LifeScreenedApplications from './components/life_screened_applications';
+import LifeFollowupSignature from './components/life_followup_signature';
 import LifeApplicationStatuses from './components/life_application_statuses';
 import ApplicationInquiry from './components/application_inquiry';
 import ApplicationScreening from './components/application_screening';
@@ -354,7 +355,8 @@ export default function App() {
         {activeTab === 'life-daily' && <LifeApplicationsOverview period="Daily" />}
         {activeTab === 'life-followup-calls' && <LifeFollowupCalls />}
         {activeTab === 'life-signed' && <LifeSignedApplications />}
-        {activeTab === 'life-screened' && <LifeScreenedApplications />}
+        {activeTab === 'life-screened' && <LifeScreenedApplications data={screeningData} />}
+        {activeTab === 'life-followup-signature' && <LifeFollowupSignature data={screeningData} />}
         {activeTab === 'life-application-statuses' && <LifeApplicationStatuses />}
 
         {/* OFW Dashboard */}
