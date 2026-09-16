@@ -114,7 +114,7 @@ interface DetailHeaderProps {
 
 export function DetailHeader({ applicationId, productName, planCode, premium, onBack, statusControl }: DetailHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
       <div className="flex items-center space-x-4">
         <button
           onClick={onBack}
@@ -153,8 +153,8 @@ interface SectionProps {
 
 export function Section({ icon: Icon, title, isEditing, onToggleEdit, children, hideEditButton }: SectionProps) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 dark:border-slate-800">
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3 dark:border-slate-800">
         <div className="flex items-center space-x-2">
           <Icon className="w-4 h-4 text-[#d0112b]" />
           <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide dark:text-slate-100">{title}</h2>
@@ -173,9 +173,17 @@ export function Section({ icon: Icon, title, isEditing, onToggleEdit, children, 
           </button>
         )}
       </div>
-      <div className="space-y-4 text-xs">{children}</div>
+      <div className="space-y-2.5 text-xs">{children}</div>
     </div>
   );
+}
+
+// Lays short single-line Fields (Title, Nationality, Zipcode, etc.) out side
+// by side instead of one per row - the single biggest source of dead
+// whitespace on these pages, since a fixed-width label + a two-word value
+// used to claim a full 1200px-wide row each.
+export function FieldGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{children}</div>;
 }
 
 interface FieldProps {
@@ -183,22 +191,23 @@ interface FieldProps {
   editing: boolean;
   view: React.ReactNode;
   edit: React.ReactNode;
+  // No longer affects layout now that the label always sits above the value
+  // (stacked, boxed) rather than beside it - kept so existing call sites
+  // that still pass it don't need to change.
   align?: 'center' | 'start';
 }
 
-export function Field({ label, editing, view, edit, align = 'center' }: FieldProps) {
+export function Field({ label, editing, view, edit }: FieldProps) {
   return (
-    <div className={`flex ${align === 'start' ? 'items-start' : 'items-center'}`}>
-      <label className={`w-40 flex-shrink-0 text-[10px] font-extrabold text-slate-400 uppercase tracking-wide dark:text-slate-500 ${align === 'start' ? 'mt-2' : ''}`}>
+    <div className="bg-slate-50 rounded-xl px-3 py-2 border border-slate-200/80 dark:bg-slate-800/60 dark:border-slate-700/60">
+      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">
         {label}
       </label>
-      <div className="flex-1">
-        {editing ? edit : (
-          <span className="text-xs font-bold text-slate-900 dark:text-white">
-            {view || <span className="text-slate-300 dark:text-slate-700">&mdash;</span>}
-          </span>
-        )}
-      </div>
+      {editing ? edit : (
+        <span className="text-xs font-bold text-slate-900 dark:text-white">
+          {view || <span className="text-slate-300 dark:text-slate-700">&mdash;</span>}
+        </span>
+      )}
     </div>
   );
 }
