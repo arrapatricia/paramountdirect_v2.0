@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Send, CheckCircle2, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Mail, Send, ArrowLeft, Sun, Moon } from 'lucide-react';
 
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
 import pdLogoWhite from '../assets/PD Logo_white.png';

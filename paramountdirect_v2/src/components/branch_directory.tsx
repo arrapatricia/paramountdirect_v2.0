@@ -6,13 +6,11 @@ import {
   MapPin,
   Phone,
   Mail,
-  Printer,
   Globe,
   Edit3,
   Trash2,
   X,
   CheckCircle2,
-  Filter,
   ExternalLink
 } from 'lucide-react';
 
@@ -86,7 +84,7 @@ export default function BranchDirectory() {
   const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('All');
-  const [selectedRegion, setSelectedRegion] = useState<string>('All');
+  const [selectedRegion] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 

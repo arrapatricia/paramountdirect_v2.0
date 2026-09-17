@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, TrendingUp, Info } from 'lucide-react';
 import { PLATE_ENDING_SCHEDULE } from './ctpl_types';
 

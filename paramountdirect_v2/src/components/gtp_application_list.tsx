@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Plane, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { GTP_STATUSES, GTP_STATUS_DESCRIPTIONS, type GtpApplication } from './gtp_types';
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import type { ScreeningItem } from '../App';
 
 interface Props {

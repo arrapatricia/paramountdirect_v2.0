@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Search, ClipboardCheck, Stamp, ArrowRight, LayoutGrid } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 import { buildFollowUpRows, isUnsigned } from './followup_signature_data';

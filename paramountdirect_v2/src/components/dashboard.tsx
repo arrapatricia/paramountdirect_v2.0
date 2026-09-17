@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, TrendingUp } from 'lucide-react';
 
 // Monthly premium sales, PHP. 2025 is the prior year's actual full-year figures

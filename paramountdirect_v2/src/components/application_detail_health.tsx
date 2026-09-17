@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { UserCircle2, MapPin, Users, Wallet, ClipboardList, Briefcase } from 'lucide-react';
 import {
   NotificationBanner, DetailHeader, StatusControl, Section, Field, FieldGrid, AddRowButton,

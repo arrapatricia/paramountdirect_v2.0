@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { TrendingUp, TrendingDown, FileSignature } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 import { buildFollowUpRows } from './followup_signature_data';

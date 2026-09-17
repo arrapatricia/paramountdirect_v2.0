@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 // Same monthly breakdown as the Monthly Applications page, so both views
 // agree with each other.
