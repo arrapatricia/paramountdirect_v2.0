@@ -1,6 +1,6 @@
 # Deploy Paramount Direct to Ubuntu 26.04
 
-Target: **https://pdv2.paramountdirect.com**
+Target: **https://pd2-dev.paramount.com.ph**
 
 This repository contains a React/Vite frontend (`paramountdirect_v2/`) and an
 Express/Prisma/PostgreSQL API (`server/`). This guide uses PM2 for both, as requested:
@@ -25,7 +25,7 @@ will need an intentionally provisioned API user/role; migrations do not create u
 ## 1. What you need
 
 - Server IP, SSH username/key, and sudo access.
-- DNS access: point the `pdv2.paramountdirect.com` A record to the server IPv4.
+- DNS access: point the `pd2-dev.paramount.com.ph` A record to the server IPv4.
   Only create an AAAA record if IPv6 is configured and reachable.
 - Inbound TCP 80/443 to the server; SSH restricted to your administration IP.
   Keep 3000/4000 private. Preserve any custom SSH port when configuring firewalls.
@@ -154,6 +154,7 @@ should not be treated as proof of server identity.
 Run on the server. Stop if any command fails:
 
 ```bash
+(
 set -e
 cd /home/ubuntu/paramountdirect_v2.0/server
 npm ci
@@ -163,6 +164,7 @@ npm run build
 cd ../paramountdirect_v2
 npm ci
 npm run build
+)
 ```
 
 Build dependencies are needed, so do not use `npm ci --omit=dev` before building.
@@ -216,11 +218,11 @@ After upgrading Node, regenerate PM2 startup configuration for the new Node path
 First verify DNS resolves to this server and ports 80/443 are reachable:
 
 ```bash
-getent ahosts pdv2.paramountdirect.com
-sudo cp /home/ubuntu/paramountdirect_v2.0/deploy/nginx.conf /etc/nginx/sites-available/pdv2.paramountdirect.com
-sudo ln -s /etc/nginx/sites-available/pdv2.paramountdirect.com /etc/nginx/sites-enabled/pdv2.paramountdirect.com
+getent ahosts pd2-dev.paramount.com.ph
+sudo cp /home/ubuntu/paramountdirect_v2.0/deploy/nginx.conf /etc/nginx/sites-available/pd2-dev.paramount.com.ph
+sudo ln -s /etc/nginx/sites-available/pd2-dev.paramount.com.ph /etc/nginx/sites-enabled/pd2-dev.paramount.com.ph
 sudo nginx -t && sudo systemctl reload nginx
-curl -fsS -H 'Host: pdv2.paramountdirect.com' http://127.0.0.1/health
+curl -fsS -H 'Host: pd2-dev.paramount.com.ph' http://127.0.0.1/health
 ```
 
 Skip the symlink command if that exact symlink already exists. Ensure no other
@@ -230,7 +232,7 @@ For a server without an existing Certbot installation:
 
 ```bash
 sudo snap install --classic certbot
-sudo /snap/bin/certbot --nginx -d pdv2.paramountdirect.com --redirect
+sudo /snap/bin/certbot --nginx -d pd2-dev.paramount.com.ph --redirect
 sudo /snap/bin/certbot renew --dry-run
 ```
 
@@ -241,9 +243,9 @@ the HTTP template on later deployments.
 ## 8. Verify
 
 ```bash
-curl -I https://pdv2.paramountdirect.com
-curl -fsS https://pdv2.paramountdirect.com/health
-curl -i https://pdv2.paramountdirect.com/api/auth/me
+curl -I https://pd2-dev.paramount.com.ph
+curl -fsS https://pd2-dev.paramount.com.ph/health
+curl -i https://pd2-dev.paramount.com.ph/api/auth/me
 pm2 status
 ss -ltn | grep -E ':(3000|4000) '
 ```
@@ -257,16 +259,69 @@ The browser demo login is not evidence of API/database integration.
 
 ## 9. Updates, troubleshooting, and rollback
 
-Back up the prior source/build and take a DB snapshot before changes that migrate
-the schema. Upload the reviewed source, repeat the two builds, review/apply pending
-migrations, then:
+For future updates, push your changes to `origin/pdv2_dev`, then run on the server
+as `ubuntu` (without sudo):
 
 ```bash
 cd /home/ubuntu/paramountdirect_v2.0
-pm2 restart deploy/ecosystem.config.cjs --update-env
-pm2 save
-pm2 logs --lines 100
+bash deploy.sh
 ```
+
+The script loads nvm/Node 24, requires a clean checkout on `pdv2_dev`, fetches
+`origin/pdv2_dev`, and applies only a fast-forward update. It installs locked
+dependencies, generates Prisma, builds both applications, applies pending
+migrations, restarts both PM2 processes, retries local health checks, and saves
+the PM2 process list. It never seeds data or overwrites your private `server/.env`.
+Initial Nginx, HTTPS, environment setup, and `pm2 startup` remain one-time steps.
+
+To obtain this script on the server for the first time, after committing and
+pushing it from your development machine:
+
+```bash
+cd /home/ubuntu/paramountdirect_v2.0
+git switch pdv2_dev
+git pull --ff-only origin pdv2_dev
+bash deploy.sh
+```
+
+
+You can also keep the script at `/home/ubuntu/deploy.sh`:
+
+```bash
+cp /home/ubuntu/paramountdirect_v2.0/deploy.sh /home/ubuntu/deploy.sh
+bash /home/ubuntu/deploy.sh
+```
+
+When outside the project, it defaults to `/home/ubuntu/paramountdirect_v2.0`.
+Your current working directory does not matter. To use a different project path:
+
+```bash
+DEPLOY_PROJECT_DIR=/path/to/project bash /home/ubuntu/deploy.sh
+```
+
+The external copy does not update itself when Git pulls a newer script. Repeat
+the copy command when `deploy.sh` changes, or use a wrapper at
+`/home/ubuntu/deploy.sh` containing these two lines to always run the tracked copy:
+
+```bash
+#!/usr/bin/env bash
+exec bash /home/ubuntu/paramountdirect_v2.0/deploy.sh "$@"
+```
+
+The server must be a Git checkout with read access to the origin repository.
+If you copied the project using rsync without `.git`, first set up a clone of
+`pdv2_dev` and move your private environment file into that checkout.
+Resolve local edits/untracked files before running; the script will not discard
+them or switch branches automatically. Use `bash deploy.sh`, not `source deploy.sh`.
+
+Review new migrations and take an RDS snapshot/backup **before** running the script
+when schema changes are included. Migrations run automatically after both builds.
+A failure stops subsequent steps and prints the failing line. The checkout,
+dependencies, or build files may already have changed; there is no automatic
+rollback, and a failed health check does not undo migrations.
+Use `pm2 logs pdv2-api --lines 80 --nostream` to investigate API startup failures.
+The API health endpoint is liveness only; these checks do not test authenticated
+database operations or public Nginx/TLS connectivity.
 
 This simple in-place workflow can briefly interrupt requests. For zero-downtime
 releases, use separate release directories and a tested cutover process.
