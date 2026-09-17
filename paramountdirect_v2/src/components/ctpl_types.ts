@@ -25,7 +25,7 @@ export interface CtplApplication {
   mvFileNumber: string; // 15 numeric digits
   chassisNumber: string; // 17 alphanumeric
 
-  requiresCOV: boolean; // Certificate of Validation - additional PHP 60 fee via DBP-DCI
+  requiresCOV: boolean; // Certificate of Validation - additional COV_FEE via DBP-DCI
 
   premium: string; // formatted, e.g. "₱606.00"
   dateReceived: string;
@@ -39,6 +39,10 @@ export interface CtplApplication {
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;
+
+// Certificate of Validation verification fee, collected via DBP-DCI on top
+// of the base CTPL premium when requested.
+export const COV_FEE = 76;
 
 export type CtplStatus = 'Completed' | 'Spoiled' | 'Duplicate' | 'Reversed' | 'Cancelled';
 

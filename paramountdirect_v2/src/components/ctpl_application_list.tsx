@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import type { CtplApplication } from './ctpl_types';
-import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS } from './ctpl_types';
+import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS, COV_FEE } from './ctpl_types';
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
 
 interface Props {
@@ -9,6 +9,11 @@ interface Props {
   onCreateNew?: () => void;
   onUpdate?: (id: string, patch: Partial<CtplApplication>) => void;
 }
+
+// `premium` is stored formatted (e.g. "₱682.00") and already includes the
+// COV fee when one applies - the Service Invoice needs the pre-fee base
+// amount back out to show an accurate line-item breakdown.
+const parsePeso = (formatted: string) => Number(formatted.replace(/[₱,]/g, '')) || 0;
 
 // CTPL issues a Certificate of Cover (COC) rather than a separate OR, unlike
 // OFW/GTP which get an Official Receipt.
@@ -283,7 +288,7 @@ export default function CtplApplicationList({ data, onCreateNew, onUpdate }: Pro
               {viewingApp.requiresCOV && (
                 <div className="sm:col-span-2 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-center space-x-2 dark:bg-amber-950/30 dark:border-amber-800">
                   <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
-                  <span className="font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱60.00 verification fee via DBP-DCI.</span>
+                  <span className="font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI.</span>
                 </div>
               )}
 
@@ -389,9 +394,9 @@ export default function CtplApplicationList({ data, onCreateNew, onUpdate }: Pro
               <table className="w-full text-[10px] border border-slate-300 mt-1">
                 <thead><tr className="bg-[#002f6c] text-white"><th className="text-left px-2 py-1.5">Item Description / Nature of Service</th><th className="text-right px-2 py-1.5">Amount</th></tr></thead>
                 <tbody>
-                  <tr><td className="px-2 py-1.5 border-b border-dashed border-slate-200">CTPL Insurance Premium &mdash; {viewingApp.mvType}</td><td className="px-2 py-1.5 border-b border-dashed border-slate-200 text-right font-bold">{viewingApp.premium}</td></tr>
+                  <tr><td className="px-2 py-1.5 border-b border-dashed border-slate-200">CTPL Insurance Premium &mdash; {viewingApp.mvType}</td><td className="px-2 py-1.5 border-b border-dashed border-slate-200 text-right font-bold">₱{(parsePeso(viewingApp.premium) - (viewingApp.requiresCOV ? COV_FEE : 0)).toFixed(2)}</td></tr>
                   {viewingApp.requiresCOV && (
-                    <tr><td className="px-2 py-1.5">Certificate of Validation (COV) Fee</td><td className="px-2 py-1.5 text-right font-bold">₱60.00</td></tr>
+                    <tr><td className="px-2 py-1.5">Certificate of Validation (COV) Fee</td><td className="px-2 py-1.5 text-right font-bold">₱{COV_FEE.toFixed(2)}</td></tr>
                   )}
                 </tbody>
               </table>

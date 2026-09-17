@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
-import { CTPL_MV_TYPES, CTPL_POLICY_TYPES, type CtplApplication } from './ctpl_types';
+import { CTPL_MV_TYPES, CTPL_POLICY_TYPES, COV_FEE, type CtplApplication } from './ctpl_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
@@ -44,6 +44,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [requiresCOV, setRequiresCOV] = useState(false);
 
   const premiumValue = getPremium(rates, policyType, mvType);
+  const totalDue = premiumValue + (requiresCOV ? COV_FEE : 0);
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<CtplApplication | null>(null);
@@ -66,7 +67,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     plateNumber: plateNumber.toUpperCase(),
     mvFileNumber, chassisNumber: chassisNumber.toUpperCase(),
     requiresCOV,
-    premium: `₱${premiumValue.toFixed(2)}`,
+    premium: `₱${totalDue.toFixed(2)}`,
     dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
     status: 'Completed',
     screenedBy: currentUser,
@@ -130,8 +131,8 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">Estimated Premium</p>
-          <p className="text-xl font-black text-[#002f6c]">₱{premiumValue.toFixed(2)}</p>
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">{requiresCOV ? 'Total Amount Due' : 'Estimated Premium'}</p>
+          <p className="text-xl font-black text-[#002f6c]">₱{totalDue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -158,6 +159,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           chassisNumber={chassisNumber}
           requiresCOV={requiresCOV}
           premiumValue={premiumValue}
+          totalDue={totalDue}
           onEdit={() => setStep('form')}
           onConfirm={handleConfirmSubmit}
         />
@@ -191,7 +193,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             </div>
           </div>
           <div className="mt-4 p-4 rounded-xl bg-[#ebf3fc] flex items-center justify-between dark:bg-[#49b1ea]/10">
-            <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Premium</span>
+            <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Base Premium</span>
             <span className="text-xl font-black text-[#002f6c]">₱ {premiumValue.toFixed(2)}</span>
           </div>
         </div>
@@ -288,7 +290,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 
           <label className="flex items-center space-x-2 mt-4 cursor-pointer">
             <input type="checkbox" checked={requiresCOV} onChange={(e) => setRequiresCOV(e.target.checked)} className="accent-[#002f6c]" />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱60.00 verification fee via DBP-DCI</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI</span>
           </label>
         </div>
 
@@ -320,7 +322,7 @@ function CtplReviewSummary({
   renewalType, policyType, mvType, clientType, ownerFirstName, ownerMiddleName, ownerSurname,
   ownerAddress, ownerRegion, ownerCity, ownerBarangay,
   sameAsOwner, applicantFirstName, applicantSurname, email, mobileNumber,
-  plateNumber, mvFileNumber, chassisNumber, requiresCOV, premiumValue, onEdit, onConfirm,
+  plateNumber, mvFileNumber, chassisNumber, requiresCOV, premiumValue, totalDue, onEdit, onConfirm,
 }: {
   renewalType: 'New (1 Year)' | 'Renewal';
   policyType: typeof CTPL_POLICY_TYPES[number] | '';
@@ -343,6 +345,7 @@ function CtplReviewSummary({
   chassisNumber: string;
   requiresCOV: boolean;
   premiumValue: number;
+  totalDue: number;
   onEdit: () => void;
   onConfirm: () => void;
 }) {
@@ -361,7 +364,9 @@ function CtplReviewSummary({
           {row('Renewal', renewalType)}
           {row('Policy Type', policyType)}
           {row('LTO MV Type', mvType)}
-          {row('Estimated Premium', <span className="text-[#002f6c]">₱{premiumValue.toFixed(2)}</span>)}
+          {row('Base Premium', <span className="text-[#002f6c]">₱{premiumValue.toFixed(2)}</span>)}
+          {requiresCOV && row('COV Fee', <span className="text-[#002f6c]">₱{COV_FEE.toFixed(2)}</span>)}
+          {row('Total Amount Due', <span className="text-[#002f6c]">₱{totalDue.toFixed(2)}</span>)}
         </div>
       </div>
 
@@ -383,7 +388,7 @@ function CtplReviewSummary({
           {row('Plate Number', plateNumber ? plateNumber.toUpperCase() : '-')}
           {row('MV File Number', mvFileNumber || '-')}
           {row('Serial/Chassis Number', chassisNumber ? chassisNumber.toUpperCase() : '-')}
-          {row('Requires COV', requiresCOV ? 'Yes (+₱60.00)' : 'No')}
+          {row('Requires COV', requiresCOV ? `Yes (+₱${COV_FEE.toFixed(2)})` : 'No')}
         </div>
       </div>
 
