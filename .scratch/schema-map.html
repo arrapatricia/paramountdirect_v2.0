@@ -281,9 +281,9 @@
     ]},
     { id: 'PdLifeIpeakRequest', domain: 'pdlife', fields: [
       ['id','cuid','pk'], ['applicationId','PdLifeApplication','fk'], ['policyNumber','String',''],
-      ['method','NewBusiness|UpdateStatus',''], ['requestPayload','Json',''], ['responseBody','Json?',''],
+      ['method','NewBusiness|UpdateStatus|PolicyInquiry',''], ['requestPayload','Json',''], ['responseBody','Json?',''],
       ['statusCode','Int?',''], ['success','Boolean',''], ['errorMessage','String?',''], ['retryCount','Int',''],
-    ], note: 'Audit/retry trail for every call made to iPeak (LEAP Services).' },
+    ], note: 'Audit/retry trail for every call made to iPeak (LEAP Services). responseBody on a PolicyInquiry row is also the source of ledger/payment-history detail now - see LifePaymentTransaction.' },
     { id: 'PdLifePolicyNumberSequence', domain: 'pdlife', fields: [
       ['planCode','String','pk'], ['lastNumber','Int',''],
     ], note: 'No relations - a plain counter, incremented atomically per plan code.' },
@@ -316,12 +316,7 @@
       ['policyStatus','Inforced etc.',''], ['premium, hcrPremium, deposit...','Float x7',''],
       ['dueDate..expiryDate','DateTime x5',''], ['planCode','String',''], ['planDesc','String',''],
       ['orDate','DateTime?',''], ['orNumber','String?',''],
-    ], note: 'Joined to PdLifeApplication by policyNo <-> policyNumber, not an id FK.' },
-    { id: 'PaymentLedgerItem', domain: 'payments', fields: [
-      ['id','cuid','pk'], ['paymentId','LifePaymentTransaction','fk'], ['yrInstal','String',''],
-      ['dueDate','DateTime',''], ['uploaded','Float',''], ['amountPaid','Float',''], ['underpay','Float',''],
-      ['orNumber','String',''], ['orDate','DateTime?',''], ['status','String',''],
-    ]},
+    ], note: 'Joined to PdLifeApplication by policyNo <-> policyNumber, not an id FK. Ledger/installment detail (iPeak’s PayHistory) is NOT a child table here — PaymentLedgerItem was removed; read it back from the latest successful PdLifeIpeakRequest{method: PolicyInquiry}.responseBody instead, via distributePolicyInquiry.ts.' },
     { id: 'NonLifePaymentTransaction', domain: 'payments', fields: [
       ['id','cuid','pk'], ['product','CTPL|OFW|GTP',''], ['policyNumber','String',''], ['referenceNo','String',''],
       ['payorName','String',''], ['planLabel','String',''], ['premium','String',''], ['dateReceived','DateTime',''],
@@ -344,7 +339,6 @@
     ['PdLifeBeneficiary','applicationId','PdLifeApplication','required'],
     ['PdLifeIpeakRequest','applicationId','PdLifeApplication','required'],
     ['LifePaymentTransaction','policyNo','PdLifeApplication','required'],
-    ['PaymentLedgerItem','paymentId','LifePaymentTransaction','required'],
     ['NonLifePaymentTransaction','ctplApplicationId','CtplApplication','optional'],
     ['NonLifePaymentTransaction','ofwApplicationId','OfwApplication','optional'],
     ['NonLifePaymentTransaction','gtpApplicationId','GtpApplication','optional'],
