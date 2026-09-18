@@ -45,7 +45,6 @@ const getRowTintStyle = (status: string) => {
 export default function OfwApplicationList({ data, onCreateNew, onUpdate }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof STATUS_TABS)[number]>('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [coverageFilter, setCoverageFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
@@ -75,8 +74,7 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate }: Prop
     const fullName = `${item.firstName} ${item.lastName}`.toLowerCase();
     const matchesTab = activeTab === 'All' || item.status === activeTab;
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || item.id.includes(searchTerm);
-    const matchesCoverage = coverageFilter === 'All' || item.coverageType === coverageFilter;
-    return matchesTab && matchesSearch && matchesCoverage;
+    return matchesTab && matchesSearch;
   });
 
   const totalItems = filteredData.length;
@@ -135,19 +133,6 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate }: Prop
             placeholder="Search by applicant name or reference no..."
             className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           />
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <span className="text-[10px] font-bold text-slate-800 uppercase dark:text-slate-300">Coverage</span>
-          <select
-            value={coverageFilter}
-            onChange={(e) => { setCoverageFilter(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-          >
-            <option value="All">All</option>
-            <option value="Land-based">Land-based</option>
-            <option value="Sea-based">Sea-based</option>
-          </select>
         </div>
       </div>
 
@@ -282,7 +267,7 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate }: Prop
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Gender / Civil Status</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.gender} &middot; {viewingApp.civilStatus}</span></div>
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Birthdate</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.birthdate}</span></div>
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Place of Birth</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.placeOfBirth}</span></div>
-              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">PH Address</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.phAddress}, {viewingApp.phCity}</span></div>
+              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">PH Address</span><span className="font-bold text-slate-800 dark:text-slate-200">{[viewingApp.phAddress, viewingApp.phBarangay !== 'N/A' ? viewingApp.phBarangay : null, viewingApp.phCity, viewingApp.phRegion].filter(Boolean).join(', ')}</span></div>
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Mobile</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.phone}</span></div>
               <div><span className="text-slate-400 font-bold block dark:text-slate-500">Email</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.email}</span></div>
 

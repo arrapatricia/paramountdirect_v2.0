@@ -11,6 +11,10 @@ export interface CtplApplication {
   ownerFirstName: string;
   ownerMiddleName: string;
   ownerSurname: string;
+  ownerAddress: string;
+  ownerRegion: string;
+  ownerCity: string;
+  ownerBarangay: string;
   sameAsOwner: boolean;
   applicantFirstName: string;
   applicantSurname: string;
@@ -21,7 +25,7 @@ export interface CtplApplication {
   mvFileNumber: string; // 15 numeric digits
   chassisNumber: string; // 17 alphanumeric
 
-  requiresCOV: boolean; // Certificate of Validation - additional PHP 60 fee via DBP-DCI
+  requiresCOV: boolean; // Certificate of Validation - additional COV_FEE via DBP-DCI
 
   premium: string; // formatted, e.g. "₱606.00"
   dateReceived: string;
@@ -32,9 +36,19 @@ export interface CtplApplication {
   // there's no employment-verification-style gate) - documents unlock as
   // soon as isPaid is true.
   isPaid: boolean;
+
+  // Assigned once the policy is issued; the identifying field the Non-Life
+  // Payment Transactions page (in Pay Tran) correlates this application by.
+  policyNumber?: string;
+  // OR/reference number generated at the moment payment is confirmed.
+  referenceNo?: string;
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;
+
+// Certificate of Validation verification fee, collected via DBP-DCI on top
+// of the base CTPL premium when requested.
+export const COV_FEE = 76;
 
 export type CtplStatus = 'Completed' | 'Spoiled' | 'Duplicate' | 'Reversed' | 'Cancelled';
 

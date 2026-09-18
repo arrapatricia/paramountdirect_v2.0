@@ -54,7 +54,7 @@ const MODULE_DESCRIPTIONS: Partial<Record<string, string>> = {
 
 // Direct Marketing's own operating roles, as opposed to the large legacy
 // PD Life role list below (carried over from the wider Paramount system).
-const DIRECT_MARKETING_ROLES = ['Operations', 'Marketing', 'Contact Center'];
+const DIRECT_MARKETING_ROLES = ['Operations', 'Marketing', 'Contact Center', 'Cashier'];
 
 type PermissionTemplate = Partial<Record<string, { canRead?: boolean; canWrite?: boolean; canDelete?: boolean }>>;
 
@@ -74,6 +74,9 @@ const ROLE_PERMISSION_TEMPLATES: Partial<Record<ProductSystem, Record<string, Pe
     'Contact Center': {
       'Application Inquiry': { canRead: true },
       'Call Out': { canRead: true, canWrite: true },
+    },
+    'Cashier': {
+      'Payment Transactions & Ledger': { canRead: true, canWrite: true },
     },
   },
 };

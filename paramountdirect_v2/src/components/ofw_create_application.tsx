@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, UploadCloud, FileCheck2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, UploadCloud, FileCheck2, CheckCircle2, ShieldAlert, Plus, Trash2 } from 'lucide-react';
 import { CONFLICT_ZONE_COUNTRIES, OFW_OCCUPATIONS, type OfwApplication } from './ofw_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
+import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
 interface Props {
   onCreate: (app: OfwApplication) => void;
@@ -10,10 +11,41 @@ interface Props {
   rates: PremiumRate[];
 }
 
-const PH_CITIES = ['Pasay City', 'Makati City', 'Manila City', 'Quezon City'];
+// Every country an OFW could plausibly be deployed to, not just the handful
+// of high-volume destinations - the live form should never block someone
+// from picking their actual country of employment.
 const FOREIGN_COUNTRIES = [
-  'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Hong Kong', 'Singapore', 'Kuwait',
-  'Israel', 'Ukraine', 'Yemen', 'Syria', 'Others',
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina',
+  'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados',
+  'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana',
+  'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada',
+  'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros',
+  'Congo (DRC)', 'Congo (Republic)', 'Costa Rica', "Cote d'Ivoire", 'Croatia', 'Cuba', 'Cyprus',
+  'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt',
+  'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji',
+  'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada',
+  'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hungary',
+  'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan',
+  'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon',
+  'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Macau', 'Madagascar',
+  'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius',
+  'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique',
+  'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger',
+  'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine',
+  'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Poland', 'Portugal', 'Qatar', 'Romania',
+  'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines',
+  'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles',
+  'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa',
+  'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland',
+  'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga',
+  'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine',
+  'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
+  'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Others',
+];
+
+const BENEFICIARY_RELATIONSHIPS = [
+  'Spouse', 'Child', 'Parent', 'Sibling', 'Grandparent', 'Grandchild', 'Aunt', 'Uncle',
+  'Cousin', 'Common Law Partner', 'In-Law', 'Other',
 ];
 
 const calculateAge = (dobString: string) => {
@@ -32,12 +64,13 @@ const cardClass = 'bg-white border border-slate-200 rounded-lg p-6 shadow-sm dar
 const sectionHeadingClass = 'text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800';
 
 export default function OfwCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
-  const [referralSource, setReferralSource] = useState('Facebook');
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [phAddress, setPhAddress] = useState('');
-  const [phCity, setPhCity] = useState(PH_CITIES[0]);
+  const [phRegion, setPhRegion] = useState(PH_REGIONS[0].name);
+  const [phCity, setPhCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
+  const [phBarangay, setPhBarangay] = useState(GENERIC_BARANGAYS[0]);
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
   const [civilStatus, setCivilStatus] = useState<'Single' | 'Married' | 'Widower' | 'Separated'>('Single');
   const [birthdate, setBirthdate] = useState('');
@@ -46,7 +79,9 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const [email, setEmail] = useState('');
 
   const [natureOfEmployment, setNatureOfEmployment] = useState<'Direct-hired' | 'Balik-Manggagawa'>('Direct-hired');
-  const [coverageType, setCoverageType] = useState<'Land-based' | 'Sea-based'>('Land-based');
+  // Paramount Direct only sells the land-based OFW package - there's no
+  // sea-based option to choose, so this isn't a form field.
+  const coverageType = 'Land-based' as const;
   const [occupation, setOccupation] = useState(OFW_OCCUPATIONS[0]);
   const [passportNumber, setPassportNumber] = useState('');
   const [salaryAmount, setSalaryAmount] = useState('');
@@ -55,8 +90,23 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const [employerCountry, setEmployerCountry] = useState(FOREIGN_COUNTRIES[0]);
   const [contractStart, setContractStart] = useState('');
   const [contractEnd, setContractEnd] = useState('');
-  const [insuranceStart, setInsuranceStart] = useState('');
   const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
+
+  const MAX_BENEFICIARIES = 3;
+  const [beneficiaries, setBeneficiaries] = useState<{ fullName: string; relationship: string; birthdate: string }[]>([
+    { fullName: '', relationship: BENEFICIARY_RELATIONSHIPS[0], birthdate: '' },
+  ]);
+  const addBeneficiary = () => {
+    if (beneficiaries.length >= MAX_BENEFICIARIES) return;
+    setBeneficiaries((prev) => [...prev, { fullName: '', relationship: BENEFICIARY_RELATIONSHIPS[0], birthdate: '' }]);
+  };
+  const removeBeneficiary = (index: number) => {
+    if (beneficiaries.length <= 1) return;
+    setBeneficiaries((prev) => prev.filter((_, i) => i !== index));
+  };
+  const updateBeneficiary = (index: number, patch: Partial<{ fullName: string; relationship: string; birthdate: string }>) => {
+    setBeneficiaries((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  };
 
   const [documents, setDocuments] = useState({
     passport: null as File | null,
@@ -84,6 +134,14 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   })();
   const MIN_CONTRACT_MONTHS = 6;
   const isContractTooShort = contractStart !== '' && contractEnd !== '' && contractMonths < MIN_CONTRACT_MONTHS;
+
+  // Insurance can't be backdated: if the contract already started in the
+  // past, coverage starts today; a contract starting today or later gets
+  // coverage aligned to that same date. Both are yyyy-mm-dd, so string
+  // comparison sorts the same as date comparison.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const insuranceStart = contractStart ? (contractStart >= todayIso ? contractStart : todayIso) : '';
+
   const monthlyRate = getPremiumRate(rates, 'OFW', 'monthlyRate', 2.90);
   const premiumValue = Number((contractMonths * monthlyRate).toFixed(2));
 
@@ -95,6 +153,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
     passportNumber && salaryAmount && employerName &&
     contractStart && contractEnd && insuranceStart &&
     !isContractTooShort &&
+    beneficiaries[0]?.fullName &&
     (!isConflictZone || conflictAcknowledged);
 
   const handleFileChange = (key: keyof typeof documents) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,11 +164,12 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
     id: `800${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`,
     lastName, firstName, middleName,
     gender, civilStatus, birthdate, placeOfBirth,
-    phAddress, phCity, phone, email, referralSource,
+    phAddress, phRegion, phCity, phBarangay, phone, email, referralSource: 'Staff-Assisted (Internal)',
     natureOfEmployment, coverageType, occupation, passportNumber,
     salaryAmount: Number(salaryAmount), salaryCurrency,
     employerName, employerCountry,
     contractStart, contractEnd, insuranceStart,
+    beneficiaries: beneficiaries.filter((b) => b.fullName.trim() !== ''),
     isConflictZone,
     documents: {
       passport: documents.passport ? 'Uploaded' : 'Missing',
@@ -210,10 +270,11 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
           civilStatus={civilStatus}
           birthdate={birthdate}
           phAddress={phAddress}
+          phRegion={phRegion}
           phCity={phCity}
+          phBarangay={phBarangay}
           phone={phone}
           email={email}
-          referralSource={referralSource}
           natureOfEmployment={natureOfEmployment}
           coverageType={coverageType}
           occupation={occupation}
@@ -226,6 +287,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
           contractEnd={contractEnd}
           contractMonths={contractMonths}
           insuranceStart={insuranceStart}
+          beneficiaries={beneficiaries}
           premiumValue={premiumValue}
           documentsUploadedCount={documentsUploadedCount}
           onEdit={() => setStep('form')}
@@ -233,19 +295,6 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
         />
       ) : (
       <form onSubmit={handleReview} className="space-y-6 pb-10">
-
-        {/* Referral */}
-        <div className={cardClass}>
-          <h2 className={sectionHeadingClass}>How did you learn about Paramount Life &amp; General Insurance Corp.?</h2>
-          <div className="flex flex-wrap gap-3 text-xs">
-            {['Facebook', 'Google', 'Paramount Website', 'POEA/POLO', 'Referral', 'Others'].map((src) => (
-              <label key={src} className={`flex items-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer ${referralSource === src ? 'border-[#49b1ea] bg-[#ebf3fc] dark:bg-[#49b1ea]/10' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'}`}>
-                <input type="radio" name="referral" checked={referralSource === src} onChange={() => setReferralSource(src)} className="accent-[#002f6c]" />
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{src}</span>
-              </label>
-            ))}
-          </div>
-        </div>
 
         {/* Personal Information */}
         <div className={cardClass}>
@@ -255,11 +304,27 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
             <div><label className={labelClass}>First Name</label><input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Middle Name</label><input value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={inputClass} /></div>
 
-            <div className="md:col-span-2"><label className={labelClass}>Philippine Address</label><input required value={phAddress} onChange={(e) => setPhAddress(e.target.value)} className={inputClass} placeholder="House No., Street" /></div>
+            <div className="md:col-span-3"><label className={labelClass}>Philippine Address (House No., Street)</label><input required value={phAddress} onChange={(e) => setPhAddress(e.target.value)} className={inputClass} placeholder="House No., Street" /></div>
+            <div>
+              <label className={labelClass}>Region</label>
+              <select
+                value={phRegion}
+                onChange={(e) => { const r = e.target.value; setPhRegion(r); setPhCity(citiesForRegion(r)[0]); }}
+                className={inputClass}
+              >
+                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
+              </select>
+            </div>
             <div>
               <label className={labelClass}>City/Municipality</label>
               <select value={phCity} onChange={(e) => setPhCity(e.target.value)} className={inputClass}>
-                {PH_CITIES.map((c) => <option key={c}>{c}</option>)}
+                {citiesForRegion(phRegion).map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Barangay</label>
+              <select value={phBarangay} onChange={(e) => setPhBarangay(e.target.value)} className={inputClass}>
+                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
 
@@ -306,13 +371,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
             </div>
             <div>
               <label className={labelClass}>Type of Package</label>
-              <div className="flex flex-col space-y-1.5 pt-1">
-                {(['Land-based', 'Sea-based'] as const).map((t) => (
-                  <label key={t} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    <input type="radio" checked={coverageType === t} onChange={() => setCoverageType(t)} className="accent-[#002f6c]" /><span>{t}</span>
-                  </label>
-                ))}
-              </div>
+              <input disabled value={coverageType} className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-70`} />
             </div>
             <div>
               <label className={labelClass}>Occupation</label>
@@ -353,7 +412,15 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
                 <p className="text-[10px] font-bold text-rose-600 mt-1 dark:text-rose-400">Contract period should not be less than 6 months.</p>
               )}
             </div>
-            <div><label className={labelClass}>Insurance Start Date</label><input required type="date" value={insuranceStart} onChange={(e) => setInsuranceStart(e.target.value)} className={inputClass} /></div>
+            <div>
+              <label className={labelClass}>Insurance Start Date</label>
+              <input disabled type="date" value={insuranceStart} placeholder="Auto-computed" className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-70`} />
+              <p className="text-[10px] font-semibold text-slate-400 mt-1 dark:text-slate-500">
+                {contractStart && contractStart < todayIso
+                  ? "Contract already started, so coverage begins today."
+                  : "Matches the contract start date."}
+              </p>
+            </div>
           </div>
 
           {isConflictZone && (
@@ -370,6 +437,51 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
               </label>
             </div>
           )}
+        </div>
+
+        {/* Beneficiaries */}
+        <div className={cardClass}>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 dark:border-slate-800">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white">Beneficiaries</h2>
+            <button
+              type="button"
+              onClick={addBeneficiary}
+              disabled={beneficiaries.length >= MAX_BENEFICIARIES}
+              className="flex items-center space-x-1.5 text-xs font-bold text-[#002f6c] hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline cursor-pointer dark:text-[#49b1ea]"
+            >
+              <Plus className="w-3.5 h-3.5" /><span>Add Beneficiary ({beneficiaries.length}/{MAX_BENEFICIARIES})</span>
+            </button>
+          </div>
+          <div className="space-y-4">
+            {beneficiaries.map((b, i) => (
+              <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end pb-4 border-b border-slate-100 last:border-0 last:pb-0 dark:border-slate-800">
+                <div>
+                  <label className={labelClass}>Full Name {i === 0 && <span className="text-rose-500">*</span>}</label>
+                  <input required={i === 0} value={b.fullName} onChange={(e) => updateBeneficiary(i, { fullName: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Relationship</label>
+                  <select value={b.relationship} onChange={(e) => updateBeneficiary(i, { relationship: e.target.value })} className={inputClass}>
+                    {BENEFICIARY_RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Birthdate</label>
+                  <input type="date" value={b.birthdate} onChange={(e) => updateBeneficiary(i, { birthdate: e.target.value })} className={inputClass} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeBeneficiary(i)}
+                  disabled={beneficiaries.length <= 1}
+                  className="p-2.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent cursor-pointer transition-colors dark:hover:bg-rose-950/30"
+                  title="Remove beneficiary"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] font-semibold text-slate-400 mt-3 dark:text-slate-500">At least one beneficiary is required; up to three may be added.</p>
         </div>
 
         {/* Documents */}
@@ -411,9 +523,9 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
 // ---------------------------------------------------------------------------
 
 function OfwReviewSummary({
-  lastName, firstName, middleName, gender, civilStatus, birthdate, phAddress, phCity, phone, email, referralSource,
+  lastName, firstName, middleName, gender, civilStatus, birthdate, phAddress, phRegion, phCity, phBarangay, phone, email,
   natureOfEmployment, coverageType, occupation, passportNumber, salaryAmount, salaryCurrency, employerName, employerCountry,
-  contractStart, contractEnd, contractMonths, insuranceStart, premiumValue, documentsUploadedCount, onEdit, onConfirm,
+  contractStart, contractEnd, contractMonths, insuranceStart, beneficiaries, premiumValue, documentsUploadedCount, onEdit, onConfirm,
 }: {
   lastName: string;
   firstName: string;
@@ -422,12 +534,13 @@ function OfwReviewSummary({
   civilStatus: 'Single' | 'Married' | 'Widower' | 'Separated';
   birthdate: string;
   phAddress: string;
+  phRegion: string;
   phCity: string;
+  phBarangay: string;
   phone: string;
   email: string;
-  referralSource: string;
   natureOfEmployment: 'Direct-hired' | 'Balik-Manggagawa';
-  coverageType: 'Land-based' | 'Sea-based';
+  coverageType: 'Land-based';
   occupation: string;
   passportNumber: string;
   salaryAmount: string;
@@ -438,6 +551,7 @@ function OfwReviewSummary({
   contractEnd: string;
   contractMonths: number;
   insuranceStart: string;
+  beneficiaries: { fullName: string; relationship: string; birthdate: string }[];
   premiumValue: number;
   documentsUploadedCount: number;
   onEdit: () => void;
@@ -458,10 +572,9 @@ function OfwReviewSummary({
           {row('Name', `${lastName}, ${firstName} ${middleName}`.replace(/\s+/g, ' ').trim())}
           {row('Gender / Civil Status', `${gender} · ${civilStatus}`)}
           {row('Birthdate', birthdate || '-')}
-          {row('Address', `${phAddress}, ${phCity}`.replace(/^,\s*/, '') || '-')}
+          {row('Address', [phAddress, phBarangay !== 'N/A' ? phBarangay : null, phCity, phRegion].filter(Boolean).join(', ') || '-')}
           {row('Mobile Number', phone || '-')}
           {row('Email', email || '-')}
-          {row('Referral Source', referralSource)}
         </div>
       </div>
 
@@ -477,6 +590,18 @@ function OfwReviewSummary({
           {row('Contract Period', contractStart && contractEnd ? `${contractStart} to ${contractEnd} (${contractMonths} months)` : '-')}
           {row('Insurance Start Date', insuranceStart || '-')}
           {row('Estimated Premium', <span className="text-[#002f6c]">${premiumValue.toFixed(2)}</span>)}
+        </div>
+      </div>
+
+      <div className={cardClass}>
+        <h2 className={sectionHeadingClass}>Beneficiaries</h2>
+        <div className="text-xs">
+          {beneficiaries.filter((b) => b.fullName.trim() !== '').map((b, i) => (
+            <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+              <span className="text-slate-500 dark:text-slate-400 font-semibold">{b.relationship}</span>
+              <span className="text-slate-900 dark:text-white font-bold text-right">{b.fullName}{b.birthdate ? ` · ${b.birthdate}` : ''}</span>
+            </div>
+          ))}
         </div>
       </div>
 

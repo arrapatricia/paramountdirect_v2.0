@@ -2,13 +2,18 @@
 
 Transmits PD Life applications to Paramount's AS400-backed "LEAP Services"
 API (what the business calls iPeak) the moment a screener moves an
-application out of `Received` status. This is a one-way, PD-Life-only
-integration — OFW/CTPL/GTP are untouched, and there is no inbound sync yet
-for iPeak's own results (policy issuance, service invoice, policy schedule)
-to flow back into this system.
+application out of `Received` status. OFW/CTPL/GTP are untouched.
 
-See `DEVELOPER_HANDOVER.md` (repo root) Change Log entries (10) and (11) for
-the full history of how this was built and verified.
+There are two directions here:
+- **Outbound (live, verified)**: Insert New Business / Update Status - PD
+  pushes application data to iPeak. See "How it's wired" below.
+- **Inbound (schema-ready, not yet wired to a real endpoint)**: iPeak's
+  "Policy Inquiry" data contract (policy header, coverages, beneficiaries,
+  payment history, loans) - see "Inbound: Policy Inquiry" below.
+
+See `DEVELOPER_HANDOVER.md` (repo root) Change Log entries (10), (11), and
+the 2026-09-18 Policy Inquiry entry for the full history of how this was
+built and verified.
 
 ## How it's wired
 
@@ -99,3 +104,36 @@ persisted on `PdLifeIpeakRequest`.
   insured-is-owner, per the legacy implementation too).
 - **`PdLifeStatus` has no Declined/Postponed states**, so Update Status
   (once fixed) can currently only ever fire `APR`.
+
+## Inbound: Policy Inquiry
+
+Paramount shared a spec sheet ("API FOR IPEAK TO PD") for a "Policy Inquiry"
+call: given a Policy/App ID, iPeak returns a `PDPolicy` header plus
+`PolCoverages[]`, `PolBeneficiaries[]`, `PayHistory[]` (the payment
+transactions - open item no., voucher type/no., description, amount, book
+period), and `Loans[]`. Types transcribed as-is in `policyInquiryTypes.ts`.
+
+- `distributePolicyInquiry.ts` turns a `PDPolicy` response into a
+  `LifePaymentTransaction` upsert (keyed on `policyNo`) - the "current
+  snapshot" row for that policy. Several `LifePaymentTransaction` columns
+  (`gender`, `hcrStatus`, `hcrUnit`, `payType`, `mode`, `accidentalBenefits`)
+  have no corresponding field anywhere in this contract and are
+  placeholder-defaulted; see the comments in that file for the exact
+  mapping.
+- **`PayHistory` (the ledger/payment-transaction detail) is deliberately
+  NOT persisted as its own table.** `PaymentLedgerItem` was removed for
+  this reason - keeping a second normalized copy of the same rows in sync
+  on every inquiry call isn't worth it when the full raw response is
+  already sitting in `PdLifeIpeakRequest.responseBody`. Read ledger detail
+  back from the most recent successful
+  `PdLifeIpeakRequest{method: PolicyInquiry}` row for the policy instead.
+- **Not actually callable yet.** Unlike the outbound flow, this was never
+  tested against a live server - the sheet gives the data contract only, not
+  a URL or auth scheme, and it's under a different label ("GAService") than
+  the `WorkflowService` used for NewBusiness/UpdateStatus. There is
+  deliberately no `client.ts`-style call wired up for it yet, to avoid
+  repeating the guessed-endpoint mistakes the outbound side already made.
+  Once Paramount gives the real endpoint + auth, wiring it is: call it, pass
+  the parsed `PDPolicy` to `distributePolicyInquiryToLedger`, persist the
+  request/response on `PdLifeIpeakRequest` with `method: 'PolicyInquiry'`
+  (same pattern as `submitNewBusiness.ts`).

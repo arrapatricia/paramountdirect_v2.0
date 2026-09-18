@@ -9,7 +9,9 @@ import ofwApplicationRoutes from './routes/applications.ofw';
 import ctplApplicationRoutes from './routes/applications.ctpl';
 import gtpApplicationRoutes from './routes/applications.gtp';
 import paymentRoutes from './routes/payments';
+import nonLifePaymentRoutes from './routes/payments.nonlife';
 import auditLogRoutes from './routes/auditLogs';
+import documentRoutes from './routes/documents';
 import { errorHandler } from './middleware/errorHandler';
 
 export function createApp() {
@@ -30,7 +32,9 @@ export function createApp() {
   app.use('/api/applications/ctpl', ctplApplicationRoutes);
   app.use('/api/applications/gtp', gtpApplicationRoutes);
   app.use('/api/payments', paymentRoutes);
+  app.use('/api/payments-nonlife', nonLifePaymentRoutes);
   app.use('/api/audit-logs', auditLogRoutes);
+  app.use('/api/documents', documentRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
   app.use(errorHandler);

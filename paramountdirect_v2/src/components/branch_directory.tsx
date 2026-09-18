@@ -31,50 +31,111 @@ export interface Branch {
   status: 'Active' | 'Inactive';
 }
 
+// Transcribed directly from the live PLGIC OFW Branch Locator
+// (plgic-ofw-staging.herokuapp.com/ofw-branches) - that public site is the
+// actual source of truth for the Non-Life branch network (and happens to
+// also list one Life branch), so this admin directory mirrors it exactly,
+// including which division each branch is tagged under on the real site.
 const INITIAL_BRANCHES: Branch[] = [
   {
     id: 'BR-001',
-    division: 'LIFE',
+    division: 'NON-LIFE',
     region: 'NCR',
     province: 'METRO MANILA',
-    city: 'MAKATI CITY',
-    address: 'Unit 702 Cattleya Bldg., 235 Salcedo St., Legaspi Village',
-    barangay: 'San Lorenzo',
-    zipcode: '1229',
-    mobile: '+639178611913',
-    telephone: '(02) 8810-2051',
-    fax: '(02) 8893-7069',
-    email: 'makati.branch@paramount.com.ph',
+    city: 'LAS PIÑAS CITY',
+    address: '123 Test Bldg, Test Street',
+    barangay: 'Test Barangay',
+    zipcode: '1740',
+    mobile: '+639274074445',
+    telephone: '',
     website: 'Paramount Direct',
     status: 'Active'
   },
   {
     id: 'BR-002',
     division: 'NON-LIFE',
-    region: 'REGION XII',
-    province: 'SOUTH COTABATO',
-    city: 'GENERAL SANTOS CITY',
-    address: 'A-201 GSC Security Building, National Highway',
-    barangay: 'Dadiangas East',
-    zipcode: '9500',
-    mobile: '+639209876543',
-    telephone: '(083) 552-1234',
-    email: 'gensan@paramount.com.ph',
+    region: 'NCR',
+    province: 'METRO MANILA',
+    city: 'MAKATI CITY',
+    address: 'Unit 4-B, 4th Floor of Eurovilla II, 118 V.A. Rufino St',
+    barangay: 'Legazpi Village',
+    zipcode: '1200',
+    mobile: '',
+    telephone: '',
+    fax: '+632 8396 9887',
+    email: 'bernadetteclarice.cortes@paramount.com.ph',
     website: 'Paramount Direct',
     status: 'Active'
   },
   {
     id: 'BR-003',
     division: 'NON-LIFE',
+    region: 'NCR',
+    province: 'METRO MANILA',
+    city: 'MANDALUYONG CITY',
+    address: 'Unit 2 Maranaw Plaza, 187 EDSA (beside POEA)',
+    barangay: 'Wack-Wack, Greenhills East',
+    zipcode: '1550',
+    mobile: '+639178091646',
+    telephone: '(02) 8723-2156, 8705-1925',
+    fax: '(02) 8723-1691',
+    website: 'Paramount Direct',
+    status: 'Active'
+  },
+  {
+    id: 'BR-004',
+    division: 'NON-LIFE',
+    region: 'NCR',
+    province: 'METRO MANILA',
+    city: 'MANILA CITY',
+    address: 'Plaza Ambrosio Building Unit 2A, 1136-1144 Jorge Bocobo St.',
+    barangay: 'Ermita',
+    zipcode: '1000',
+    mobile: '+639175856429',
+    telephone: '(02) 8523-7779',
+    fax: '(02) 8523-7980',
+    website: 'Paramount Direct',
+    status: 'Active'
+  },
+  {
+    id: 'BR-005',
+    division: 'LIFE',
+    region: 'REGION I',
+    province: 'LA UNION',
+    city: 'SAN FERNANDO CITY',
+    address: 'GF Kenny Plaza, Quezon Avenue',
+    barangay: '',
+    zipcode: '2500',
+    mobile: '+639088189837',
+    telephone: '(072) 607-1283',
+    website: 'Paramount Direct',
+    status: 'Active'
+  },
+  {
+    id: 'BR-006',
+    division: 'NON-LIFE',
+    region: 'REGION II',
+    province: 'CAGAYAN',
+    city: 'TUGUEGARAO CITY',
+    address: 'GF Unit 104, Balay Don Pedro Bldg., Legaspi cor. Rizal Sts.',
+    barangay: 'Centro 8',
+    zipcode: '3500',
+    mobile: '+639171191777',
+    telephone: '',
+    website: 'Paramount Direct',
+    status: 'Active'
+  },
+  {
+    id: 'BR-007',
+    division: 'NON-LIFE',
     region: 'REGION III',
     province: 'PAMPANGA',
-    city: 'ANGELES CITY',
-    address: 'Marquee Mall, Aniceto Gueco Ave, Pulung Maragul',
-    barangay: 'Pulung Maragul',
-    zipcode: '2009',
-    mobile: '+639171234567',
-    telephone: '(045) 625-1000',
-    email: 'angeles@paramount.com.ph',
+    city: 'SAN FERNANDO CITY',
+    address: 'Rm. 302 SM City Pampanga',
+    barangay: 'San Jose',
+    zipcode: '2000',
+    mobile: '+639175392934',
+    telephone: '(045) 652-7652',
     website: 'Paramount Direct',
     status: 'Active'
   }
@@ -308,10 +369,14 @@ export default function BranchDirectory() {
                     <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5 dark:text-slate-500" />
                     <span>{branch.address}, {branch.barangay ? `${branch.barangay}, ` : ''}{branch.zipcode}</span>
                   </div>
-                  <div className="flex items-center space-x-2.5">
-                    <Phone className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{branch.telephone} {branch.mobile ? `/ ${branch.mobile}` : ''}</span>
-                  </div>
+                  {(branch.telephone || branch.mobile) && (
+                    <div className="flex items-center space-x-2.5">
+                      <Phone className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        {[branch.telephone, branch.mobile].filter(Boolean).join(' / ')}
+                      </span>
+                    </div>
+                  )}
                   {branch.email && (
                     <div className="flex items-center space-x-2.5">
                       <Mail className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
@@ -373,7 +438,7 @@ export default function BranchDirectory() {
                     <p className="text-slate-500 max-w-xs truncate dark:text-slate-400">{branch.address}</p>
                   </td>
                   <td className="py-4 px-3 space-y-0.5">
-                    <p className="font-semibold text-slate-800 dark:text-slate-200">{branch.telephone}</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">{branch.telephone || branch.mobile || 'No number registered'}</p>
                     <p className="text-slate-400 text-[10px] dark:text-slate-500">{branch.email || 'No email registered'}</p>
                   </td>
                   <td className="py-4 px-3">

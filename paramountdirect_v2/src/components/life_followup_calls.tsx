@@ -28,14 +28,8 @@ interface PendingCall {
   isCritical: boolean;
 }
 
-const INITIAL_PENDING: PendingCall[] = [
-  { id: '392012', payor: 'Eleonora Sunga', tier: 'First', mobile: '09171234501', dueDate: '09/14/2026', isCritical: true },
-  { id: '392018', payor: 'Karlo Bautista', tier: 'Second', mobile: '09171234502', dueDate: '09/14/2026', isCritical: true },
-  { id: '392021', payor: 'Lorena Tanguan', tier: 'First', mobile: '09171234503', dueDate: '09/15/2026', isCritical: false },
-  { id: '392029', payor: 'Christian Bukid', tier: 'Third', mobile: '09171234504', dueDate: '09/13/2026', isCritical: true },
-  { id: '392033', payor: 'Juan Dela Cruz', tier: 'First', mobile: '09171234505', dueDate: '09/16/2026', isCritical: false },
-  { id: '392040', payor: 'Karlo Bautista', tier: 'Second', mobile: '09171234506', dueDate: '09/16/2026', isCritical: false },
-];
+// Fresh-environment reset: no seed calls in the queue.
+const INITIAL_PENDING: PendingCall[] = [];
 
 const current = MONTHLY_TREND[MONTHLY_TREND.length - 1];
 const previous = MONTHLY_TREND[MONTHLY_TREND.length - 2];

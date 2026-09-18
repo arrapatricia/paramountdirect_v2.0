@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Sun, Moon, AlertCircle } from 'lucide-react';
 import ForgotPassword from './forgot_password';
+import type { UserAccount } from './user_management';
 
 // Import light and dark logos
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
@@ -10,14 +11,16 @@ import pdLogoWhite from '../assets/PD Logo_white.png';
 const APP_VERSION = 'v2.1.0-build.84';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (rememberMe: boolean, role: string) => void;
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
+  users: UserAccount[];
 }
 
-export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginProps) {
+export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
@@ -25,22 +28,37 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
     e.preventDefault();
     setErrorMessage(null);
 
-    if (email !== 'admin@paramount.com.ph' && email !== 'noaccess@paramount.com.ph') {
-      setErrorMessage('Error: Invalid username or account does not exist.');
-      return;
-    }
-
     if (email === 'noaccess@paramount.com.ph') {
       setErrorMessage('Error: Access denied. Your account lacks system authorization.');
       return;
     }
 
-    if (password !== 'admin123') {
+    // The seeded demo login always works, on top of whatever real accounts
+    // exist in User Management - this keeps the documented/e2e-tested
+    // admin@paramount.com.ph / admin123 login working even though it isn't
+    // itself one of the provisioned users.
+    const isDefaultAdmin = email === 'admin@paramount.com.ph';
+    const matchedUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!isDefaultAdmin && !matchedUser) {
+      setErrorMessage('Error: Invalid username or account does not exist.');
+      return;
+    }
+
+    if (matchedUser && matchedUser.status === 'Inactive') {
+      setErrorMessage('Error: Access denied. Your account has been deactivated.');
+      return;
+    }
+
+    // Provisioned users default to admin123 until someone sets a real
+    // password for them via User Management's Edit User form.
+    const expectedPassword = isDefaultAdmin ? 'admin123' : (matchedUser!.password || 'admin123');
+    if (password !== expectedPassword) {
       setErrorMessage('Error: Incorrect password. Please try again.');
       return;
     }
 
-    onLoginSuccess();
+    onLoginSuccess(rememberMe, isDefaultAdmin ? 'Admin' : matchedUser!.role);
   };
 
   // Render Forgot Password component when triggered
@@ -166,6 +184,8 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
             }`}>
               <input
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded-md border-gray-300 text-[#d0112b] focus:ring-[#d0112b]"
               />
               <span className="ml-2 font-medium">Remember me</span>

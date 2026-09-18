@@ -30,11 +30,12 @@ import ApplicationDetailHealth from './components/application_detail_health';
 import ApplicationDetailLifeAccident from './components/application_detail_lifeaccident';
 import ApplicationDetailComprehensive from './components/application_detail_comprehensive';
 import PaymentTransactions from './components/payment_transactions';
+import Billing from './components/billing';
 import OfwPaymentTransactions from './components/ofw_payment_transactions';
 import CtplPaymentTransactions from './components/ctpl_payment_transactions';
 import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
-import UserManagement from './components/user_management';
+import UserManagement, { INITIAL_USERS, type UserAccount } from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
@@ -61,7 +62,10 @@ export interface ScreeningItem {
   status: string;
 }
 
-const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) => {
+// Fresh-environment reset: no seed applications, only the two retained
+// accounts (see INITIAL_USERS in user_management.tsx). Set the length back
+// above 0 to bring the demo dataset back.
+const initialMockData: ScreeningItem[] = Array.from({ length: 0 }).map((_, i) => {
   const plans = [
     { code: 'HIP', desc: 'Plan 500 - Family', premium: '₱500.00' },
     { code: 'GLA', desc: '1 Unit', premium: '₱413.00' },
@@ -93,18 +97,20 @@ const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) =
   };
 });
 
+// Paramount Direct only sells the land-based OFW package - every mock
+// applicant is Land-based, regardless of occupation.
 const OFW_MOCK_APPLICANTS = [
   { firstName: 'Rosalinda', lastName: 'Gomez', occupation: 'Household/Domestic Worker', coverage: 'Land-based' as const, country: 'Saudi Arabia' },
   { firstName: 'Marlon', lastName: 'Reyes', occupation: 'Construction Worker', coverage: 'Land-based' as const, country: 'United Arab Emirates' },
   { firstName: 'Cristina', lastName: 'Villanueva', occupation: 'Service Worker', coverage: 'Land-based' as const, country: 'Qatar' },
-  { firstName: 'Bayani', lastName: 'Ramos', occupation: 'Seafarers', coverage: 'Sea-based' as const, country: 'Hong Kong' },
+  { firstName: 'Bayani', lastName: 'Ramos', occupation: 'Seafarers', coverage: 'Land-based' as const, country: 'Hong Kong' },
   { firstName: 'Precious', lastName: 'Manalo', occupation: 'Medical Professional', coverage: 'Land-based' as const, country: 'Singapore' },
-  { firstName: 'Domingo', lastName: 'Cruz', occupation: 'Maritime Professional', coverage: 'Sea-based' as const, country: 'Kuwait' },
+  { firstName: 'Domingo', lastName: 'Cruz', occupation: 'Maritime Professional', coverage: 'Land-based' as const, country: 'Kuwait' },
   { firstName: 'Jocelyn', lastName: 'Ferrer', occupation: 'Household/Domestic Worker', coverage: 'Land-based' as const, country: 'Ukraine' },
   { firstName: 'Ramil', lastName: 'Torres', occupation: 'Factory Worker', coverage: 'Land-based' as const, country: 'Israel' },
 ];
 
-const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, i) => {
+const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
   // Weighted so most applications sit in 'Received' (the common case), with
   // the terminal outcomes appearing occasionally.
@@ -125,7 +131,9 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, 
     birthdate: '1990-05-15',
     placeOfBirth: 'Manila',
     phAddress: '123 Rizal Street',
+    phRegion: 'NCR - National Capital Region',
     phCity: 'Manila City',
+    phBarangay: 'N/A',
     phone: '09171234567',
     email: `${applicant.firstName.toLowerCase()}.${applicant.lastName.toLowerCase()}@example.com`,
     referralSource: ['Facebook', 'Google', 'Paramount Website', 'POEA/POLO', 'Referral'][i % 5],
@@ -140,6 +148,7 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, 
     contractStart: '2026-01-01',
     contractEnd: '2028-01-01',
     insuranceStart: '2026-01-01',
+    beneficiaries: [{ fullName: `${applicant.lastName} Beneficiary`, relationship: 'Spouse', birthdate: '1992-03-10' }],
     isConflictZone,
     documents: {
       passport: i % 4 !== 0 ? 'Uploaded' as const : 'Missing' as const,
@@ -147,7 +156,7 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, 
       employmentContract: 'Uploaded' as const,
       medicalCertificate: i % 3 !== 0 ? 'Uploaded' as const : 'Missing' as const,
     },
-    premium: applicant.coverage === 'Sea-based' ? '$58.00' : '$42.00',
+    premium: '$42.00',
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
     status,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
@@ -168,7 +177,7 @@ const CTPL_MOCK_OWNERS = [
   { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Truck', premium: 1200 },
 ];
 
-const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_, i) => {
+const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const owner = CTPL_MOCK_OWNERS[i % CTPL_MOCK_OWNERS.length];
   const statusCycle: typeof CTPL_STATUSES[number][] = [
     'Completed', 'Completed', 'Completed', 'Cancelled', 'Completed', 'Spoiled', 'Completed', 'Duplicate', 'Completed', 'Reversed',
@@ -185,6 +194,10 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_
     ownerFirstName: owner.firstName,
     ownerMiddleName: 'M',
     ownerSurname: owner.surname,
+    ownerAddress: '123 Rizal Street',
+    ownerRegion: 'NCR - National Capital Region',
+    ownerCity: 'Manila City',
+    ownerBarangay: 'N/A',
     sameAsOwner: true,
     applicantFirstName: owner.firstName,
     applicantSurname: owner.surname,
@@ -213,7 +226,7 @@ const GTP_MOCK_TRAVELERS = [
   { firstName: 'Diego', surname: 'Ramos', destinations: ['Thailand'], type: 'Individual' as const, plan: 'Single Trip' as const },
 ];
 
-const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, i) => {
+const initialGtpMockData: GtpApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const traveler = GTP_MOCK_TRAVELERS[i % GTP_MOCK_TRAVELERS.length];
   const statusCycle: typeof GTP_STATUSES[number][] = ['Received', 'Received', 'Received', 'Cancelled', 'Received', 'Duplicate'];
   const status = statusCycle[i % statusCycle.length];
@@ -248,11 +261,60 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, 
   };
 });
 
+// Auth is otherwise pure in-memory React state, which a page refresh always
+// wipes - persisting a flag here is what makes "Remember me" (localStorage,
+// survives closing the browser) vs. a plain login (sessionStorage, survives
+// a refresh but not closing the tab) actually do something.
+const AUTH_STORAGE_KEY = 'pd_authenticated';
+// Persisted the same way as AUTH_STORAGE_KEY - the logged-in user's role
+// drives role-gated UI (e.g. the Cashier-only Create button on Non-Life
+// Payment Transactions), so it needs to survive a refresh the same way the
+// auth flag does.
+const ROLE_STORAGE_KEY = 'pd_current_user_role';
+
+function readStoredAuth(): boolean {
+  try {
+    return localStorage.getItem(AUTH_STORAGE_KEY) === '1' || sessionStorage.getItem(AUTH_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function readStoredRole(): string | null {
+  try {
+    return localStorage.getItem(ROLE_STORAGE_KEY) || sessionStorage.getItem(ROLE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Which product/tab/sub-tab is showing - kept in sessionStorage (not
+// localStorage) so a reload lands back on the same page instead of resetting
+// to the dashboard, but a fresh browser session still starts there.
+const NAV_STORAGE_KEY = 'pd_active_nav';
+
+interface StoredNav {
+  product: ProductLine;
+  tab: string;
+  subTab: string;
+}
+
+function readStoredNav(): StoredNav | null {
+  try {
+    const raw = sessionStorage.getItem(NAV_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as StoredNav) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeSubTab, setActiveSubTab] = useState('users');
+  const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(readStoredRole);
+  const storedNav = readStoredNav();
+  const [activeProduct, setActiveProduct] = useState<ProductLine>(storedNav?.product ?? 'PD Life');
+  const [activeTab, setActiveTab] = useState(storedNav?.tab ?? 'dashboard');
+  const [activeSubTab, setActiveSubTab] = useState(storedNav?.subTab ?? 'users');
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -274,6 +336,9 @@ export default function App() {
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
   const [premiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
+  // Lifted out of UserManagement so Login can validate against real
+  // provisioned accounts, not just the hardcoded admin/noaccess demo logins.
+  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
 
   useEffect(() => {
     if (darkMode) {
@@ -283,10 +348,44 @@ export default function App() {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify({ product: activeProduct, tab: activeTab, subTab: activeSubTab }));
+    } catch {
+      // ignore - worst case a reload just falls back to the dashboard
+    }
+  }, [activeProduct, activeTab, activeSubTab]);
+
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
+  const handleLoginSuccess = (rememberMe: boolean, role: string) => {
+    try {
+      (rememberMe ? localStorage : sessionStorage).setItem(AUTH_STORAGE_KEY, '1');
+      (rememberMe ? localStorage : sessionStorage).setItem(ROLE_STORAGE_KEY, role);
+    } catch {
+      // Private-browsing/storage-disabled contexts can throw - login still
+      // works for the current in-memory session, it just won't survive a refresh.
+    }
+    setCurrentUserRole(role);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem(ROLE_STORAGE_KEY);
+      sessionStorage.removeItem(ROLE_STORAGE_KEY);
+      sessionStorage.removeItem(NAV_STORAGE_KEY);
+    } catch {
+      // See handleLoginSuccess.
+    }
+    setCurrentUserRole(null);
+    setIsAuthenticated(false);
+  };
+
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={() => setIsAuthenticated(true)} darkMode={darkMode} setDarkMode={toggleDarkMode} />;
+    return <Login onLoginSuccess={handleLoginSuccess} darkMode={darkMode} setDarkMode={toggleDarkMode} users={users} />;
   }
 
   const handleUpdateStatus = (newStatus: string) => {
@@ -351,7 +450,7 @@ export default function App() {
         }}
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
-        onLogout={() => setIsAuthenticated(false)}
+        onLogout={handleLogout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentUserName={CURRENT_USER.name}
@@ -397,7 +496,7 @@ export default function App() {
         )}
 
         {/* OFW Payment Transactions */}
-        {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} />}
+        {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} currentUserRole={currentUserRole} />}
 
         {/* CTPL Dashboard */}
         {activeTab === 'ctpl-dashboard' && <CtplDashboard />}
@@ -421,7 +520,7 @@ export default function App() {
         )}
 
         {/* CTPL Payment Transactions */}
-        {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} />}
+        {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} currentUserRole={currentUserRole} />}
 
         {/* GTP Dashboard */}
         {activeTab === 'gtp-dashboard' && <GtpDashboard />}
@@ -445,7 +544,7 @@ export default function App() {
         )}
 
         {/* GTP Payment Transactions */}
-        {activeTab === 'gtp-payments' && <GtpPaymentTransactions data={gtpApplications} />}
+        {activeTab === 'gtp-payments' && <GtpPaymentTransactions data={gtpApplications} currentUserRole={currentUserRole} />}
 
         {/* Applications hub */}
         {activeTab === 'applications' && (
@@ -471,12 +570,20 @@ export default function App() {
         )}
 
         {/* Payment Transactions & Ledger */}
-        {activeTab === 'payments' && <PaymentTransactions />}
+        {activeTab === 'payments' && (
+          <PaymentTransactions
+            ctplApplications={ctplApplications}
+            ofwApplications={ofwApplications}
+            gtpApplications={gtpApplications}
+            currentUserRole={currentUserRole}
+          />
+        )}
+        {activeTab === 'billing' && <Billing />}
 
         {/* Maintenance Sub-module Views */}
         {activeTab === 'maintenance' && (
           activeSubTab === 'users' ? (
-            <UserManagement />
+            <UserManagement users={users} setUsers={setUsers} />
           ) : activeSubTab === 'roles' ? (
             <RoleAccessMaintenance />
           // Premium Maintenance removed from nav per request - see

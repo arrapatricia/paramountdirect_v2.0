@@ -30,6 +30,12 @@ export interface GtpApplication {
   // there's no employment-verification-style gate) - documents unlock as
   // soon as isPaid is true.
   isPaid: boolean;
+
+  // Assigned once the policy is issued; the identifying field the Non-Life
+  // Payment Transactions page (in Pay Tran) correlates this application by.
+  policyNumber?: string;
+  // OR/reference number generated at the moment payment is confirmed.
+  referenceNo?: string;
 }
 
 export const GTP_PLAN_VARIANTS = ['Single Trip', 'Multi-Trip 90', 'Multi-Trip 180'] as const;

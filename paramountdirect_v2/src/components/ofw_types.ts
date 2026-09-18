@@ -14,13 +14,16 @@ export interface OfwApplication {
   birthdate: string; // yyyy-mm-dd
   placeOfBirth: string;
   phAddress: string;
+  phRegion: string;
   phCity: string;
+  phBarangay: string;
   phone: string;
   email: string;
   referralSource: string;
 
   natureOfEmployment: 'Direct-hired' | 'Balik-Manggagawa';
-  coverageType: 'Land-based' | 'Sea-based';
+  // Paramount Direct only sells the land-based OFW package.
+  coverageType: 'Land-based';
   occupation: string;
   passportNumber: string;
   salaryAmount: number;
@@ -30,6 +33,8 @@ export interface OfwApplication {
   contractStart: string;
   contractEnd: string;
   insuranceStart: string;
+  // At least one required, up to three.
+  beneficiaries: { fullName: string; relationship: string; birthdate: string }[];
   isConflictZone: boolean;
 
   documents: {
@@ -51,6 +56,12 @@ export interface OfwApplication {
   employmentVerified: 'Pending' | 'Yes' | 'No';
   paymentInstructionSent: boolean;
   isPaid: boolean;
+
+  // Assigned once the policy is issued; the identifying field the Non-Life
+  // Payment Transactions page (in Pay Tran) correlates this application by.
+  policyNumber?: string;
+  // OR/reference number generated at the moment payment is confirmed.
+  referenceNo?: string;
 }
 
 export type OfwStatus = 'Received' | 'Cancelled' | 'Duplicate' | 'Reversed';

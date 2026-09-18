@@ -24,17 +24,6 @@ const ANNUAL_TARGET = 125_000;
 const YTD_APPLICATIONS = { y2025: 1840, y2026: 2150 };
 const YTD_ISSUED = { y2025: 1520, y2026: 1790 };
 
-// Type of Package, as asked on the actual application form.
-const COVERAGE_TYPE_BY_YEAR: Record<string, { label: string; count: number; color: string }[]> = {
-  '2026': [
-    { label: 'Land-based', count: 1720, color: '#002f6c' },
-    { label: 'Sea-based', count: 430, color: '#49b1ea' },
-  ],
-  '2025': [
-    { label: 'Land-based', count: 1590, color: '#002f6c' },
-    { label: 'Sea-based', count: 250, color: '#49b1ea' },
-  ],
-};
 
 // Nature of Employment, the other classification asked on the form.
 const EMPLOYMENT_NATURE = {
@@ -82,16 +71,7 @@ export default function OfwDashboard() {
   const conversion2025 = (YTD_ISSUED.y2025 / YTD_APPLICATIONS.y2025) * 100;
   const conversionDeltaPts = conversion2026 - conversion2025;
 
-  const coverageTypes = COVERAGE_TYPE_BY_YEAR[selectedYear];
-  const coverageTotal = coverageTypes.reduce((s, c) => s + c.count, 0);
-  let cumulative = 0;
-  const coverageGradientStops = coverageTypes.map((c) => {
-    const start = (cumulative / coverageTotal) * 360;
-    cumulative += c.count;
-    const end = (cumulative / coverageTotal) * 360;
-    return `${c.color} ${start}deg ${end}deg`;
-  });
-  const coverageGradient = `conic-gradient(${coverageGradientStops.join(', ')})`;
+  const applicationsForYear = selectedYear === '2026' ? YTD_APPLICATIONS.y2026 : YTD_APPLICATIONS.y2025;
 
   const employmentNature = EMPLOYMENT_NATURE[selectedYear];
   const employmentTotal = employmentNature.reduce((s, e) => s + e.count, 0);
@@ -167,12 +147,12 @@ export default function OfwDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* Left: Coverage Type Donut */}
+        {/* Left: Coverage Type */}
         <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
           <div className="flex justify-between items-start mb-6 flex-wrap gap-y-2">
             <div>
               <h2 className="text-sm font-extrabold text-slate-800 uppercase dark:text-white">Coverage Type</h2>
-              <p className="text-xs text-slate-500 font-medium dark:text-slate-500">Land-based vs. Sea-based applications</p>
+              <p className="text-xs text-slate-500 font-medium dark:text-slate-500">Paramount Direct only offers the land-based package</p>
             </div>
 
             <div className="relative">
@@ -201,10 +181,10 @@ export default function OfwDashboard() {
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="relative w-48 h-48 rounded-full" style={{ background: coverageGradient }}>
+            <div className="relative w-48 h-48 rounded-full bg-[#002f6c] flex items-center justify-center">
               <div className="absolute inset-[16px] rounded-full bg-white flex items-center justify-center dark:bg-slate-900">
                 <div className="text-center">
-                  <span className="block text-2xl font-black text-slate-900 dark:text-white">{coverageTotal.toLocaleString()}</span>
+                  <span className="block text-2xl font-black text-slate-900 dark:text-white">{applicationsForYear.toLocaleString()}</span>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider dark:text-slate-500">Applications</span>
                 </div>
               </div>
@@ -212,15 +192,11 @@ export default function OfwDashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 mt-8">
-            {coverageTypes.map((item) => (
-              <div key={item.label} className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{item.label}</span>
-                <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">
-                  {item.count.toLocaleString()} &middot; {((item.count / coverageTotal) * 100).toFixed(0)}%
-                </span>
-              </div>
-            ))}
+            <div className="flex items-center space-x-2">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-[#002f6c]" />
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Land-based</span>
+              <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">100%</span>
+            </div>
           </div>
         </div>
 
