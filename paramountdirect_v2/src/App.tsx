@@ -30,6 +30,7 @@ import ApplicationDetailHealth from './components/application_detail_health';
 import ApplicationDetailLifeAccident from './components/application_detail_lifeaccident';
 import ApplicationDetailComprehensive from './components/application_detail_comprehensive';
 import PaymentTransactions from './components/payment_transactions';
+import Billing from './components/billing';
 import OfwPaymentTransactions from './components/ofw_payment_transactions';
 import CtplPaymentTransactions from './components/ctpl_payment_transactions';
 import GtpPaymentTransactions from './components/gtp_payment_transactions';
@@ -265,6 +266,11 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 0 }).map((_, i
 // survives closing the browser) vs. a plain login (sessionStorage, survives
 // a refresh but not closing the tab) actually do something.
 const AUTH_STORAGE_KEY = 'pd_authenticated';
+// Persisted the same way as AUTH_STORAGE_KEY - the logged-in user's role
+// drives role-gated UI (e.g. the Cashier-only Create button on Non-Life
+// Payment Transactions), so it needs to survive a refresh the same way the
+// auth flag does.
+const ROLE_STORAGE_KEY = 'pd_current_user_role';
 
 function readStoredAuth(): boolean {
   try {
@@ -274,11 +280,41 @@ function readStoredAuth(): boolean {
   }
 }
 
+function readStoredRole(): string | null {
+  try {
+    return localStorage.getItem(ROLE_STORAGE_KEY) || sessionStorage.getItem(ROLE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Which product/tab/sub-tab is showing - kept in sessionStorage (not
+// localStorage) so a reload lands back on the same page instead of resetting
+// to the dashboard, but a fresh browser session still starts there.
+const NAV_STORAGE_KEY = 'pd_active_nav';
+
+interface StoredNav {
+  product: ProductLine;
+  tab: string;
+  subTab: string;
+}
+
+function readStoredNav(): StoredNav | null {
+  try {
+    const raw = sessionStorage.getItem(NAV_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as StoredNav) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
-  const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeSubTab, setActiveSubTab] = useState('users');
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(readStoredRole);
+  const storedNav = readStoredNav();
+  const [activeProduct, setActiveProduct] = useState<ProductLine>(storedNav?.product ?? 'PD Life');
+  const [activeTab, setActiveTab] = useState(storedNav?.tab ?? 'dashboard');
+  const [activeSubTab, setActiveSubTab] = useState(storedNav?.subTab ?? 'users');
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -312,15 +348,25 @@ export default function App() {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify({ product: activeProduct, tab: activeTab, subTab: activeSubTab }));
+    } catch {
+      // ignore - worst case a reload just falls back to the dashboard
+    }
+  }, [activeProduct, activeTab, activeSubTab]);
+
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
-  const handleLoginSuccess = (rememberMe: boolean) => {
+  const handleLoginSuccess = (rememberMe: boolean, role: string) => {
     try {
       (rememberMe ? localStorage : sessionStorage).setItem(AUTH_STORAGE_KEY, '1');
+      (rememberMe ? localStorage : sessionStorage).setItem(ROLE_STORAGE_KEY, role);
     } catch {
       // Private-browsing/storage-disabled contexts can throw - login still
       // works for the current in-memory session, it just won't survive a refresh.
     }
+    setCurrentUserRole(role);
     setIsAuthenticated(true);
   };
 
@@ -328,9 +374,13 @@ export default function App() {
     try {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem(ROLE_STORAGE_KEY);
+      sessionStorage.removeItem(ROLE_STORAGE_KEY);
+      sessionStorage.removeItem(NAV_STORAGE_KEY);
     } catch {
       // See handleLoginSuccess.
     }
+    setCurrentUserRole(null);
     setIsAuthenticated(false);
   };
 
@@ -520,7 +570,15 @@ export default function App() {
         )}
 
         {/* Payment Transactions & Ledger */}
-        {activeTab === 'payments' && <PaymentTransactions />}
+        {activeTab === 'payments' && (
+          <PaymentTransactions
+            ctplApplications={ctplApplications}
+            ofwApplications={ofwApplications}
+            gtpApplications={gtpApplications}
+            currentUserRole={currentUserRole}
+          />
+        )}
+        {activeTab === 'billing' && <Billing />}
 
         {/* Maintenance Sub-module Views */}
         {activeTab === 'maintenance' && (

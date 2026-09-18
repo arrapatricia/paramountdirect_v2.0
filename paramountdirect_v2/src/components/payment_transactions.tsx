@@ -23,10 +23,15 @@ import {
   Tag,
   CheckSquare,
   Square,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Plus
 } from 'lucide-react';
 
 import serviceInvoicePdf from '../assets/ELECTRONIC_SERVICE INVOICE_DMLIFE_withFields_12232025.pdf';
+import NonLifePaymentTransactions from './nonlife_payment_transactions';
+import type { CtplApplication } from './ctpl_types';
+import type { OfwApplication } from './ofw_types';
+import type { GtpApplication } from './gtp_types';
 
 export interface PaymentLedgerItem {
   yrInstal: string;
@@ -228,13 +233,107 @@ const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 0 }).map
   };
 });
 
-export default function PaymentTransactions() {
+interface Props {
+  ctplApplications?: CtplApplication[];
+  ofwApplications?: OfwApplication[];
+  gtpApplications?: GtpApplication[];
+  currentUserRole?: string | null;
+}
+
+export default function PaymentTransactions({
+  ctplApplications = [],
+  ofwApplications = [],
+  gtpApplications = [],
+  currentUserRole = null,
+}: Props) {
+  // Admin is the seeded demo login used to test every role-gated feature,
+  // so it's treated as a superset of Cashier access rather than excluded.
+  const canCreatePayment = currentUserRole === 'Cashier' || currentUserRole === 'Admin';
+  const [activeSection, setActiveSection] = useState<'life' | 'nonlife'>('life');
   const [transactions, setTransactions] = useState<PaymentTransaction[]>(INITIAL_TRANSACTIONS);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<string>('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  // Manual "Create Transaction" for PD Life - a cashier logging a payment
+  // directly rather than it arriving via iPeak sync (which doesn't exist -
+  // §2). Only a handful of fields are editable; the rest of PaymentTransaction's
+  // many ledger/policy columns get sane defaults so the shape stays valid.
+  const [isCreatingLifeTransaction, setIsCreatingLifeTransaction] = useState(false);
+  const [lifeDraft, setLifeDraft] = useState({
+    policyNo: '',
+    title: 'Mr',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    planCode: '',
+    planDesc: '',
+    premium: '',
+    mode: 'Monthly',
+    policyStatus: 'Inforced' as PaymentTransaction['policyStatus'],
+    dueDate: '',
+    issueDate: '',
+    orNumber: '',
+    orDate: '',
+  });
+
+  const handleCreateLifeTransaction = (e: React.FormEvent) => {
+    e.preventDefault();
+    const premiumAmt = parseFloat(lifeDraft.premium) || 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const issueDate = lifeDraft.issueDate || today;
+    const ledger = generateFullYearLedger(premiumAmt, lifeDraft.orNumber || '-', lifeDraft.policyStatus);
+
+    const newTransaction: PaymentTransaction = {
+      policyNo: lifeDraft.policyNo.trim(),
+      title: lifeDraft.title,
+      firstName: lifeDraft.firstName.trim(),
+      middleName: lifeDraft.middleName.trim(),
+      lastName: lifeDraft.lastName.trim(),
+      birthdate: '',
+      gender: '',
+      currentAge: 0,
+      issueAge: 0,
+      address: '',
+      mobileNumber: '',
+      telephoneNumber: '',
+      emailAddress: '',
+
+      policyStatus: lifeDraft.policyStatus,
+      hcrStatus: '0',
+      hcrUnit: '0',
+      premium: premiumAmt,
+      hcrPremium: 0,
+      modalPremium: premiumAmt,
+      amountPaid: 0,
+      deposit: 0,
+      underpay: 0,
+      cashLoan: 0,
+      automaticPremiumLoan: 0,
+      dueDate: lifeDraft.dueDate || today,
+      payType: 'INDIVIDUAL',
+      cashValue: 0,
+      lifeBenefits: 0,
+      accidentalBenefits: 0,
+      mode: lifeDraft.mode,
+      issueDate,
+      effectivityDate: issueDate,
+      policyDate: issueDate,
+      expiryDate: issueDate,
+
+      planCode: lifeDraft.planCode.trim(),
+      planDesc: lifeDraft.planDesc.trim(),
+      orDate: lifeDraft.orDate || '-',
+      orNumber: lifeDraft.orNumber.trim() || '-',
+      ledgerHistory: ledger,
+    };
+
+    setTransactions((prev) => [newTransaction, ...prev]);
+    setNotification(`Transaction created for policy ${newTransaction.policyNo}.`);
+    setIsCreatingLifeTransaction(false);
+  };
 
   const [selectedMainPolicyNos, setSelectedMainPolicyNos] = useState<string[]>([]);
   const [selectedLedgerInstalCodes, setSelectedLedgerInstalCodes] = useState<string[]>([]);
@@ -419,9 +518,54 @@ export default function PaymentTransactions() {
             <Receipt className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <span>Upload Batch Payment</span>
           </button>
+
+          {canCreatePayment && activeSection === 'life' && (
+            <button
+              onClick={() => setIsCreatingLifeTransaction(true)}
+              className="flex items-center space-x-2 bg-[#d0112b] hover:bg-[#b00e24] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Transaction</span>
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Life / Non-Life Tab Switcher */}
+      <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-100 w-fit dark:bg-slate-800">
+        <button
+          onClick={() => setActiveSection('life')}
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+            activeSection === 'life'
+              ? 'bg-white text-[#d0112b] shadow-sm dark:bg-slate-900'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          PD Life
+        </button>
+        <button
+          onClick={() => setActiveSection('nonlife')}
+          className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+            activeSection === 'nonlife'
+              ? 'bg-white text-[#d0112b] shadow-sm dark:bg-slate-900'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          Non-Life (CTPL / OFW / GTP)
+        </button>
+      </div>
+
+      {activeSection === 'nonlife' && (
+        <NonLifePaymentTransactions
+          ctplData={ctplApplications}
+          ofwData={ofwApplications}
+          gtpData={gtpApplications}
+          canCreate={canCreatePayment}
+        />
+      )}
+
+      {activeSection === 'life' && (
+      <>
       {/* Liquid Glass Filter Bar */}
       <div className="p-4 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-4 dark:bg-slate-900/70 dark:border-slate-700/60">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -725,6 +869,203 @@ export default function PaymentTransactions() {
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      )}
+      </>
+      )}
+
+      {/* Create Transaction Modal (Cashier / Admin only) */}
+      {isCreatingLifeTransaction && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
+          <form
+            onSubmit={handleCreateLifeTransaction}
+            className="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-200 space-y-5 font-sans my-6 dark:bg-slate-900 dark:border-slate-800"
+          >
+            <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
+              <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">Create Payment Transaction</h2>
+              <button
+                type="button"
+                onClick={() => setIsCreatingLifeTransaction(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-[#d0112b] hover:bg-red-50 cursor-pointer dark:hover:bg-red-950/30"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 text-xs">
+              <label className="col-span-2 space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Policy Number</span>
+                <input
+                  required
+                  value={lifeDraft.policyNo}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, policyNo: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Title</span>
+                <select
+                  value={lifeDraft.title}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, title: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                >
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Ms">Ms</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">First Name</span>
+                <input
+                  required
+                  value={lifeDraft.firstName}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, firstName: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Middle Name</span>
+                <input
+                  value={lifeDraft.middleName}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, middleName: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Last Name</span>
+                <input
+                  required
+                  value={lifeDraft.lastName}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, lastName: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Plan Code</span>
+                <input
+                  required
+                  placeholder="e.g. HIP"
+                  value={lifeDraft.planCode}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, planCode: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="col-span-2 space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Plan Description</span>
+                <input
+                  required
+                  value={lifeDraft.planDesc}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, planDesc: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Premium</span>
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={lifeDraft.premium}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, premium: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Mode</span>
+                <select
+                  value={lifeDraft.mode}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, mode: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                >
+                  <option value="Annual">Annual</option>
+                  <option value="Semi-Annual">Semi-Annual</option>
+                  <option value="Quarterly">Quarterly</option>
+                  <option value="Monthly">Monthly</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Policy Status</span>
+                <select
+                  value={lifeDraft.policyStatus}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, policyStatus: e.target.value as PaymentTransaction['policyStatus'] }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                >
+                  <option value="Inforced">Inforced</option>
+                  <option value="Lapsed">Lapsed</option>
+                  <option value="Matured">Matured</option>
+                  <option value="Terminated">Terminated</option>
+                  <option value="Involuntary">Involuntary</option>
+                  <option value="Voluntary">Voluntary</option>
+                  <option value="Surrender">Surrender</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Issue Date</span>
+                <input
+                  type="date"
+                  value={lifeDraft.issueDate}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, issueDate: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">Due Date</span>
+                <input
+                  type="date"
+                  value={lifeDraft.dueDate}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, dueDate: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">OR Number</span>
+                <input
+                  value={lifeDraft.orNumber}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, orNumber: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">OR Date</span>
+                <input
+                  type="date"
+                  value={lifeDraft.orDate}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, orDate: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsCreatingLifeTransaction(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#d0112b] hover:bg-[#b00e24] cursor-pointer shadow-md"
+              >
+                Save Transaction
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

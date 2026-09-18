@@ -11,7 +11,7 @@ import pdLogoWhite from '../assets/PD Logo_white.png';
 const APP_VERSION = 'v2.1.0-build.84';
 
 interface LoginProps {
-  onLoginSuccess: (rememberMe: boolean) => void;
+  onLoginSuccess: (rememberMe: boolean, role: string) => void;
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
   users: UserAccount[];
@@ -58,7 +58,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
       return;
     }
 
-    onLoginSuccess(rememberMe);
+    onLoginSuccess(rememberMe, isDefaultAdmin ? 'Admin' : matchedUser!.role);
   };
 
   // Render Forgot Password component when triggered

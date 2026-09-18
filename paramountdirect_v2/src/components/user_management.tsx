@@ -31,7 +31,7 @@ export interface UserAccount {
 // Direct Marketing's own operating roles for this system, ahead of the
 // broader legacy PD Life role list carried over from the wider Paramount
 // system.
-const DIRECT_MARKETING_ROLES = ['Operations', 'Marketing', 'Contact Center'];
+const DIRECT_MARKETING_ROLES = ['Operations', 'Marketing', 'Contact Center', 'Cashier'];
 
 const PRODUCT_ROLES_MAP: Record<ProductScope, string[]> = {
   'PD Life': [
