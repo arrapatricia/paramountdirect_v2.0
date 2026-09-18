@@ -28,7 +28,8 @@ import {
   Moon,
   // Wallet removed from imports along with the Premium Maintenance nav entry below
   Stamp,
-  LayoutGrid
+  LayoutGrid,
+  Mail
 } from 'lucide-react';
 
 import logoImg from '../assets/PD Logo_full color.png';
@@ -99,6 +100,7 @@ export default function Sidebar({
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'applications', label: 'Applications', icon: LayoutGrid },
       { id: 'payments', label: 'Payment Transactions', icon: CreditCard },
+      { id: 'billing', label: 'Billing', icon: Mail },
     ],
     'OFW': [
       { id: 'ofw-dashboard', label: 'OFW Dashboard', icon: LayoutDashboard },
