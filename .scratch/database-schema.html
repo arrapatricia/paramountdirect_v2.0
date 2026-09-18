@@ -1,0 +1,719 @@
+<title>Paramount Direct Schema</title>
+<style>
+  :root {
+    --navy: #002f6c;
+    --navy-ink: #001c42;
+    --teal: #008cb4;
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #dde3ec;
+    --text: #1b2430;
+    --text-muted: #5b6675;
+    --pk: #b5590a;
+    --pk-bg: #fdf1e4;
+    --fk: #1f6fa8;
+    --fk-bg: #e8f2fa;
+    --uk: #6a3fb5;
+    --uk-bg: #f1eafb;
+    --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #6f9fdd;
+      --navy-ink: #dfe9fa;
+      --teal: #4fc4e8;
+      --bg: #10151d;
+      --surface: #171d27;
+      --surface-2: #1c232f;
+      --border: #2a3341;
+      --text: #e7ecf3;
+      --text-muted: #9aa6b6;
+      --pk: #e3a259;
+      --pk-bg: #3a2712;
+      --fk: #7ec1ee;
+      --fk-bg: #142434;
+      --uk: #b79ae8;
+      --uk-bg: #241a35;
+    }
+  }
+  :root[data-theme="dark"] {
+    --navy: #6f9fdd;
+    --navy-ink: #dfe9fa;
+    --teal: #4fc4e8;
+    --bg: #10151d;
+    --surface: #171d27;
+    --surface-2: #1c232f;
+    --border: #2a3341;
+    --text: #e7ecf3;
+    --text-muted: #9aa6b6;
+    --pk: #e3a259;
+    --pk-bg: #3a2712;
+    --fk: #7ec1ee;
+    --fk-bg: #142434;
+    --uk: #b79ae8;
+    --uk-bg: #241a35;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Source Sans 3", "Segoe UI", -apple-system, sans-serif;
+    padding-inline: 16px;
+    padding-block: 32px;
+    display: flex;
+    justify-content: center;
+  }
+
+  main { width: 100%; max-width: 920px; }
+
+  h1, h2 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; }
+
+  .masthead {
+    border-bottom: 3px solid var(--navy);
+    padding-bottom: 20px;
+    margin-bottom: 26px;
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--teal);
+  }
+  h1 {
+    font-size: clamp(26px, 5vw, 34px);
+    font-weight: 600;
+    color: var(--navy);
+    margin: 6px 0 10px;
+  }
+  .masthead p {
+    color: var(--text-muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+    max-width: 68ch;
+    margin: 0;
+  }
+
+  nav.jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 18px 0 30px;
+  }
+  nav.jump a {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--navy-ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 99px;
+    text-decoration: none;
+  }
+  nav.jump a:hover { border-color: var(--teal); color: var(--teal); }
+
+  section.block {
+    margin-bottom: 30px;
+  }
+  section.block > h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 0 0 4px;
+  }
+  section.block > .block-sub {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin-bottom: 14px;
+  }
+
+  .diagram-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .erd-toolbar {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .erd-toolbar button {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    color: var(--navy-ink);
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .erd-toolbar button:hover { background: var(--surface-2); }
+  .erd-toolbar .erd-zoom-level {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-variant-numeric: tabular-nums;
+    min-width: 42px;
+    justify-content: center;
+  }
+
+  .erd-viewport {
+    height: 520px;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    background:
+      linear-gradient(90deg, var(--surface-2) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(var(--surface-2) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--surface);
+  }
+  .erd-viewport.grabbing { cursor: grabbing; }
+  .erd-canvas {
+    transform-origin: 0 0;
+    width: max-content;
+    padding: 24px;
+  }
+  .erd-canvas pre.mermaid { margin: 0; }
+  .erd-hint {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    z-index: 2;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 9px;
+    pointer-events: none;
+  }
+
+  .model-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .model-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 18px;
+    background: var(--navy);
+    color: #fff;
+    flex-wrap: wrap;
+  }
+  .model-head code {
+    font-family: var(--mono);
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+  .model-head .model-note {
+    font-size: 12px;
+    color: #cfe0f5;
+  }
+
+  table.fields {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.fields th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  table.fields td {
+    padding: 7px 18px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.fields tr:last-child td { border-bottom: none; }
+  table.fields td.field-name { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+  table.fields td.field-type { font-family: var(--mono); color: var(--text-muted); white-space: nowrap; }
+  table.fields td.field-note { color: var(--text-muted); }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    padding: 1px 6px;
+    border-radius: 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge.pk { background: var(--pk-bg); color: var(--pk); }
+  .badge.fk { background: var(--fk-bg); color: var(--fk); }
+  .badge.uk { background: var(--uk-bg); color: var(--uk); }
+
+  .relations {
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    padding: 10px 18px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .relations b { color: var(--text); font-weight: 700; }
+
+  footer {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px) {
+    .model-head { padding: 12px 14px; }
+    table.fields th, table.fields td { padding: 7px 12px; }
+    .relations { padding: 10px 14px; }
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+
+<main>
+  <div class="masthead">
+    <div class="eyebrow">Paramount Direct 2.0 &middot; server/prisma/schema.prisma</div>
+    <h1>Database Schema</h1>
+    <p>
+      Every model in the Postgres/Prisma schema, grouped the same way the schema file itself
+      is: Users &amp; Roles, Branches, PD Life, OFW, CTPL, GTP, Payments &amp; Ledgers, and
+      Generated Documents. <span class="badge pk">PK</span> primary key,
+      <span class="badge fk">FK</span> foreign key, <span class="badge uk">UK</span> unique.
+    </p>
+  </div>
+
+  <nav class="jump">
+    <a href="#erd">ERD</a>
+    <a href="#users">Users &amp; Roles</a>
+    <a href="#branch">Branches</a>
+    <a href="#pdlife">PD Life</a>
+    <a href="#ofw">OFW</a>
+    <a href="#ctpl">CTPL</a>
+    <a href="#gtp">GTP</a>
+    <a href="#payments">Payments &amp; Ledgers</a>
+    <a href="#documents">Generated Documents</a>
+    <a href="#audit">Audit Logs</a>
+  </nav>
+
+  <section class="block" id="erd">
+    <h2>Entity relationship diagram</h2>
+    <div class="block-sub">Real Prisma <code style="font-family: var(--mono)">@relation</code> foreign keys only — see each model's card below for fields that reference another model without a DB-level FK.</div>
+    <div class="diagram-card">
+      <div class="erd-toolbar">
+        <button type="button" id="erdZoomOut" aria-label="Zoom out">&minus;</button>
+        <span class="erd-zoom-level" id="erdZoomLevel">100%</span>
+        <button type="button" id="erdZoomIn" aria-label="Zoom in">+</button>
+        <button type="button" id="erdReset" aria-label="Reset zoom">&#8634;</button>
+      </div>
+      <div class="erd-viewport" id="erdViewport">
+        <div class="erd-canvas" id="erdCanvas">
+      <pre class="mermaid">
+erDiagram
+    ROLE ||--o{ USER : "has"
+    BRANCH ||--o{ USER : "employs"
+    USER ||--o{ AUDIT_LOG : "performs"
+    ROLE ||--o{ ROLE_PERMISSION : "grants"
+
+    PDLIFE_APPLICATION ||--o{ PDLIFE_BENEFICIARY : "names"
+    PDLIFE_APPLICATION ||--o{ PDLIFE_IPEAK_REQUEST : "logs"
+    PDLIFE_APPLICATION ||--o| LIFE_PAYMENT_TRANSACTION : "billed as"
+    LIFE_PAYMENT_TRANSACTION ||--o{ PAYMENT_LEDGER_ITEM : "installments"
+
+    OFW_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
+    CTPL_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
+    GTP_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
+
+    PDLIFE_POLICY_NUMBER_SEQUENCE {
+        string planCode PK
+        int lastNumber
+    }
+    GENERATED_DOCUMENT {
+        string id PK
+        string applicationType
+        string applicationId
+        string docKey
+        string s3Key UK
+    }
+      </pre>
+        </div>
+      </div>
+      <div class="erd-hint">Drag to pan &middot; scroll to zoom</div>
+    </div>
+  </section>
+
+  <section class="block" id="users">
+    <h2>Users &amp; Roles</h2>
+    <div class="block-sub">Login accounts, the roles they hold, and per-module permission grants.</div>
+
+    <div class="model-card">
+      <div class="model-head"><code>User</code><span class="model-note">login accounts</span></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">firstName / lastName</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">email<span class="badge uk">UK</span></td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">passwordHash</td><td class="field-type">String</td><td class="field-note">bcrypt</td></tr>
+        <tr><td class="field-name">status</td><td class="field-type">enum</td><td class="field-note">Active | Inactive</td></tr>
+        <tr><td class="field-name">assignedProducts</td><td class="field-type">String[]</td><td class="field-note">e.g. ["PD Life", "OFW"] — which product switcher tabs this account can open</td></tr>
+        <tr><td class="field-name">lastLoginAt</td><td class="field-type">DateTime?</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">roleId<span class="badge fk">FK</span></td><td class="field-type">String?</td><td class="field-note">&rarr; Role.id</td></tr>
+        <tr><td class="field-name">branchId<span class="badge fk">FK</span></td><td class="field-type">String?</td><td class="field-note">&rarr; Branch.id</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> belongs to one Role (optional), one Branch (optional); has many AuditLog rows.</div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>Role</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">name<span class="badge uk">UK*</span></td><td class="field-type">String</td><td class="field-note">*unique together with productScope</td></tr>
+        <tr><td class="field-name">productScope</td><td class="field-type">String</td><td class="field-note">"PD Life" | "OFW" | "CTPL" | "GTP"</td></tr>
+        <tr><td class="field-name">isDirectMarketing</td><td class="field-type">Boolean</td><td class="field-note">newer Direct Marketing role set vs. the legacy PD Life list</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> has many User, many RolePermission.</div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>RolePermission</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">roleId<span class="badge fk">FK</span></td><td class="field-type">String</td><td class="field-note">&rarr; Role.id, cascade delete</td></tr>
+        <tr><td class="field-name">moduleName</td><td class="field-type">String</td><td class="field-note">unique with roleId</td></tr>
+        <tr><td class="field-name">canRead / canWrite / canDelete</td><td class="field-type">Boolean</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="branch">
+    <h2>Branches</h2>
+    <div class="block-sub">Branch directory used for user assignment.</div>
+    <div class="model-card">
+      <div class="model-head"><code>Branch</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">division</td><td class="field-type">enum</td><td class="field-note">LIFE | NON_LIFE</td></tr>
+        <tr><td class="field-name">region / province / city / address / barangay? / zipcode</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">mobile / telephone / fax? / email? / website</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">status</td><td class="field-type">enum</td><td class="field-note">Active | Inactive</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> has many User.</div>
+    </div>
+  </section>
+
+  <section class="block" id="pdlife">
+    <h2>PD Life applications</h2>
+    <div class="block-sub">Category-specific data (medical questions, employment, etc.) lives in <code style="font-family:var(--mono)">details</code> as JSON rather than columns, since it varies by plan category.</div>
+
+    <div class="model-card">
+      <div class="model-head"><code>PdLifeApplication</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">payor, source</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">planCategory</td><td class="field-type">enum</td><td class="field-note">Health | LifeAccident | Comprehensive</td></tr>
+        <tr><td class="field-name">planCode / planDesc / premium</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">status</td><td class="field-type">enum</td><td class="field-note">Received | For_Verification | For_Evaluation | Paid | Issued</td></tr>
+        <tr><td class="field-name">details</td><td class="field-type">Json</td><td class="field-note">category-specific applicant/medical/beneficiary data</td></tr>
+        <tr><td class="field-name">policyNumber<span class="badge uk">UK</span></td><td class="field-type">String?</td><td class="field-note">assigned by iPeak/LEAP on transmit; format PLANCODE-NNNNNN-D</td></tr>
+        <tr><td class="field-name">firstName…email (18 cols)</td><td class="field-type">mostly String?</td><td class="field-note">insured's personal/employment details — insured is always their own policy owner in this product line</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> has many PdLifeBeneficiary, many PdLifeIpeakRequest; has one optional LifePaymentTransaction (joined by policyNumber &harr; policyNo, not an id FK).</div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>PdLifeBeneficiary</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">applicationId<span class="badge fk">FK</span></td><td class="field-type">String</td><td class="field-note">&rarr; PdLifeApplication.id, cascade delete</td></tr>
+        <tr><td class="field-name">fullName / birthdate / relationship</td><td class="field-type">String / DateTime</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">sharePercent? / designation? / trusteeName?</td><td class="field-type">Float? / String?</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>PdLifeIpeakRequest</code><span class="model-note">audit/retry trail for iPeak calls</span></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">applicationId<span class="badge fk">FK</span></td><td class="field-type">String</td><td class="field-note">&rarr; PdLifeApplication.id</td></tr>
+        <tr><td class="field-name">policyNumber</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">method</td><td class="field-type">enum</td><td class="field-note">NewBusiness | UpdateStatus</td></tr>
+        <tr><td class="field-name">requestPayload / responseBody?</td><td class="field-type">Json</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">statusCode? / success / errorMessage? / retryCount</td><td class="field-type">Int? / Boolean / String? / Int</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>PdLifePolicyNumberSequence</code><span class="model-note">no relations — sequence counter</span></div>
+      <table class="fields">
+        <tr><td class="field-name">planCode<span class="badge pk">PK</span></td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">lastNumber</td><td class="field-type">Int</td><td class="field-note">last sequential number issued for that plan code — incremented atomically so concurrent submissions never collide</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="ofw">
+    <h2>OFW applications</h2>
+    <div class="model-card">
+      <div class="model-head"><code>OfwApplication</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">lastName…referralSource (12 cols)</td><td class="field-type">String / enum</td><td class="field-note">applicant identity/contact; gender, civilStatus enums</td></tr>
+        <tr><td class="field-name">natureOfEmployment</td><td class="field-type">enum</td><td class="field-note">Direct_hired | Balik_Manggagawa</td></tr>
+        <tr><td class="field-name">coverageType</td><td class="field-type">enum</td><td class="field-note">Land_based | Sea_based</td></tr>
+        <tr><td class="field-name">salaryAmount / salaryCurrency</td><td class="field-type">Float / enum</td><td class="field-note">PHP | USD | HKD | Others</td></tr>
+        <tr><td class="field-name">employerName / employerCountry / contractStart / contractEnd / insuranceStart / isConflictZone</td><td class="field-type">mixed</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">passportDoc / visaDoc / employmentContractDoc / medicalCertificateDoc</td><td class="field-type">enum</td><td class="field-note">Uploaded | Missing — per-document checklist status, not file storage</td></tr>
+        <tr><td class="field-name">status</td><td class="field-type">enum</td><td class="field-note">Received | Cancelled | Duplicate | Reversed</td></tr>
+        <tr><td class="field-name">policyNumber<span class="badge uk">UK</span> / referenceNo<span class="badge uk">UK</span></td><td class="field-type">String?</td><td class="field-note">assigned once paid/issued</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> has many NonLifePaymentTransaction (product = OFW).</div>
+    </div>
+  </section>
+
+  <section class="block" id="ctpl">
+    <h2>CTPL applications</h2>
+    <div class="model-card">
+      <div class="model-head"><code>CtplApplication</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">policyType</td><td class="field-type">enum</td><td class="field-note">Private_Car | Commercial_Vehicle | Motorcycle</td></tr>
+        <tr><td class="field-name">mvType</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">renewalType</td><td class="field-type">enum</td><td class="field-note">New_1_Year | Renewal</td></tr>
+        <tr><td class="field-name">clientType</td><td class="field-type">enum</td><td class="field-note">Individual | Corporate_without_assignee | Corporate_with_assignee</td></tr>
+        <tr><td class="field-name">ownerFirstName…mobileNumber (8 cols)</td><td class="field-type">String / Boolean</td><td class="field-note">owner vs. applicant identity; sameAsOwner toggle</td></tr>
+        <tr><td class="field-name">plateNumber / mvFileNumber / chassisNumber</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">requiresCOV</td><td class="field-type">Boolean</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">status</td><td class="field-type">enum</td><td class="field-note">Completed | Spoiled | Duplicate | Reversed | Cancelled</td></tr>
+        <tr><td class="field-name">policyNumber<span class="badge uk">UK</span> / referenceNo<span class="badge uk">UK</span></td><td class="field-type">String?</td><td class="field-note">assigned once paid/issued</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> has many NonLifePaymentTransaction (product = CTPL).</div>
+    </div>
+  </section>
+
+  <section class="block" id="gtp">
+    <h2>GTP applications</h2>
+    <div class="model-card">
+      <div class="model-head"><code>GtpApplication</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">travelType</td><td class="field-type">enum</td><td class="field-note">International | Domestic</td></tr>
+        <tr><td class="field-name">destinations</td><td class="field-type">String[]</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">departureDate / returnDate / daysOfTravel</td><td class="field-type">DateTime / Int</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">applicationType</td><td class="field-type">enum</td><td class="field-note">Individual | Family</td></tr>
+        <tr><td class="field-name">travelerFirstName…mobileNumber</td><td class="field-type">String / DateTime</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">planVariant</td><td class="field-type">enum</td><td class="field-note">Single_Trip | Multi_Trip_90 | Multi_Trip_180</td></tr>
+        <tr><td class="field-name">cruiseCoverage / hazardousSportsCoverage / isSchengenDestination</td><td class="field-type">Boolean</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">status</td><td class="field-type">enum</td><td class="field-note">Received | Cancelled | Duplicate</td></tr>
+        <tr><td class="field-name">policyNumber<span class="badge uk">UK</span> / referenceNo<span class="badge uk">UK</span></td><td class="field-type">String?</td><td class="field-note">assigned once paid/issued</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> has many NonLifePaymentTransaction (product = GTP).</div>
+    </div>
+  </section>
+
+  <section class="block" id="payments">
+    <h2>Payments &amp; Ledgers</h2>
+    <div class="block-sub">PD Life bills on an installment ledger; CTPL/OFW/GTP are straight-through one-time payments.</div>
+
+    <div class="model-card">
+      <div class="model-head"><code>LifePaymentTransaction</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">policyNo<span class="badge uk">UK</span><span class="badge fk">FK</span></td><td class="field-type">String</td><td class="field-note">&rarr; PdLifeApplication.policyNumber</td></tr>
+        <tr><td class="field-name">title…emailAddress (12 cols)</td><td class="field-type">String / DateTime / Int</td><td class="field-note">insured identity snapshot at billing time</td></tr>
+        <tr><td class="field-name">policyStatus</td><td class="field-type">enum</td><td class="field-note">Inforced | Lapsed | Terminated | Matured | Involuntary | Voluntary | Surrender</td></tr>
+        <tr><td class="field-name">premium, hcrPremium, deposit, underpay, cashValue, lifeBenefits, accidentalBenefits</td><td class="field-type">Float</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">dueDate, issueDate, effectivityDate, policyDate, expiryDate</td><td class="field-type">DateTime</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">planCode / planDesc / orDate? / orNumber?</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+      <div class="relations"><b>Relations:</b> belongs to one PdLifeApplication (via policyNo); has many PaymentLedgerItem.</div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>PaymentLedgerItem</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">paymentId<span class="badge fk">FK</span></td><td class="field-type">String</td><td class="field-note">&rarr; LifePaymentTransaction.id, cascade delete</td></tr>
+        <tr><td class="field-name">yrInstal / dueDate / status</td><td class="field-type">String / DateTime / String</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">uploaded / amountPaid / underpay</td><td class="field-type">Float</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">orNumber / orDate?</td><td class="field-type">String / DateTime?</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+    </div>
+
+    <div class="model-card">
+      <div class="model-head"><code>NonLifePaymentTransaction</code><span class="model-note">CTPL / OFW / GTP</span></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">product</td><td class="field-type">enum</td><td class="field-note">CTPL | OFW | GTP — says which FK below is populated</td></tr>
+        <tr><td class="field-name">policyNumber / referenceNo / payorName / planLabel / premium / dateReceived</td><td class="field-type">String / DateTime</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">ctplApplicationId<span class="badge fk">FK</span></td><td class="field-type">String?</td><td class="field-note">&rarr; CtplApplication.id</td></tr>
+        <tr><td class="field-name">ofwApplicationId<span class="badge fk">FK</span></td><td class="field-type">String?</td><td class="field-note">&rarr; OfwApplication.id</td></tr>
+        <tr><td class="field-name">gtpApplicationId<span class="badge fk">FK</span></td><td class="field-type">String?</td><td class="field-note">&rarr; GtpApplication.id</td></tr>
+      </table>
+      <div class="relations"><b>Note:</b> Prisma has no polymorphic relation, so each possible parent gets its own nullable FK; exactly one of the three should be set per row (enforced in the API layer with zod, not the DB) — a row can also have none set, for a payment logged manually with no matching application on file.</div>
+    </div>
+  </section>
+
+  <section class="block" id="documents">
+    <h2>Generated Documents</h2>
+    <div class="block-sub">Backs the Policy Schedule / COC / OR / Service Invoice download-and-store flow — see Change Log (20) in DEVELOPER_HANDOVER.md.</div>
+    <div class="model-card">
+      <div class="model-head"><code>GeneratedDocument</code><span class="model-note">one immutable row per generated file</span></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">applicationType</td><td class="field-type">enum</td><td class="field-note">PdLife | OFW | CTPL | GTP</td></tr>
+        <tr><td class="field-name">applicationId</td><td class="field-type">String</td><td class="field-note">not a DB-level FK — polymorphic like NonLifePaymentTransaction, but resolved against whichever table applicationType names, in application code only</td></tr>
+        <tr><td class="field-name">docKey</td><td class="field-type">String</td><td class="field-note">matches the frontend's PolicyDocumentSpec.key, e.g. "policy-schedule", "or"</td></tr>
+        <tr><td class="field-name">s3Key<span class="badge uk">UK</span></td><td class="field-type">String</td><td class="field-note">documents/{applicationType}/{applicationId}/{docKey}-{timestamp}.pdf</td></tr>
+        <tr><td class="field-name">contentType</td><td class="field-type">String</td><td class="field-note">default application/pdf</td></tr>
+        <tr><td class="field-name">generatedAt / generatedBy?</td><td class="field-type">DateTime / String?</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="audit">
+    <h2>Audit Logs</h2>
+    <div class="model-card">
+      <div class="model-head"><code>AuditLog</code></div>
+      <table class="fields">
+        <tr><td class="field-name">id<span class="badge pk">PK</span></td><td class="field-type">String (cuid)</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">timestamp</td><td class="field-type">DateTime</td><td class="field-note">&nbsp;</td></tr>
+        <tr><td class="field-name">userId<span class="badge fk">FK</span></td><td class="field-type">String?</td><td class="field-note">&rarr; User.id</td></tr>
+        <tr><td class="field-name">userLabel</td><td class="field-type">String</td><td class="field-note">denormalized display name, kept even if the user is later deleted</td></tr>
+        <tr><td class="field-name">role / action / module / details / ipAddress</td><td class="field-type">String</td><td class="field-note">&nbsp;</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Generated from <code style="font-family: var(--mono)">server/prisma/schema.prisma</code> — the schema file is the source of truth; re-generate this page if it drifts. Also checked into the repo as <code style="font-family: var(--mono)">DATABASE_SCHEMA.md</code> at the project root.
+  </footer>
+</main>
+
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' });
+
+  function setupErdPanZoom() {
+    var viewport = document.getElementById('erdViewport');
+    var canvas = document.getElementById('erdCanvas');
+    var zoomLevelEl = document.getElementById('erdZoomLevel');
+    if (!viewport || !canvas) return;
+
+    var scale = 1;
+    var minScale = 0.3;
+    var maxScale = 3;
+    var tx = 16;
+    var ty = 16;
+    var dragging = false;
+    var lastX = 0;
+    var lastY = 0;
+
+    function apply() {
+      canvas.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + scale + ')';
+      zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+    }
+
+    function zoomBy(factor, originX, originY) {
+      var next = Math.min(maxScale, Math.max(minScale, scale * factor));
+      if (next === scale) return;
+      var rect = viewport.getBoundingClientRect();
+      var px = (originX != null ? originX : rect.width / 2);
+      var py = (originY != null ? originY : rect.height / 2);
+      // Keep the point under the cursor fixed while scaling.
+      tx = px - ((px - tx) * (next / scale));
+      ty = py - ((py - ty) * (next / scale));
+      scale = next;
+      apply();
+    }
+
+    function fitToView() {
+      var svg = canvas.querySelector('svg');
+      if (!svg) { scale = 1; tx = 16; ty = 16; apply(); return; }
+      var vpRect = viewport.getBoundingClientRect();
+      var svgRect = svg.getBoundingClientRect();
+      var contentW = svgRect.width / scale;
+      var contentH = svgRect.height / scale;
+      var fitScale = Math.min((vpRect.width - 32) / contentW, (vpRect.height - 32) / contentH, 1);
+      scale = Math.max(minScale, Math.min(maxScale, fitScale));
+      tx = 16;
+      ty = 16;
+      apply();
+    }
+
+    document.getElementById('erdZoomIn').addEventListener('click', function () { zoomBy(1.25); });
+    document.getElementById('erdZoomOut').addEventListener('click', function () { zoomBy(0.8); });
+    document.getElementById('erdReset').addEventListener('click', fitToView);
+
+    viewport.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var rect = viewport.getBoundingClientRect();
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      zoomBy(factor, e.clientX - rect.left, e.clientY - rect.top);
+    }, { passive: false });
+
+    viewport.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      viewport.classList.add('grabbing');
+      viewport.setPointerCapture(e.pointerId);
+    });
+    viewport.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      tx += e.clientX - lastX;
+      ty += e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      apply();
+    });
+    function endDrag() { dragging = false; viewport.classList.remove('grabbing'); }
+    viewport.addEventListener('pointerup', endDrag);
+    viewport.addEventListener('pointercancel', endDrag);
+
+    apply();
+    // Diagram renders async; fit once mermaid has laid out the SVG.
+    setTimeout(fitToView, 150);
+  }
+
+  function renderDiagrams() {
+    try {
+      mermaid.run({ querySelector: 'pre.mermaid' }).then(setupErdPanZoom).catch(setupErdPanZoom);
+    } catch (e) {
+      setupErdPanZoom();
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderDiagrams);
+  } else {
+    renderDiagrams();
+  }
+</script>

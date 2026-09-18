@@ -1,0 +1,541 @@
+<title>Paramount Direct Schema Map</title>
+<style>
+  :root {
+    --bg: #0b0f16;
+    --bg-dots: #141a24;
+    --panel: #12181f;
+    --panel-2: #171e27;
+    --border: #232b37;
+    --text: #dde4ee;
+    --text-muted: #7c8798;
+    --text-dim: #4d5666;
+    --accent: #5b8def;
+    --identity: #5b8def;
+    --pdlife: #e8548c;
+    --nonlife: #2dd4bf;
+    --payments: #f0a63a;
+    --documents: #a78bfa;
+    --pk: #f0a63a;
+    --fk: #5b8def;
+    --uk: #a78bfa;
+    --line-required: #4d5666;
+    --line-optional: #3a4150;
+    --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  :root[data-page-theme="light"] {
+    --bg: #eef1f6;
+    --bg-dots: #e3e8f0;
+    --panel: #ffffff;
+    --panel-2: #f6f8fb;
+    --border: #d7deea;
+    --text: #1b2430;
+    --text-muted: #5b6675;
+    --text-dim: #94a0b2;
+    --line-required: #b7c0d0;
+    --line-optional: #d3d9e4;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Source Sans 3", "Segoe UI", -apple-system, sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+  header p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  header code { font-family: var(--mono); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; color: var(--text); }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 9px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+    font-size: 11.5px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .legend { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .legend-line { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-line svg { display: block; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .hint { color: var(--text-dim); }
+  .toolbar button {
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 11px;
+    cursor: pointer;
+  }
+  .toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    background:
+      linear-gradient(90deg, var(--bg-dots) 1px, transparent 1px) 0 0 / 28px 28px,
+      linear-gradient(var(--bg-dots) 1px, transparent 1px) 0 0 / 28px 28px,
+      var(--bg);
+  }
+  #canvas {
+    position: relative;
+    width: 2600px;
+    height: 1900px;
+  }
+  svg#lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  svg#lines path { fill: none; stroke-width: 1.5; transition: opacity 0.15s, stroke 0.15s; }
+  svg#lines path.required { stroke: var(--line-required); }
+  svg#lines path.optional { stroke: var(--line-optional); stroke-dasharray: 4 3; }
+  svg#lines path.dim { opacity: 0.08; }
+  svg#lines path.hi { stroke: var(--accent); opacity: 1; stroke-width: 2; }
+
+  .domain-label {
+    position: absolute;
+    top: 14px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 0;
+  }
+
+  .card {
+    position: absolute;
+    width: 250px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+    font-size: 11.5px;
+    transition: opacity 0.15s, box-shadow 0.15s;
+  }
+  :root[data-page-theme="light"] .card { box-shadow: 0 4px 14px rgba(30,40,60,0.08); }
+  .card.dim { opacity: 0.25; }
+  .card.hi { box-shadow: 0 0 0 2px var(--accent), 0 10px 24px rgba(0,0,0,0.35); }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px 10px 0 0;
+    cursor: grab;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-head:active { cursor: grabbing; }
+  .card-head .name { font-family: var(--mono); font-weight: 700; font-size: 12.5px; color: #fff; }
+  .card-head .count {
+    font-size: 9.5px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.22);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+
+  .card-body { padding: 5px 0; }
+  .field-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 3px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .field-row .fname { color: var(--text); overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+  .field-row .fname .flag {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 0 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .flag.pk { background: rgba(240,166,58,0.18); color: var(--pk); }
+  .flag.fk { background: rgba(91,141,239,0.18); color: var(--fk); }
+  .flag.uk { background: rgba(167,139,250,0.18); color: var(--uk); }
+  .field-row .ftype { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
+  .field-row.is-fk .ftype { color: var(--fk); }
+
+  .card-note {
+    margin: 4px 10px 9px;
+    padding-top: 7px;
+    border-top: 1px dashed var(--border);
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    white-space: normal;
+  }
+
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: var(--panel-2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+
+<header>
+  <h1>Paramount Direct &mdash; Database Schema Map</h1>
+  <p>Complete entity-relationship map of <code>server/prisma/schema.prisma</code> &mdash; every model, every column, grouped into five domains. Drag any card by its header to rearrange; click a header to trace exactly what it connects to.</p>
+</header>
+
+<div class="toolbar">
+  <div class="legend" id="legend"></div>
+  <span class="legend-line"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="currentColor" stroke-width="1.5"/></svg> required FK</span>
+  <span class="legend-line"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3"/></svg> optional FK</span>
+  <span class="hint">Drag to move &middot; click a header to trace its connections</span>
+  <div class="spacer"></div>
+  <button type="button" id="themeToggle">&#9788; Theme</button>
+  <button type="button" id="resetLayout">&#8634; Reset layout</button>
+</div>
+
+<div class="canvas-wrap" id="canvasWrap">
+  <div id="canvas">
+    <svg id="lines"></svg>
+  </div>
+</div>
+
+<script>
+(function () {
+  var DOMAINS = {
+    identity:  { label: 'Identity & Access', color: '#5b8def' },
+    pdlife:    { label: 'PD Life',            color: '#e8548c' },
+    nonlife:   { label: 'OFW / CTPL / GTP',   color: '#2dd4bf' },
+    payments:  { label: 'Payments',           color: '#f0a63a' },
+    documents: { label: 'Documents',          color: '#a78bfa' },
+  };
+
+  var MODELS = [
+    { id: 'Branch', domain: 'identity', fields: [
+      ['id','cuid','pk'], ['division','LIFE|NON_LIFE',''], ['region','String',''], ['province','String',''],
+      ['city','String',''], ['address','String',''], ['barangay','String?',''], ['zipcode','String',''],
+      ['mobile','String',''], ['telephone','String',''], ['fax','String?',''], ['email','String?',''],
+      ['website','String',''], ['status','Active|Inactive',''], ['createdAt','DateTime',''], ['updatedAt','DateTime',''],
+    ]},
+    { id: 'User', domain: 'identity', fields: [
+      ['id','cuid','pk'], ['firstName','String',''], ['lastName','String',''], ['email','String','uk'],
+      ['passwordHash','String',''], ['status','Active|Inactive',''], ['assignedProducts','String[]',''],
+      ['lastLoginAt','DateTime?',''], ['roleId','Role?','fk'], ['branchId','Branch?','fk'],
+      ['createdAt','DateTime',''], ['updatedAt','DateTime',''],
+    ]},
+    { id: 'Role', domain: 'identity', fields: [
+      ['id','cuid','pk'], ['name','String','uk*'], ['productScope','String',''], ['isDirectMarketing','Boolean',''],
+      ['createdAt','DateTime',''], ['updatedAt','DateTime',''],
+    ], note: '*name is unique together with productScope, not alone.' },
+    { id: 'RolePermission', domain: 'identity', fields: [
+      ['id','cuid','pk'], ['roleId','Role','fk'], ['moduleName','String',''], ['canRead','Boolean',''],
+      ['canWrite','Boolean',''], ['canDelete','Boolean',''],
+    ]},
+    { id: 'AuditLog', domain: 'identity', fields: [
+      ['id','cuid','pk'], ['timestamp','DateTime',''], ['userId','User?','fk'], ['userLabel','String',''],
+      ['role','String',''], ['action','String',''], ['module','String',''], ['details','String',''], ['ipAddress','String',''],
+    ], note: 'userLabel is denormalized so the log still reads correctly after a User row is deleted.' },
+
+    { id: 'PdLifeApplication', domain: 'pdlife', fields: [
+      ['id','cuid','pk'], ['payor','String',''], ['planCategory','Health|LifeAccident|Comprehensive',''],
+      ['planCode','String',''], ['planDesc','String',''], ['premium','String',''], ['source','String',''],
+      ['status','Received..Issued',''], ['details','Json',''], ['policyNumber','String?','uk'],
+      ['firstName..email','18 cols',''], ['createdAt','DateTime',''], ['updatedAt','DateTime',''],
+    ], note: 'Category-specific data (medical, employment) lives in details JSON, not columns.' },
+    { id: 'PdLifeBeneficiary', domain: 'pdlife', fields: [
+      ['id','cuid','pk'], ['applicationId','PdLifeApplication','fk'], ['fullName','String',''],
+      ['birthdate','DateTime',''], ['relationship','String',''], ['sharePercent','Float?',''],
+      ['designation','String?',''], ['trusteeName','String?',''], ['createdAt','DateTime',''],
+    ]},
+    { id: 'PdLifeIpeakRequest', domain: 'pdlife', fields: [
+      ['id','cuid','pk'], ['applicationId','PdLifeApplication','fk'], ['policyNumber','String',''],
+      ['method','NewBusiness|UpdateStatus',''], ['requestPayload','Json',''], ['responseBody','Json?',''],
+      ['statusCode','Int?',''], ['success','Boolean',''], ['errorMessage','String?',''], ['retryCount','Int',''],
+    ], note: 'Audit/retry trail for every call made to iPeak (LEAP Services).' },
+    { id: 'PdLifePolicyNumberSequence', domain: 'pdlife', fields: [
+      ['planCode','String','pk'], ['lastNumber','Int',''],
+    ], note: 'No relations - a plain counter, incremented atomically per plan code.' },
+
+    { id: 'OfwApplication', domain: 'nonlife', fields: [
+      ['id','cuid','pk'], ['lastName..referralSource','12 cols',''], ['natureOfEmployment','Direct_hired|Balik_Manggagawa',''],
+      ['coverageType','Land_based|Sea_based',''], ['salaryAmount','Float',''], ['salaryCurrency','PHP|USD|HKD|Others',''],
+      ['employerName','String',''], ['employerCountry','String',''], ['contractStart','DateTime',''],
+      ['contractEnd','DateTime',''], ['insuranceStart','DateTime',''], ['isConflictZone','Boolean',''],
+      ['passportDoc..medicalCertificateDoc','Uploaded|Missing',''], ['status','Received..Reversed',''],
+      ['policyNumber','String?','uk'], ['referenceNo','String?','uk'],
+    ]},
+    { id: 'CtplApplication', domain: 'nonlife', fields: [
+      ['id','cuid','pk'], ['policyType','Private_Car etc.',''], ['mvType','String',''], ['renewalType','New_1_Year|Renewal',''],
+      ['clientType','enum',''], ['ownerFirstName..mobileNumber','8 cols',''], ['plateNumber','String',''],
+      ['mvFileNumber','String',''], ['chassisNumber','String',''], ['requiresCOV','Boolean',''],
+      ['status','Completed..Cancelled',''], ['policyNumber','String?','uk'], ['referenceNo','String?','uk'],
+    ]},
+    { id: 'GtpApplication', domain: 'nonlife', fields: [
+      ['id','cuid','pk'], ['travelType','International|Domestic',''], ['destinations','String[]',''],
+      ['departureDate','DateTime',''], ['returnDate','DateTime',''], ['daysOfTravel','Int',''],
+      ['applicationType','Individual|Family',''], ['travelerFirstName..mobileNumber','5 cols',''],
+      ['planVariant','Single_Trip etc.',''], ['cruiseCoverage','Boolean',''], ['hazardousSportsCoverage','Boolean',''],
+      ['isSchengenDestination','Boolean',''], ['status','Received|Cancelled|Duplicate',''],
+      ['policyNumber','String?','uk'], ['referenceNo','String?','uk'],
+    ]},
+
+    { id: 'LifePaymentTransaction', domain: 'payments', fields: [
+      ['id','cuid','pk'], ['policyNo','PdLifeApplication','fk'], ['title..emailAddress','12 cols',''],
+      ['policyStatus','Inforced etc.',''], ['premium, hcrPremium, deposit...','Float x7',''],
+      ['dueDate..expiryDate','DateTime x5',''], ['planCode','String',''], ['planDesc','String',''],
+      ['orDate','DateTime?',''], ['orNumber','String?',''],
+    ], note: 'Joined to PdLifeApplication by policyNo <-> policyNumber, not an id FK.' },
+    { id: 'PaymentLedgerItem', domain: 'payments', fields: [
+      ['id','cuid','pk'], ['paymentId','LifePaymentTransaction','fk'], ['yrInstal','String',''],
+      ['dueDate','DateTime',''], ['uploaded','Float',''], ['amountPaid','Float',''], ['underpay','Float',''],
+      ['orNumber','String',''], ['orDate','DateTime?',''], ['status','String',''],
+    ]},
+    { id: 'NonLifePaymentTransaction', domain: 'payments', fields: [
+      ['id','cuid','pk'], ['product','CTPL|OFW|GTP',''], ['policyNumber','String',''], ['referenceNo','String',''],
+      ['payorName','String',''], ['planLabel','String',''], ['premium','String',''], ['dateReceived','DateTime',''],
+      ['ctplApplicationId','CtplApplication?','fk'], ['ofwApplicationId','OfwApplication?','fk'],
+      ['gtpApplicationId','GtpApplication?','fk'], ['createdAt','DateTime',''], ['updatedAt','DateTime',''],
+    ], note: 'The non-life equivalent of LifePaymentTransaction - no installment ledger, and three nullable FKs instead of one since Prisma has no polymorphic relation. product says which one is actually set - enforced in the API, not the DB.' },
+
+    { id: 'GeneratedDocument', domain: 'documents', fields: [
+      ['id','cuid','pk'], ['applicationType','PdLife|OFW|CTPL|GTP',''], ['applicationId','String',''],
+      ['docKey','String',''], ['s3Key','String','uk'], ['contentType','String',''],
+      ['generatedAt','DateTime',''], ['generatedBy','String?',''],
+    ], note: 'applicationId is not a DB-level FK - polymorphic like NonLifePaymentTransaction, resolved in app code only.' },
+  ];
+
+  var RELATIONS = [
+    ['User','roleId','Role','optional'],
+    ['User','branchId','Branch','optional'],
+    ['AuditLog','userId','User','optional'],
+    ['RolePermission','roleId','Role','required'],
+    ['PdLifeBeneficiary','applicationId','PdLifeApplication','required'],
+    ['PdLifeIpeakRequest','applicationId','PdLifeApplication','required'],
+    ['LifePaymentTransaction','policyNo','PdLifeApplication','required'],
+    ['PaymentLedgerItem','paymentId','LifePaymentTransaction','required'],
+    ['NonLifePaymentTransaction','ctplApplicationId','CtplApplication','optional'],
+    ['NonLifePaymentTransaction','ofwApplicationId','OfwApplication','optional'],
+    ['NonLifePaymentTransaction','gtpApplicationId','GtpApplication','optional'],
+  ];
+
+  var canvas = document.getElementById('canvas');
+  var canvasWrap = document.getElementById('canvasWrap');
+  var svg = document.getElementById('lines');
+  var cardEls = {};
+
+  function initialLayout() {
+    var colX = { identity: 30, pdlife: 340, nonlife: 660, payments: 1020, documents: 1360 };
+    var colY = { identity: 60, pdlife: 60, nonlife: 60, payments: 60, documents: 60 };
+    var positions = {};
+    MODELS.forEach(function (m) {
+      positions[m.id] = { x: colX[m.domain], y: colY[m.domain] };
+      colY[m.domain] += estimateHeight(m) + 22;
+    });
+    return positions;
+  }
+
+  function estimateHeight(m) {
+    return 40 + m.fields.length * 20 + (m.note ? 46 : 8);
+  }
+
+  function buildLegend() {
+    var legend = document.getElementById('legend');
+    Object.keys(DOMAINS).forEach(function (key) {
+      var d = DOMAINS[key];
+      var item = document.createElement('span');
+      item.className = 'legend-item';
+      item.innerHTML = '<span class="legend-dot" style="background:' + d.color + '"></span>' + d.label;
+      legend.appendChild(item);
+    });
+  }
+
+  function buildDomainLabels(positions) {
+    Object.keys(DOMAINS).forEach(function (key) {
+      var xs = MODELS.filter(function (m) { return m.domain === key; }).map(function (m) { return positions[m.id].x; });
+      if (!xs.length) return;
+      var el = document.createElement('div');
+      el.className = 'domain-label';
+      el.style.left = xs[0] + 'px';
+      el.style.color = DOMAINS[key].color;
+      el.textContent = DOMAINS[key].label;
+      canvas.appendChild(el);
+    });
+  }
+
+  function buildCards(positions) {
+    MODELS.forEach(function (m) {
+      var d = DOMAINS[m.domain];
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.style.left = positions[m.id].x + 'px';
+      card.style.top = (positions[m.id].y + 30) + 'px';
+      card.dataset.id = m.id;
+
+      var head = document.createElement('div');
+      head.className = 'card-head';
+      head.style.background = d.color;
+      head.innerHTML = '<span class="name">' + m.id + '</span><span class="count">' + m.fields.length + ' cols</span>';
+      card.appendChild(head);
+
+      var body = document.createElement('div');
+      body.className = 'card-body';
+      m.fields.forEach(function (f) {
+        var row = document.createElement('div');
+        row.className = 'field-row' + (f[2] === 'fk' ? ' is-fk' : '');
+        var flagHtml = f[2] ? '<span class="flag ' + f[2].replace('*','') + '">' + f[2].replace('*','').toUpperCase() + '</span>' : '';
+        row.innerHTML = '<span class="fname">' + f[0] + flagHtml + '</span><span class="ftype">' + f[1] + '</span>';
+        body.appendChild(row);
+      });
+      card.appendChild(body);
+
+      if (m.note) {
+        var note = document.createElement('div');
+        note.className = 'card-note';
+        note.textContent = m.note;
+        card.appendChild(note);
+      }
+
+      canvas.appendChild(card);
+      cardEls[m.id] = card;
+      makeDraggable(card, head);
+    });
+  }
+
+  function cardAnchor(id, side) {
+    var el = cardEls[id];
+    var x = parseFloat(el.style.left);
+    var y = parseFloat(el.style.top);
+    var w = el.offsetWidth;
+    var h = el.offsetHeight;
+    if (side === 'right') return { x: x + w, y: y + 18 };
+    if (side === 'left') return { x: x, y: y + 18 };
+    return { x: x + w / 2, y: y };
+  }
+
+  function drawLines() {
+    var svgHtml = '';
+    RELATIONS.forEach(function (r, i) {
+      var from = cardEls[r[0]], to = cardEls[r[2]];
+      if (!from || !to) return;
+      var fx = parseFloat(from.style.left), fy = parseFloat(from.style.top), fw = from.offsetWidth;
+      var tx = parseFloat(to.style.left), ty = parseFloat(to.style.top), tw = to.offsetWidth;
+      var fromRight = fx + fw < tx;
+      var p1 = fromRight ? { x: fx + fw, y: fy + 18 } : { x: fx, y: fy + 18 };
+      var p2 = fromRight ? { x: tx, y: ty + 18 } : { x: tx + tw, y: ty + 18 };
+      var mx = (p1.x + p2.x) / 2;
+      var d = 'M ' + p1.x + ' ' + p1.y + ' C ' + mx + ' ' + p1.y + ', ' + mx + ' ' + p2.y + ', ' + p2.x + ' ' + p2.y;
+      svgHtml += '<path class="' + r[3] + '" data-from="' + r[0] + '" data-to="' + r[2] + '" d="' + d + '"></path>';
+    });
+    svg.innerHTML = svgHtml;
+  }
+
+  function makeDraggable(card, handle) {
+    var dragging = false, startX, startY, origX, origY;
+    handle.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      origX = parseFloat(card.style.left); origY = parseFloat(card.style.top);
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      card.style.left = (origX + (e.clientX - startX)) + 'px';
+      card.style.top = (origY + (e.clientY - startY)) + 'px';
+      drawLines();
+    });
+    function stop() { dragging = false; }
+    handle.addEventListener('pointerup', stop);
+    handle.addEventListener('pointercancel', stop);
+    handle.addEventListener('click', function () { traceFrom(card.dataset.id); });
+  }
+
+  var traced = null;
+  function traceFrom(id) {
+    if (traced === id) { traced = null; clearTrace(); return; }
+    traced = id;
+    var connected = { };
+    connected[id] = true;
+    RELATIONS.forEach(function (r) {
+      if (r[0] === id) connected[r[2]] = true;
+      if (r[2] === id) connected[r[0]] = true;
+    });
+    Object.keys(cardEls).forEach(function (mid) {
+      cardEls[mid].classList.toggle('dim', !connected[mid]);
+      cardEls[mid].classList.toggle('hi', mid === id);
+    });
+    Array.prototype.forEach.call(svg.querySelectorAll('path'), function (p) {
+      var involved = p.dataset.from === id || p.dataset.to === id;
+      p.classList.toggle('dim', !involved);
+      p.classList.toggle('hi', involved);
+    });
+  }
+  function clearTrace() {
+    Object.keys(cardEls).forEach(function (mid) {
+      cardEls[mid].classList.remove('dim', 'hi');
+    });
+    Array.prototype.forEach.call(svg.querySelectorAll('path'), function (p) {
+      p.classList.remove('dim', 'hi');
+    });
+  }
+
+  function layout() {
+    canvas.innerHTML = '';
+    svg.id = 'lines';
+    canvas.appendChild(svg);
+    cardEls = {};
+    var positions = initialLayout();
+    buildDomainLabels(positions);
+    buildCards(positions);
+    requestAnimationFrame(drawLines);
+  }
+
+  buildLegend();
+  layout();
+
+  document.getElementById('resetLayout').addEventListener('click', function () {
+    traced = null;
+    layout();
+  });
+  document.getElementById('themeToggle').addEventListener('click', function () {
+    var root = document.documentElement;
+    root.setAttribute('data-page-theme', root.getAttribute('data-page-theme') === 'light' ? 'dark' : 'light');
+  });
+  canvasWrap.addEventListener('click', function (e) {
+    if (!e.target.closest('.card-head')) clearTrace2();
+  });
+  function clearTrace2() { traced = null; clearTrace(); }
+})();
+</script>

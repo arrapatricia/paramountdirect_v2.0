@@ -496,7 +496,7 @@ export default function App() {
         )}
 
         {/* OFW Payment Transactions */}
-        {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} />}
+        {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} currentUserRole={currentUserRole} />}
 
         {/* CTPL Dashboard */}
         {activeTab === 'ctpl-dashboard' && <CtplDashboard />}
@@ -520,7 +520,7 @@ export default function App() {
         )}
 
         {/* CTPL Payment Transactions */}
-        {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} />}
+        {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} currentUserRole={currentUserRole} />}
 
         {/* GTP Dashboard */}
         {activeTab === 'gtp-dashboard' && <GtpDashboard />}
@@ -544,7 +544,7 @@ export default function App() {
         )}
 
         {/* GTP Payment Transactions */}
-        {activeTab === 'gtp-payments' && <GtpPaymentTransactions data={gtpApplications} />}
+        {activeTab === 'gtp-payments' && <GtpPaymentTransactions data={gtpApplications} currentUserRole={currentUserRole} />}
 
         {/* Applications hub */}
         {activeTab === 'applications' && (

@@ -4,9 +4,10 @@ import type { CtplApplication } from './ctpl_types';
 
 interface Props {
   data: CtplApplication[];
+  currentUserRole?: string | null;
 }
 
-export default function CtplPaymentTransactions({ data }: Props) {
+export default function CtplPaymentTransactions({ data, currentUserRole = null }: Props) {
   const rows = data
     .filter((d) => d.isPaid)
     .map((d) => ({
@@ -19,5 +20,9 @@ export default function CtplPaymentTransactions({ data }: Props) {
       dateReceived: d.dateReceived,
     }));
 
-  return <ProductPaymentTransactions productLabel="CTPL" accentColor="#002f6c" rows={rows} />;
+  // Admin is the seeded demo login used to test every role-gated feature,
+  // so it's treated as a superset of Cashier access rather than excluded.
+  const canCreate = currentUserRole === 'Cashier' || currentUserRole === 'Admin';
+
+  return <ProductPaymentTransactions productLabel="CTPL" accentColor="#002f6c" rows={rows} canCreate={canCreate} />;
 }

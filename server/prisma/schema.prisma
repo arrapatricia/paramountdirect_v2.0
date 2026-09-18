@@ -604,6 +604,37 @@ model NonLifePaymentTransaction {
 }
 
 // ---------------------------------------------------------------------------
+// Generated policy documents (Policy Schedule, COC, OR, Service Invoice, ...)
+// ---------------------------------------------------------------------------
+
+enum DocumentApplicationType {
+  PdLife
+  OFW
+  CTPL
+  GTP
+}
+
+// One immutable row per generated document, written once (when a
+// transaction's isPaid flips true) and never overwritten - the S3 object
+// itself is the source of truth for the bytes, this row is just the pointer
+// plus enough metadata to list/audit what's been generated for an
+// application. See PolicyDocumentsSection in policy_documents.tsx for the
+// frontend side this backs.
+model GeneratedDocument {
+  id              String                  @id @default(cuid())
+  applicationType DocumentApplicationType
+  applicationId   String
+  // Matches the frontend's PolicyDocumentSpec.key, e.g. "policy-schedule", "or".
+  docKey          String
+  s3Key           String                  @unique
+  contentType     String                  @default("application/pdf")
+  generatedAt     DateTime                @default(now())
+  generatedBy     String?
+
+  @@index([applicationType, applicationId])
+}
+
+// ---------------------------------------------------------------------------
 // Audit logs
 // ---------------------------------------------------------------------------
 

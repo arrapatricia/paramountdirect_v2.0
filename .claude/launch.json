@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "paramountdirect_v2-dev",
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "paramountdirect_v2-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "server", "run", "dev"],
+      "port": 4000,
+      "autoPort": true
+    }
+  ]
+}
