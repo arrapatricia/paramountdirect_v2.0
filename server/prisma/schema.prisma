@@ -185,8 +185,11 @@ model PdLifeApplication {
   telephoneNumber  String?
   email            String?
 
-  beneficiaries PdLifeBeneficiary[]
-  ipeakRequests PdLifeIpeakRequest[]
+  beneficiaries      PdLifeBeneficiary[]
+  ipeakRequests      PdLifeIpeakRequest[]
+  // Billing/ledger side of the same policy, once issued - keyed off the same
+  // policy number iPeak assigned above (see PaymentTransaction.policyNo).
+  paymentTransaction PaymentTransaction?
 
   @@index([status])
   @@index([planCategory])
@@ -463,7 +466,11 @@ enum PolicyStatus {
 
 model PaymentTransaction {
   id               String   @id @default(cuid())
-  policyNo         String   @unique
+  // References the PD Life application this ledger belongs to via its
+  // issued policy number - a PaymentTransaction can only exist once an
+  // application has actually been issued a policy number by iPeak.
+  policyNo         String            @unique
+  application      PdLifeApplication @relation(fields: [policyNo], references: [policyNumber])
   title            String
   firstName        String
   middleName       String
