@@ -10,7 +10,7 @@ import pdLogoWhite from '../assets/PD Logo_white.png';
 const APP_VERSION = 'v2.1.0-build.84';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (rememberMe: boolean) => void;
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
 }
@@ -18,6 +18,7 @@ interface LoginProps {
 export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
@@ -40,7 +41,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
       return;
     }
 
-    onLoginSuccess();
+    onLoginSuccess(rememberMe);
   };
 
   // Render Forgot Password component when triggered
@@ -166,6 +167,8 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
             }`}>
               <input
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded-md border-gray-300 text-[#d0112b] focus:ring-[#d0112b]"
               />
               <span className="ml-2 font-medium">Remember me</span>

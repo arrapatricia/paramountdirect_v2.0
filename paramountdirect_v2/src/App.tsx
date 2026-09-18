@@ -257,8 +257,22 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, 
   };
 });
 
+// Auth is otherwise pure in-memory React state, which a page refresh always
+// wipes - persisting a flag here is what makes "Remember me" (localStorage,
+// survives closing the browser) vs. a plain login (sessionStorage, survives
+// a refresh but not closing the tab) actually do something.
+const AUTH_STORAGE_KEY = 'pd_authenticated';
+
+function readStoredAuth(): boolean {
+  try {
+    return localStorage.getItem(AUTH_STORAGE_KEY) === '1' || sessionStorage.getItem(AUTH_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
   const [activeProduct, setActiveProduct] = useState<ProductLine>('PD Life');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('users');
@@ -294,8 +308,28 @@ export default function App() {
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
+  const handleLoginSuccess = (rememberMe: boolean) => {
+    try {
+      (rememberMe ? localStorage : sessionStorage).setItem(AUTH_STORAGE_KEY, '1');
+    } catch {
+      // Private-browsing/storage-disabled contexts can throw - login still
+      // works for the current in-memory session, it just won't survive a refresh.
+    }
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    } catch {
+      // See handleLoginSuccess.
+    }
+    setIsAuthenticated(false);
+  };
+
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={() => setIsAuthenticated(true)} darkMode={darkMode} setDarkMode={toggleDarkMode} />;
+    return <Login onLoginSuccess={handleLoginSuccess} darkMode={darkMode} setDarkMode={toggleDarkMode} />;
   }
 
   const handleUpdateStatus = (newStatus: string) => {
@@ -360,7 +394,7 @@ export default function App() {
         }}
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
-        onLogout={() => setIsAuthenticated(false)}
+        onLogout={handleLogout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentUserName={CURRENT_USER.name}
