@@ -27,7 +27,6 @@ router.get(
             }
           : {}),
       },
-      include: { ledgerHistory: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json(payments);
@@ -39,23 +38,11 @@ router.get(
   asyncHandler(async (req, res) => {
     const payment = await prisma.lifePaymentTransaction.findUnique({
       where: { id: req.params.id },
-      include: { ledgerHistory: true },
     });
     if (!payment) throw new HttpError(404, 'Payment transaction not found');
     res.json(payment);
   })
 );
-
-const ledgerItemSchema = z.object({
-  yrInstal: z.string().min(1),
-  dueDate: z.coerce.date(),
-  uploaded: z.number(),
-  amountPaid: z.number(),
-  underpay: z.number(),
-  orNumber: z.string().min(1),
-  orDate: z.coerce.date().optional(),
-  status: z.string().min(1),
-});
 
 const createPaymentSchema = z.object({
   policyNo: z.string().min(1),
@@ -94,22 +81,14 @@ const createPaymentSchema = z.object({
   planDesc: z.string().min(1),
   orDate: z.coerce.date().optional(),
   orNumber: z.string().optional(),
-
-  ledgerHistory: z.array(ledgerItemSchema).default([]),
 });
 
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { ledgerHistory, ...data } = createPaymentSchema.parse(req.body);
+    const data = createPaymentSchema.parse(req.body);
 
-    const payment = await prisma.lifePaymentTransaction.create({
-      data: {
-        ...data,
-        ledgerHistory: { create: ledgerHistory },
-      },
-      include: { ledgerHistory: true },
-    });
+    const payment = await prisma.lifePaymentTransaction.create({ data });
 
     await recordAudit(req, { action: 'CREATE', module: 'Payment Transactions', details: `Created payment transaction ${payment.policyNo}` });
     res.status(201).json(payment);
@@ -121,20 +100,11 @@ const updatePaymentSchema = createPaymentSchema.partial();
 router.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const { ledgerHistory, ...data } = updatePaymentSchema.parse(req.body);
+    const data = updatePaymentSchema.parse(req.body);
 
-    const payment = await prisma.$transaction(async (tx) => {
-      if (ledgerHistory) {
-        await tx.paymentLedgerItem.deleteMany({ where: { paymentId: req.params.id } });
-      }
-      return tx.lifePaymentTransaction.update({
-        where: { id: req.params.id },
-        data: {
-          ...data,
-          ...(ledgerHistory ? { ledgerHistory: { create: ledgerHistory } } : {}),
-        },
-        include: { ledgerHistory: true },
-      });
+    const payment = await prisma.lifePaymentTransaction.update({
+      where: { id: req.params.id },
+      data,
     });
 
     await recordAudit(req, { action: 'UPDATE', module: 'Payment Transactions', details: `Updated payment transaction ${payment.policyNo}` });

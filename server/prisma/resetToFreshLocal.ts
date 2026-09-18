@@ -58,7 +58,6 @@ async function main() {
     await tx.ofwApplication.deleteMany();
     await tx.ctplApplication.deleteMany();
     await tx.gtpApplication.deleteMany();
-    await tx.paymentLedgerItem.deleteMany();
     await tx.lifePaymentTransaction.deleteMany();
     await tx.user.deleteMany({ where: { email: { notIn: KEEP_USER_EMAILS } } });
   });

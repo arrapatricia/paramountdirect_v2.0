@@ -213,6 +213,9 @@ model PdLifeBeneficiary {
 enum PdLifeIpeakMethod {
   NewBusiness
   UpdateStatus
+  // iPeak's "Policy Inquiry" method (PDPolicy + PolCoverages/PolBeneficiaries/
+  // PayHistory/Loans) - see server/src/services/ipeak/policyInquiry.ts.
+  PolicyInquiry
 }
 
 // Audit / retry trail for every call made to iPeak (LEAP Services) for a PD
@@ -537,26 +540,13 @@ model LifePaymentTransaction {
   orDate    DateTime?
   orNumber  String?
 
-  ledgerHistory PaymentLedgerItem[]
-
+  // Ledger/installment detail (iPeak's PayHistory) is NOT duplicated into its
+  // own table - it's read on demand from the most recent successful
+  // PdLifeIpeakRequest{method: PolicyInquiry} row's responseBody for this
+  // policy, via distributePolicyInquiry.ts. Avoids keeping a second copy of
+  // the same data in sync with every inquiry call.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model PaymentLedgerItem {
-  id           String   @id @default(cuid())
-  paymentId    String
-  payment      LifePaymentTransaction @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  yrInstal     String
-  dueDate      DateTime
-  uploaded     Float
-  amountPaid   Float
-  underpay     Float
-  orNumber     String
-  orDate       DateTime?
-  status       String
-
-  @@index([paymentId])
 }
 
 // ---------------------------------------------------------------------------
