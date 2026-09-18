@@ -82,6 +82,9 @@ const PRODUCT_ROLES_MAP: Record<ProductScope, string[]> = {
   ]
 };
 
+// Fresh-environment reset: only the retained access stays provisioned here.
+// admin@paramount.com.ph isn't in this list at all - it's the separate
+// hardcoded demo login in login.tsx, unaffected by this array.
 export const INITIAL_USERS: UserAccount[] = [
   {
     id: 'USR-1001',
@@ -92,56 +95,6 @@ export const INITIAL_USERS: UserAccount[] = [
     assignedProducts: ['PD Life', 'OFW', 'CTPL', 'GTP'],
     status: 'Active',
     lastLogin: '2026-09-02 08:45 AM'
-  },
-  {
-    id: 'USR-1002',
-    firstName: 'Juan',
-    lastName: 'Dela Cruz',
-    email: 'juan.delacruz@paramount.com.ph',
-    role: 'Operations',
-    assignedProducts: ['PD Life', 'OFW'],
-    status: 'Active',
-    lastLogin: '2026-09-01 04:12 PM'
-  },
-  {
-    id: 'USR-1003',
-    firstName: 'Maria',
-    lastName: 'Santos',
-    email: 'maria.santos@paramount.com.ph',
-    role: 'Motor Insurance Underwriter',
-    assignedProducts: ['CTPL', 'GTP'],
-    status: 'Active',
-    lastLogin: '2026-08-30 11:20 AM'
-  },
-  {
-    id: 'USR-1004',
-    firstName: 'Oliver',
-    lastName: 'Rodrigo',
-    email: 'oliver.rodrigo@paramount.com.ph',
-    role: 'Operations',
-    assignedProducts: ['PD Life'],
-    status: 'Inactive',
-    lastLogin: '2026-09-13 09:05 AM'
-  },
-  {
-    id: 'USR-1005',
-    firstName: 'Isabelle',
-    lastName: 'Marasigan',
-    email: 'isabelle.marasigan@paramount.com.ph',
-    role: 'Marketing',
-    assignedProducts: ['PD Life'],
-    status: 'Active',
-    lastLogin: '2026-09-12 10:15 AM'
-  },
-  {
-    id: 'USR-1006',
-    firstName: 'Ramon',
-    lastName: 'Aquino',
-    email: 'ramon.aquino@paramount.com.ph',
-    role: 'Contact Center',
-    assignedProducts: ['PD Life'],
-    status: 'Active',
-    lastLogin: '2026-09-12 02:40 PM'
   }
 ];
 

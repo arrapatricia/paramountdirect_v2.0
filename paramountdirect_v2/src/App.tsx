@@ -61,7 +61,10 @@ export interface ScreeningItem {
   status: string;
 }
 
-const initialMockData: ScreeningItem[] = Array.from({ length: 45 }).map((_, i) => {
+// Fresh-environment reset: no seed applications, only the two retained
+// accounts (see INITIAL_USERS in user_management.tsx). Set the length back
+// above 0 to bring the demo dataset back.
+const initialMockData: ScreeningItem[] = Array.from({ length: 0 }).map((_, i) => {
   const plans = [
     { code: 'HIP', desc: 'Plan 500 - Family', premium: '₱500.00' },
     { code: 'GLA', desc: '1 Unit', premium: '₱413.00' },
@@ -106,7 +109,7 @@ const OFW_MOCK_APPLICANTS = [
   { firstName: 'Ramil', lastName: 'Torres', occupation: 'Factory Worker', coverage: 'Land-based' as const, country: 'Israel' },
 ];
 
-const initialOfwMockData: OfwApplication[] = Array.from({ length: 24 }).map((_, i) => {
+const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
   // Weighted so most applications sit in 'Received' (the common case), with
   // the terminal outcomes appearing occasionally.
@@ -173,7 +176,7 @@ const CTPL_MOCK_OWNERS = [
   { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Truck', premium: 1200 },
 ];
 
-const initialCtplMockData: CtplApplication[] = Array.from({ length: 24 }).map((_, i) => {
+const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const owner = CTPL_MOCK_OWNERS[i % CTPL_MOCK_OWNERS.length];
   const statusCycle: typeof CTPL_STATUSES[number][] = [
     'Completed', 'Completed', 'Completed', 'Cancelled', 'Completed', 'Spoiled', 'Completed', 'Duplicate', 'Completed', 'Reversed',
@@ -222,7 +225,7 @@ const GTP_MOCK_TRAVELERS = [
   { firstName: 'Diego', surname: 'Ramos', destinations: ['Thailand'], type: 'Individual' as const, plan: 'Single Trip' as const },
 ];
 
-const initialGtpMockData: GtpApplication[] = Array.from({ length: 24 }).map((_, i) => {
+const initialGtpMockData: GtpApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const traveler = GTP_MOCK_TRAVELERS[i % GTP_MOCK_TRAVELERS.length];
   const statusCycle: typeof GTP_STATUSES[number][] = ['Received', 'Received', 'Received', 'Cancelled', 'Received', 'Duplicate'];
   const status = statusCycle[i % statusCycle.length];
