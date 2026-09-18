@@ -34,7 +34,7 @@ import OfwPaymentTransactions from './components/ofw_payment_transactions';
 import CtplPaymentTransactions from './components/ctpl_payment_transactions';
 import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
-import UserManagement from './components/user_management';
+import UserManagement, { INITIAL_USERS, type UserAccount } from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
@@ -297,6 +297,9 @@ export default function App() {
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
   const [premiumRates, setPremiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
+  // Lifted out of UserManagement so Login can validate against real
+  // provisioned accounts, not just the hardcoded admin/noaccess demo logins.
+  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
 
   useEffect(() => {
     if (darkMode) {
@@ -329,7 +332,7 @@ export default function App() {
   };
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLoginSuccess} darkMode={darkMode} setDarkMode={toggleDarkMode} />;
+    return <Login onLoginSuccess={handleLoginSuccess} darkMode={darkMode} setDarkMode={toggleDarkMode} users={users} />;
   }
 
   const handleUpdateStatus = (newStatus: string) => {
@@ -519,7 +522,7 @@ export default function App() {
         {/* Maintenance Sub-module Views */}
         {activeTab === 'maintenance' && (
           activeSubTab === 'users' ? (
-            <UserManagement />
+            <UserManagement users={users} setUsers={setUsers} />
           ) : activeSubTab === 'roles' ? (
             <RoleAccessMaintenance />
           // Premium Maintenance removed from nav per request - see

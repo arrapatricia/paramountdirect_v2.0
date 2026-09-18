@@ -82,7 +82,7 @@ const PRODUCT_ROLES_MAP: Record<ProductScope, string[]> = {
   ]
 };
 
-const INITIAL_USERS: UserAccount[] = [
+export const INITIAL_USERS: UserAccount[] = [
   {
     id: 'USR-1001',
     firstName: 'Arra',
@@ -183,8 +183,12 @@ function StatCard({ label, value, tone = 'default' }: { label: string; value: st
   );
 }
 
-export default function UserManagement() {
-  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
+interface Props {
+  users: UserAccount[];
+  setUsers: React.Dispatch<React.SetStateAction<UserAccount[]>>;
+}
+
+export default function UserManagement({ users, setUsers }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductFilter, setSelectedProductFilter] = useState<string>('All');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');

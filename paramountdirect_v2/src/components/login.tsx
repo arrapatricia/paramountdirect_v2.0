@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Sun, Moon, AlertCircle } from 'lucide-react';
 import ForgotPassword from './forgot_password';
+import type { UserAccount } from './user_management';
 
 // Import light and dark logos
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
@@ -13,9 +14,10 @@ interface LoginProps {
   onLoginSuccess: (rememberMe: boolean) => void;
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
+  users: UserAccount[];
 }
 
-export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginProps) {
+export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -26,17 +28,32 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode }: LoginPr
     e.preventDefault();
     setErrorMessage(null);
 
-    if (email !== 'admin@paramount.com.ph' && email !== 'noaccess@paramount.com.ph') {
-      setErrorMessage('Error: Invalid username or account does not exist.');
-      return;
-    }
-
     if (email === 'noaccess@paramount.com.ph') {
       setErrorMessage('Error: Access denied. Your account lacks system authorization.');
       return;
     }
 
-    if (password !== 'admin123') {
+    // The seeded demo login always works, on top of whatever real accounts
+    // exist in User Management - this keeps the documented/e2e-tested
+    // admin@paramount.com.ph / admin123 login working even though it isn't
+    // itself one of the provisioned users.
+    const isDefaultAdmin = email === 'admin@paramount.com.ph';
+    const matchedUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!isDefaultAdmin && !matchedUser) {
+      setErrorMessage('Error: Invalid username or account does not exist.');
+      return;
+    }
+
+    if (matchedUser && matchedUser.status === 'Inactive') {
+      setErrorMessage('Error: Access denied. Your account has been deactivated.');
+      return;
+    }
+
+    // Provisioned users default to admin123 until someone sets a real
+    // password for them via User Management's Edit User form.
+    const expectedPassword = isDefaultAdmin ? 'admin123' : (matchedUser!.password || 'admin123');
+    if (password !== expectedPassword) {
       setErrorMessage('Error: Incorrect password. Please try again.');
       return;
     }
