@@ -23,6 +23,9 @@ export interface UserAccount {
   assignedProducts: ProductScope[];
   status: 'Active' | 'Inactive';
   lastLogin: string;
+  // Only ever set at creation time in this mock - there's no change-password
+  // flow here, and it's never rendered back anywhere (table, edit modal).
+  password?: string;
 }
 
 // Direct Marketing's own operating roles for this system, ahead of the
@@ -190,6 +193,8 @@ export default function UserManagement() {
   const [notification, setNotification] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<UserAccount>>({});
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const filteredUsers = users.filter((u) => {
     const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
@@ -245,10 +250,13 @@ export default function UserManagement() {
       firstName: '',
       lastName: '',
       email: '',
+      password: '',
       role: initialRoles[0],
       assignedProducts: initialProducts,
       status: 'Active'
     });
+    setConfirmPassword('');
+    setPasswordError(null);
   };
 
   const handleToggleProductForm = (prod: ProductScope) => {
@@ -284,16 +292,45 @@ export default function UserManagement() {
     if (!formData.firstName || !formData.lastName || !formData.email) return;
 
     if (isCreating) {
+      if (!formData.password || formData.password.length < 8) {
+        setPasswordError('Password must be at least 8 characters.');
+        return;
+      }
+      if (formData.password !== confirmPassword) {
+        setPasswordError('Passwords do not match.');
+        return;
+      }
+      setPasswordError(null);
+
       const newUser = { ...formData, lastLogin: 'Never' } as UserAccount;
       setUsers([newUser, ...users]);
       triggerBanner(`User ${newUser.firstName} ${newUser.lastName} created successfully.`);
     } else {
-      setUsers(users.map((u) => u.id === formData.id ? ({ ...u, ...formData } as UserAccount) : u));
+      // Password is optional on edit - only touch it if the admin actually
+      // typed a new one, so leaving both fields blank keeps the current
+      // (never-displayed-back) password untouched.
+      const patch = { ...formData };
+      if (patch.password) {
+        if (patch.password.length < 8) {
+          setPasswordError('Password must be at least 8 characters.');
+          return;
+        }
+        if (patch.password !== confirmPassword) {
+          setPasswordError('Passwords do not match.');
+          return;
+        }
+      } else {
+        delete patch.password;
+      }
+      setPasswordError(null);
+
+      setUsers(users.map((u) => u.id === formData.id ? ({ ...u, ...patch } as UserAccount) : u));
       triggerBanner(`User account ${formData.id} updated.`);
     }
 
     setActiveModalUser(null);
     setIsCreating(false);
+    setConfirmPassword('');
   };
 
   return (
@@ -450,7 +487,7 @@ export default function UserManagement() {
                 <td className="py-4 px-3">
                   <div className="flex items-center justify-center space-x-1.5">
                     <button
-                      onClick={() => { setIsCreating(false); setActiveModalUser(user); setFormData({ ...user }); }}
+                      onClick={() => { setIsCreating(false); setActiveModalUser(user); setFormData({ ...user }); setConfirmPassword(''); setPasswordError(null); }}
                       title="Edit user"
                       className="p-2 rounded-xl bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                     >
@@ -489,7 +526,7 @@ export default function UserManagement() {
                   {!isCreating && <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{formData.id}</p>}
                 </div>
               </div>
-              <button onClick={() => { setActiveModalUser(null); setIsCreating(false); }} className="cursor-pointer"><X className="w-5 h-5 text-slate-400 dark:text-slate-500" /></button>
+              <button onClick={() => { setActiveModalUser(null); setIsCreating(false); setConfirmPassword(''); setPasswordError(null); }} className="cursor-pointer"><X className="w-5 h-5 text-slate-400 dark:text-slate-500" /></button>
             </div>
 
             <form onSubmit={handleSaveUser} className="space-y-4 text-xs">
@@ -531,6 +568,39 @@ export default function UserManagement() {
                   className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                   placeholder="juan.delacruz@paramount.com.ph"
                 />
+              </div>
+
+              {/* Password - required when provisioning new access; optional
+                  when editing (leave both blank to keep the current password). */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1 dark:text-slate-300">
+                    {isCreating ? 'Password' : 'New Password'}
+                  </label>
+                  <input
+                    type="password"
+                    required={isCreating}
+                    minLength={8}
+                    value={formData.password || ''}
+                    onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setPasswordError(null); }}
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder={isCreating ? 'Min. 8 characters' : 'Leave blank to keep current'}
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1 dark:text-slate-300">Confirm Password</label>
+                  <input
+                    type="password"
+                    required={isCreating || !!formData.password}
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }}
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder="Re-enter password"
+                  />
+                </div>
+                {passwordError && (
+                  <p className="col-span-2 text-[11px] font-bold text-rose-600 dark:text-rose-400">{passwordError}</p>
+                )}
               </div>
 
               {/* Assigned Products Checkboxes */}
@@ -616,7 +686,7 @@ export default function UserManagement() {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2 pt-4 border-t dark:border-slate-800">
-                <button type="button" onClick={() => { setActiveModalUser(null); setIsCreating(false); }} className="px-4 py-2 rounded-xl border font-bold text-slate-600 cursor-pointer dark:border-slate-700 dark:text-slate-300">Cancel</button>
+                <button type="button" onClick={() => { setActiveModalUser(null); setIsCreating(false); setConfirmPassword(''); setPasswordError(null); }} className="px-4 py-2 rounded-xl border font-bold text-slate-600 cursor-pointer dark:border-slate-700 dark:text-slate-300">Cancel</button>
                 <button type="submit" className="px-5 py-2 rounded-xl bg-[#008cb4] hover:bg-[#007396] text-white font-bold cursor-pointer transition-all">Save Record</button>
               </div>
             </form>
