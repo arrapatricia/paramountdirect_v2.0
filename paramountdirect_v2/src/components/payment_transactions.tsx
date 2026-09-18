@@ -59,8 +59,16 @@ export interface PaymentTransaction {
   hcrUnit: string;
   premium: number;
   hcrPremium: number;
+  modalPremium: number;
+  amountPaid: number;
   deposit: number;
   underpay: number;
+  cashLoan: number;
+  // Automatic Premium Loan: an automatic loan against the policy's own Cash
+  // Value that the insurer applies to cover an unpaid premium instead of
+  // letting the policy lapse. It can never exceed what's actually available
+  // in Cash Value, so it's always derived from it rather than entered directly.
+  automaticPremiumLoan: number;
   dueDate: string;
   payType: string;
   cashValue: number;
@@ -81,6 +89,36 @@ export interface PaymentTransaction {
 }
 
 const ITEMS_PER_PAGE = 25;
+
+// Overdue interest rate applied to a missed premium when an Automatic
+// Premium Loan is drawn, keyed by payment mode.
+const MODE_OVERDUE_INTEREST_RATE: Record<string, number> = {
+  Annual: 0.111111,
+  'Semi-Annual': 0.0540925,
+  Quarterly: 0.02669,
+  Monthly: 0.0088187,
+};
+
+// Automatic Premium Loan: when a premium goes unpaid, the company loans
+// against the policy's own Cash Value instead of letting it lapse -
+// Total APL = (overdue Modal Premium + any already-outstanding APL balance)
+// x (1 + the mode's overdue interest rate), since both the new premium and
+// the carried-over balance accrue interest at the same rate. It can never
+// exceed what the policy has actually accumulated in Cash Value, and it
+// only applies once there's an overdue premium in the first place - a
+// missed payment with no Cash Value to draw against just lapses normally.
+const computeAutomaticPremiumLoan = (
+  modalPremium: number,
+  outstandingApl: number,
+  mode: string,
+  cashValue: number,
+  hasOverduePremium: boolean
+): number => {
+  if (!hasOverduePremium || cashValue <= 0) return 0;
+  const rate = MODE_OVERDUE_INTEREST_RATE[mode] ?? MODE_OVERDUE_INTEREST_RATE.Monthly;
+  const total = (modalPremium + outstandingApl) * (1 + rate);
+  return Math.min(total, cashValue);
+};
 
 const generateFullYearLedger = (premiumAmt: number, orNo: string, overallStatus: string): PaymentLedgerItem[] => {
   const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
@@ -113,7 +151,9 @@ const generateFullYearLedger = (premiumAmt: number, orNo: string, overallStatus:
   });
 };
 
-const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 32 }).map((_, i) => {
+// Fresh-environment reset: no seed policies. Set the length back above 0 to
+// bring the demo ledger back.
+const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 0 }).map((_, i) => {
   const names = [
     { first: 'JUAN', last: 'DELA CRUZ', policy: 'HIP-008001-0', plan: 'HIP', desc: 'Hospital Income Benefit Plan', prem: 500.00 },
     { first: 'PEDRO', last: 'SAN JUAN JR', policy: 'GLA-007727-0', plan: 'GLA', desc: 'Golden Life Advantage Plan', prem: 413.00 },
@@ -133,6 +173,15 @@ const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 32 }).ma
   } else if (i === 3 || i === 10) {
     statusType = 'Matured';
   }
+
+  const orNo = `5000000000${(198 + i).toString()}`;
+  const ledger = generateFullYearLedger(p.prem, orNo, statusType);
+  const mode = 'Monthly';
+  // DM cash-value products only start accumulating Cash Value on their 2nd-4th
+  // policy-year anniversary, so a couple of the Lapsed sample policies are
+  // given a modest balance to show the Automatic Premium Loan actually
+  // computing against something, rather than every Lapsed row reading zero.
+  const cashValue = statusType === 'Matured' ? 50000.00 : statusType === 'Lapsed' ? 12000.00 : 0;
 
   return {
     policyNo: customPolicyNo,
@@ -154,14 +203,18 @@ const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 32 }).ma
     hcrUnit: '0',
     premium: p.prem,
     hcrPremium: 0,
+    modalPremium: p.prem, // same figure as `premium`, expressed in the policy's payment-mode terms - the APL formula's "Premium" input
+    amountPaid: ledger.reduce((sum, item) => sum + item.amountPaid, 0),
     deposit: 0,
     underpay: statusType === 'Lapsed' ? p.prem : 0,
+    cashLoan: statusType === 'Matured' ? 10000.00 : 0,
+    automaticPremiumLoan: computeAutomaticPremiumLoan(p.prem, 0, mode, cashValue, statusType === 'Lapsed'),
     dueDate: statusType === 'Lapsed' ? '2026-04-28' : '2026-09-28',
     payType: 'INDIVIDUAL',
-    cashValue: statusType === 'Matured' ? 50000.00 : 0,
+    cashValue,
     lifeBenefits: 75000.00,
     accidentalBenefits: 75000.00,
-    mode: 'Monthly',
+    mode,
     issueDate: '2026-08-03',
     effectivityDate: '2026-08-06',
     policyDate: '2026-08-28',
@@ -170,8 +223,8 @@ const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 32 }).ma
     planCode: p.plan,
     planDesc: p.desc,
     orDate: statusType === 'Lapsed' ? '04/06/2026' : '08/06/2026',
-    orNumber: statusType === 'Lapsed' ? '-' : `5000000000${(198 + i).toString()}`,
-    ledgerHistory: generateFullYearLedger(p.prem, `5000000000${(198 + i).toString()}`, statusType)
+    orNumber: statusType === 'Lapsed' ? '-' : orNo,
+    ledgerHistory: ledger
   };
 });
 
@@ -458,6 +511,13 @@ export default function PaymentTransactions() {
                 <th className="py-3 px-3">Payor Name</th>
                 <th className="py-3 px-3">Plan / Product</th>
                 <th className="py-3 px-3">Premium Amount</th>
+                <th className="py-3 px-3">Modal Premium</th>
+                <th className="py-3 px-3">Amount Paid</th>
+                <th className="py-3 px-3">Deposit</th>
+                <th className="py-3 px-3">Underpayment</th>
+                <th className="py-3 px-3">Cash Loan</th>
+                <th className="py-3 px-3">Automatic Premium Loan</th>
+                <th className="py-3 px-3">Cash Value</th>
                 <th className="py-3 px-3">Service Invoice No. | Date</th>
                 <th className="py-3 px-3">Due Date</th>
                 <th className="py-3 px-3">Policy Status</th>
@@ -467,7 +527,7 @@ export default function PaymentTransactions() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 font-bold dark:text-slate-500">
+                  <td colSpan={16} className="py-12 text-center text-slate-400 font-bold dark:text-slate-500">
                     No payment transactions match the current filters.
                   </td>
                 </tr>
@@ -490,6 +550,13 @@ export default function PaymentTransactions() {
                       <span className="text-[10px] text-slate-500 block truncate dark:text-slate-400">{item.planDesc}</span>
                     </td>
                     <td className="py-4 px-3 font-black text-[#d0112b]">₱{item.premium.toFixed(2)}</td>
+                    <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.modalPremium.toFixed(2)}</td>
+                    <td className="py-4 px-3 font-semibold text-emerald-700 dark:text-emerald-400">₱{item.amountPaid.toFixed(2)}</td>
+                    <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.deposit.toFixed(2)}</td>
+                    <td className={`py-4 px-3 font-semibold ${item.underpay > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`}>₱{item.underpay.toFixed(2)}</td>
+                    <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.cashLoan.toFixed(2)}</td>
+                    <td className={`py-4 px-3 font-semibold ${item.automaticPremiumLoan > 0 ? 'text-[#008cb4]' : 'text-slate-400 dark:text-slate-500'}`}>₱{item.automaticPremiumLoan.toFixed(2)}</td>
+                    <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.cashValue.toFixed(2)}</td>
                     <td className="py-4 px-3">
                       <span className="font-mono font-bold text-slate-800 block dark:text-slate-200">{item.orNumber}</span>
                       <span className="text-[10px] text-slate-400 block dark:text-slate-500">{item.orDate}</span>
@@ -804,6 +871,16 @@ export default function PaymentTransactions() {
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Modal Premium</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.modalPremium || 0} onChange={(e) => setFormData({ ...formData, modalPremium: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Amount Paid</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.amountPaid || 0} onChange={(e) => setFormData({ ...formData, amountPaid: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold text-emerald-700 dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80 dark:text-emerald-400" />
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center gap-2">
                     <label className="font-semibold text-slate-600 dark:text-slate-400">Deposit</label>
                     <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.deposit || 0} onChange={(e) => setFormData({ ...formData, deposit: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
                   </div>
@@ -811,6 +888,21 @@ export default function PaymentTransactions() {
                   <div className="grid grid-cols-3 items-center gap-2">
                     <label className="font-semibold text-slate-600 dark:text-slate-400">Underpay</label>
                     <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.underpay || 0} onChange={(e) => setFormData({ ...formData, underpay: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Cash Loan</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.cashLoan || 0} onChange={(e) => setFormData({ ...formData, cashLoan: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400">Cash Value</label>
+                    <input type="number" step="0.01" disabled={!isEditingPolicy} value={formData.cashValue || 0} onChange={(e) => setFormData({ ...formData, cashValue: parseFloat(e.target.value) })} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-white disabled:bg-slate-100/80 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:disabled:bg-slate-800/80" />
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <label className="font-semibold text-slate-600 dark:text-slate-400" title="Computed from the overdue premium and Cash Value - not directly editable">Automatic Premium Loan</label>
+                    <input type="number" step="0.01" disabled value={formData.automaticPremiumLoan || 0} className="col-span-2 p-2 rounded-xl border border-slate-200 bg-slate-100/80 text-[#008cb4] font-bold cursor-not-allowed dark:bg-slate-800/80 dark:border-slate-700" />
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
