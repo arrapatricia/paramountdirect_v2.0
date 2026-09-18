@@ -11,6 +11,8 @@ export default function CtplPaymentTransactions({ data }: Props) {
     .filter((d) => d.isPaid)
     .map((d) => ({
       id: d.id,
+      policyNumber: d.policyNumber ?? '—',
+      referenceNo: d.referenceNo ?? '—',
       payorName: `${d.ownerFirstName} ${d.ownerMiddleName} ${d.ownerSurname}`,
       planLabel: `${d.policyType} — ${d.mvType}`,
       premium: d.premium,

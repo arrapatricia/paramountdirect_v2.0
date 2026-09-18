@@ -11,6 +11,11 @@ import { PrintableDocumentModal, DocRow } from './policy_documents';
 // knowledge of its own.
 export interface PaymentRow {
   id: string;
+  // Identifying fields used to correlate a non-life payment record back to
+  // its source application: Policy Number once issued, and the Reference
+  // No. generated at the moment payment was confirmed.
+  policyNumber: string;
+  referenceNo: string;
   payorName: string;
   planLabel: string;
   premium: string;
@@ -31,7 +36,10 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
   const [viewingId, setViewingId] = useState<string | null>(null);
 
   const filteredRows = rows.filter(
-    (r) => r.payorName.toLowerCase().includes(searchTerm.toLowerCase()) || r.id.includes(searchTerm)
+    (r) =>
+      r.payorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.policyNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.referenceNo.toLowerCase().includes(searchTerm.toLowerCase())
   );
   const totalItems = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -62,7 +70,7 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
             type="text"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            placeholder="Search by payor name or reference no..."
+            placeholder="Search by payor name, policy no., or reference no..."
             className="w-full pl-10 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           />
         </div>
@@ -83,6 +91,7 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-300 text-slate-800 font-extrabold uppercase tracking-wider dark:border-slate-700 dark:text-slate-100">
+                <th className="py-3 px-2">Policy Number</th>
                 <th className="py-3 px-2">Reference No.</th>
                 <th className="py-3 px-2">Payor</th>
                 <th className="py-3 px-2">Plan</th>
@@ -94,14 +103,15 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {paginatedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
                     No paid transactions match the current filters.
                   </td>
                 </tr>
               ) : (
                 paginatedRows.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-                    <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.id}</td>
+                    <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.policyNumber}</td>
+                    <td className="py-3.5 px-2 font-bold text-slate-700 dark:text-slate-300">{row.referenceNo}</td>
                     <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{row.payorName}</td>
                     <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{row.planLabel}</td>
                     <td className="py-3.5 px-2 font-black" style={{ color: accentColor }}>{row.premium}</td>
@@ -154,7 +164,8 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
       {/* Receipt Modal */}
       {viewingRow && (
         <PrintableDocumentModal title="Payment Receipt" onClose={() => setViewingId(null)}>
-          <DocRow label="Reference No." value={viewingRow.id} />
+          <DocRow label="Policy Number" value={viewingRow.policyNumber} />
+          <DocRow label="Reference No." value={viewingRow.referenceNo} />
           <DocRow label="Payor" value={viewingRow.payorName} />
           <DocRow label="Plan" value={viewingRow.planLabel} />
           <DocRow label="Amount Paid" value={viewingRow.premium} />

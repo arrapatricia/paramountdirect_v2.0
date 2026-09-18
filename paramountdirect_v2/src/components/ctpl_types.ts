@@ -36,6 +36,12 @@ export interface CtplApplication {
   // there's no employment-verification-style gate) - documents unlock as
   // soon as isPaid is true.
   isPaid: boolean;
+
+  // Assigned once the policy is issued; the identifying field the Non-Life
+  // Payment Transactions page (in Pay Tran) correlates this application by.
+  policyNumber?: string;
+  // OR/reference number generated at the moment payment is confirmed.
+  referenceNo?: string;
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;

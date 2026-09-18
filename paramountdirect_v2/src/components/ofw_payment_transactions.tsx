@@ -11,6 +11,8 @@ export default function OfwPaymentTransactions({ data }: Props) {
     .filter((d) => d.isPaid)
     .map((d) => ({
       id: d.id,
+      policyNumber: d.policyNumber ?? '—',
+      referenceNo: d.referenceNo ?? '—',
       payorName: `${d.firstName} ${d.middleName} ${d.lastName}`,
       planLabel: `${d.coverageType} OFW Insurance`,
       premium: d.premium,

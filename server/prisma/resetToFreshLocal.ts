@@ -22,7 +22,7 @@ async function main() {
       prisma.ofwApplication.count(),
       prisma.ctplApplication.count(),
       prisma.gtpApplication.count(),
-      prisma.paymentTransaction.count(),
+      prisma.lifePaymentTransaction.count(),
       prisma.auditLog.count(),
       prisma.pdLifePolicyNumberSequence.count(),
       prisma.user.findMany({ where: { email: { notIn: KEEP_USER_EMAILS } }, select: { email: true } }),
@@ -59,7 +59,7 @@ async function main() {
     await tx.ctplApplication.deleteMany();
     await tx.gtpApplication.deleteMany();
     await tx.paymentLedgerItem.deleteMany();
-    await tx.paymentTransaction.deleteMany();
+    await tx.lifePaymentTransaction.deleteMany();
     await tx.user.deleteMany({ where: { email: { notIn: KEEP_USER_EMAILS } } });
   });
 

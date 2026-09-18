@@ -185,11 +185,11 @@ model PdLifeApplication {
   telephoneNumber  String?
   email            String?
 
-  beneficiaries      PdLifeBeneficiary[]
-  ipeakRequests      PdLifeIpeakRequest[]
+  beneficiaries          PdLifeBeneficiary[]
+  ipeakRequests          PdLifeIpeakRequest[]
   // Billing/ledger side of the same policy, once issued - keyed off the same
-  // policy number iPeak assigned above (see PaymentTransaction.policyNo).
-  paymentTransaction PaymentTransaction?
+  // policy number iPeak assigned above (see LifePaymentTransaction.policyNo).
+  lifePaymentTransaction LifePaymentTransaction?
 
   @@index([status])
   @@index([planCategory])
@@ -330,6 +330,15 @@ model OfwApplication {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
+  // Assigned once the policy is issued / once payment is confirmed - also
+  // exposed on NonLifePaymentTransaction rows for display/search even when
+  // ofwApplicationId is set, since that's the natural lookup key for a payment.
+  policyNumber  String?    @unique
+  referenceNo   String?    @unique
+
+  // Real FK back-relation - see NonLifePaymentTransaction.ofwApplicationId.
+  paymentTransactions NonLifePaymentTransaction[]
+
   @@index([status])
 }
 
@@ -391,6 +400,15 @@ model CtplApplication {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
+  // Assigned once the policy is issued / once payment is confirmed - also
+  // exposed on NonLifePaymentTransaction rows for display/search even when
+  // ctplApplicationId is set, since that's the natural lookup key for a payment.
+  policyNumber  String?    @unique
+  referenceNo   String?    @unique
+
+  // Real FK back-relation - see NonLifePaymentTransaction.ctplApplicationId.
+  paymentTransactions NonLifePaymentTransaction[]
+
   @@index([status])
 }
 
@@ -447,11 +465,20 @@ model GtpApplication {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Assigned once the policy is issued / once payment is confirmed - also
+  // exposed on NonLifePaymentTransaction rows for display/search even when
+  // gtpApplicationId is set, since that's the natural lookup key for a payment.
+  policyNumber  String?   @unique
+  referenceNo   String?   @unique
+
+  // Real FK back-relation - see NonLifePaymentTransaction.gtpApplicationId.
+  paymentTransactions NonLifePaymentTransaction[]
+
   @@index([status])
 }
 
 // ---------------------------------------------------------------------------
-// Payment transactions & ledger (PD Life)
+// Life payment transactions & ledger (PD Life)
 // ---------------------------------------------------------------------------
 
 enum PolicyStatus {
@@ -464,10 +491,13 @@ enum PolicyStatus {
   Surrender
 }
 
-model PaymentTransaction {
+// Named to mirror NonLifePaymentTransaction below - this is PD Life's side
+// of the payment/ledger split, previously just "PaymentTransaction" back
+// when it was the only one.
+model LifePaymentTransaction {
   id               String   @id @default(cuid())
   // References the PD Life application this ledger belongs to via its
-  // issued policy number - a PaymentTransaction can only exist once an
+  // issued policy number - a LifePaymentTransaction can only exist once an
   // application has actually been issued a policy number by iPeak.
   policyNo         String            @unique
   application      PdLifeApplication @relation(fields: [policyNo], references: [policyNumber])
@@ -516,7 +546,7 @@ model PaymentTransaction {
 model PaymentLedgerItem {
   id           String   @id @default(cuid())
   paymentId    String
-  payment      PaymentTransaction @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment      LifePaymentTransaction @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   yrInstal     String
   dueDate      DateTime
   uploaded     Float
@@ -527,6 +557,50 @@ model PaymentLedgerItem {
   status       String
 
   @@index([paymentId])
+}
+
+// ---------------------------------------------------------------------------
+// Payment transactions (Non-Life: CTPL / OFW / GTP)
+// ---------------------------------------------------------------------------
+
+enum NonLifeProduct {
+  CTPL
+  OFW
+  GTP
+}
+
+// CTPL/OFW/GTP are straight-through, one-time payments (no installment
+// ledger like PD Life's PaymentTransaction), so this is a flat record per
+// payment rather than a per-policy ledger. `product` says which of the three
+// FK columns below is actually populated - Prisma has no native polymorphic
+// relation, so each possible parent gets its own nullable FK instead of one
+// shared column, which is also why exactly one of ctplApplicationId /
+// ofwApplicationId / gtpApplicationId should be set per row (enforced in the
+// API layer, not the DB). A row can also exist with none set at all, for a
+// payment a cashier logs manually with no matching application on file.
+model NonLifePaymentTransaction {
+  id           String         @id @default(cuid())
+  product      NonLifeProduct
+  policyNumber String
+  referenceNo  String
+  payorName    String
+  planLabel    String
+  premium      String
+  dateReceived DateTime
+
+  ctplApplicationId String?
+  ctplApplication   CtplApplication? @relation(fields: [ctplApplicationId], references: [id])
+  ofwApplicationId  String?
+  ofwApplication    OfwApplication?  @relation(fields: [ofwApplicationId], references: [id])
+  gtpApplicationId  String?
+  gtpApplication    GtpApplication?  @relation(fields: [gtpApplicationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([product])
+  @@index([policyNumber])
+  @@index([referenceNo])
 }
 
 // ---------------------------------------------------------------------------

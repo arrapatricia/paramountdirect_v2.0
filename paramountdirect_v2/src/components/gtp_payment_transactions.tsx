@@ -11,6 +11,8 @@ export default function GtpPaymentTransactions({ data }: Props) {
     .filter((d) => d.isPaid)
     .map((d) => ({
       id: d.id,
+      policyNumber: d.policyNumber ?? '—',
+      referenceNo: d.referenceNo ?? '—',
       payorName: `${d.travelerFirstName} ${d.travelerSurname}`,
       planLabel: `${d.planVariant} — ${d.destinations.join(', ')}`,
       premium: d.premium,

@@ -15,7 +15,7 @@ router.get(
     const status = typeof req.query.status === 'string' ? (req.query.status as PolicyStatus) : undefined;
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
 
-    const payments = await prisma.paymentTransaction.findMany({
+    const payments = await prisma.lifePaymentTransaction.findMany({
       where: {
         ...(status ? { policyStatus: status } : {}),
         ...(search
@@ -37,7 +37,7 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const payment = await prisma.paymentTransaction.findUnique({
+    const payment = await prisma.lifePaymentTransaction.findUnique({
       where: { id: req.params.id },
       include: { ledgerHistory: true },
     });
@@ -103,7 +103,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const { ledgerHistory, ...data } = createPaymentSchema.parse(req.body);
 
-    const payment = await prisma.paymentTransaction.create({
+    const payment = await prisma.lifePaymentTransaction.create({
       data: {
         ...data,
         ledgerHistory: { create: ledgerHistory },
@@ -127,7 +127,7 @@ router.put(
       if (ledgerHistory) {
         await tx.paymentLedgerItem.deleteMany({ where: { paymentId: req.params.id } });
       }
-      return tx.paymentTransaction.update({
+      return tx.lifePaymentTransaction.update({
         where: { id: req.params.id },
         data: {
           ...data,
@@ -145,7 +145,7 @@ router.put(
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {
-    const payment = await prisma.paymentTransaction.delete({ where: { id: req.params.id } });
+    const payment = await prisma.lifePaymentTransaction.delete({ where: { id: req.params.id } });
     await recordAudit(req, { action: 'DELETE', module: 'Payment Transactions', details: `Deleted payment transaction ${payment.policyNo}` });
     res.status(204).end();
   })

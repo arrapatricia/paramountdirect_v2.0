@@ -55,6 +55,9 @@ const createApplicationSchema = z.object({
   dateReceived: z.coerce.date(),
   status: z.enum(['Completed', 'Spoiled', 'Duplicate', 'Reversed', 'Cancelled']).default('Completed'),
   screenedBy: z.string().optional(),
+
+  policyNumber: z.string().optional(),
+  referenceNo: z.string().optional(),
 });
 
 router.post(

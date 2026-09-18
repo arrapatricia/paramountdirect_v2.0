@@ -56,6 +56,12 @@ export interface OfwApplication {
   employmentVerified: 'Pending' | 'Yes' | 'No';
   paymentInstructionSent: boolean;
   isPaid: boolean;
+
+  // Assigned once the policy is issued; the identifying field the Non-Life
+  // Payment Transactions page (in Pay Tran) correlates this application by.
+  policyNumber?: string;
+  // OR/reference number generated at the moment payment is confirmed.
+  referenceNo?: string;
 }
 
 export type OfwStatus = 'Received' | 'Cancelled' | 'Duplicate' | 'Reversed';
