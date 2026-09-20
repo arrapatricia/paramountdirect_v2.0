@@ -18,7 +18,7 @@ import { getHipPremium, HIP_TIERS, type HipInsuredOption } from './pdlife_rates_
 import { getGlaPremium, GLA_MAX_UNITS } from './pdlife_rates_gla';
 
 interface Props {
-  onCreate: (app: PdLifeApplication) => void;
+  onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
   onBack: () => void;
   currentUser: string;
   rates: PremiumRate[];
@@ -121,7 +121,7 @@ function PdLifeCategoryForm({
   rates,
 }: {
   category: PdLifePlanCategory;
-  onCreate: (app: PdLifeApplication) => void;
+  onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
   onBackToCategories: () => void;
   onFinish: () => void;
   currentUser: string;
@@ -198,6 +198,8 @@ function PdLifeCategoryForm({
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<PdLifeApplication | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit =
     planCode &&
@@ -238,6 +240,8 @@ function PdLifeCategoryForm({
           };
 
     return {
+      // Placeholder until the backend assigns the real id - overwritten in
+      // handleConfirmSubmit once onCreate resolves.
       id: `3920${Math.floor(10 + Math.random() * 89)}`,
       payor: fullName,
       planCode,
@@ -260,11 +264,19 @@ function PdLifeCategoryForm({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleConfirmSubmit = () => {
-    const newApp = buildApplication();
-    onCreate(newApp);
-    setSubmittedApp(newApp);
-    setStep('confirmed');
+  const handleConfirmSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const created = await onCreate(buildApplication());
+      setSubmittedApp(created);
+      setStep('confirmed');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (step === 'confirmed' && submittedApp) {
@@ -328,6 +340,8 @@ function PdLifeCategoryForm({
           payorInfo={payorInfo}
           onEdit={() => setStep('form')}
           onConfirm={handleConfirmSubmit}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
         />
       ) : (
       <form onSubmit={handleReview} className="space-y-6 pb-10">
@@ -674,7 +688,7 @@ function PdLifeCategoryForm({
 // ---------------------------------------------------------------------------
 
 function PdLifeReviewSummary({
-  category, planCode, planName, premiumValue, source, owner, contact, payorInfo, onEdit, onConfirm,
+  category, planCode, planName, premiumValue, source, owner, contact, payorInfo, onEdit, onConfirm, isSubmitting, submitError,
 }: {
   category: PdLifePlanCategory;
   planCode: string;
@@ -686,6 +700,8 @@ function PdLifeReviewSummary({
   payorInfo: PayorInfo;
   onEdit: () => void;
   onConfirm: () => void;
+  isSubmitting: boolean;
+  submitError: string | null;
 }) {
   const row = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -740,12 +756,17 @@ function PdLifeReviewSummary({
         </div>
       </div>
 
+      {submitError && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+          {submitError}
+        </div>
+      )}
       <div className="flex flex-wrap justify-end gap-3 pt-2">
-        <button type="button" onClick={onEdit} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+        <button type="button" onClick={onEdit} disabled={isSubmitting} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
           Back to Edit
         </button>
-        <button type="button" onClick={onConfirm} className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
-          Confirm &amp; Submit
+        <button type="button" onClick={onConfirm} disabled={isSubmitting} className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-md transition-all">
+          {isSubmitting ? 'Submitting…' : 'Confirm & Submit'}
         </button>
       </div>
     </div>

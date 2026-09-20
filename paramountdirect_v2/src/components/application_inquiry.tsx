@@ -37,15 +37,11 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
     }
   };
 
-  // Helper to format Policy Number strictly for Issued Applications: [PRODUCT_CODE]-XXXXXX-X
-  const formatPolicyNumber = (item: ScreeningItem) => {
-    if (item.status !== 'Issued') {
-      return item.id;
-    }
-    const cleanId = item.id.replace(/\D/g, '').padStart(6, '0');
-    const suffix = parseInt(cleanId, 10) % 2 === 0 ? '1' : '0';
-    return `${item.planCode.toUpperCase()}-${cleanId}-${suffix}`;
-  };
+  // The real iPeak policy number (PLANCODE-NNNNNN-D), assigned once the
+  // application first transmits to iPeak - falls back to the internal id
+  // only for applications still at "Received" that haven't been assigned
+  // one yet.
+  const formatPolicyNumber = (item: ScreeningItem) => item.policyNumber || item.id;
 
   // 1. Filter Records
   const matchesFilterBar = (item: ScreeningItem) => {

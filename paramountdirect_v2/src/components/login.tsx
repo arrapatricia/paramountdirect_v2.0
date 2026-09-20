@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, Mail, Sun, Moon, AlertCircle } from 'lucide-react';
 import ForgotPassword from './forgot_password';
 import type { UserAccount } from './user_management';
+import { authApi, setAuthToken } from '../lib/api';
 
 // Import light and dark logos
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
@@ -24,13 +25,27 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
     if (email === 'noaccess@paramount.com.ph') {
       setErrorMessage('Error: Access denied. Your account lacks system authorization.');
       return;
+    }
+
+    // Try the real backend first - this is what actually connects PD Life
+    // to the database/iPeak instead of the local mock fallback below. Only
+    // admin@paramount.com.ph exists as a real seeded user today, so every
+    // other account falls through to the mock check exactly as before.
+    try {
+      const { token, user } = await authApi.login(email, password);
+      setAuthToken(token, rememberMe);
+      onLoginSuccess(rememberMe, user.role?.name ?? 'Admin');
+      return;
+    } catch {
+      // Not a real backend account (or backend unreachable) - fall through
+      // to the mock check below, unchanged.
     }
 
     // The seeded demo login always works, on top of whatever real accounts

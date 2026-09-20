@@ -41,6 +41,15 @@ import RoleAccessMaintenance from './components/role_access_maintenance';
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
 // import PremiumMaintenance from './components/premium_maintenance';
 import { INITIAL_PREMIUM_RATES, type PremiumRate } from './components/premium_rates';
+import {
+  pdLifeApi,
+  clearAuthToken,
+  getAuthToken,
+  fromApiPdLifeStatus,
+  toApiPdLifeStatus,
+  toApiPlanCategory,
+  type PdLifeApplicationApi,
+} from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
 
@@ -51,6 +60,11 @@ const CURRENT_USER = {
 
 export interface ScreeningItem {
   id: string;
+  // Real iPeak-format policy number (e.g. "GLP-000001-1"), assigned once
+  // the application is first transmitted to iPeak - null/absent for
+  // applications still at "Received". `id` (the internal database id) is
+  // never meant for display - see renderApplicationDetail in App.tsx.
+  policyNumber?: string | null;
   payor: string;
   planCode: string;
   planDesc: string;
@@ -60,6 +74,31 @@ export interface ScreeningItem {
   dateScreened: string;
   screenedBy: string;
   status: string;
+}
+
+// Maps a real backend PdLifeApplication (dates as ISO strings, status/
+// planCategory as Prisma enum identifiers) into the display shape every PD
+// Life screen already expects (dates as short display strings, status/
+// planCategory with the spaces the UI has always used).
+function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
+  const toDisplayDate = (iso: string | null) => {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-US');
+  };
+  return {
+    id: api.id,
+    policyNumber: api.policyNumber,
+    payor: api.payor,
+    planCode: api.planCode,
+    planDesc: api.planDesc,
+    premium: api.premium,
+    source: api.source,
+    dateReceived: toDisplayDate(api.dateReceived),
+    dateScreened: toDisplayDate(api.dateScreened),
+    screenedBy: api.screenedBy ?? '-',
+    status: fromApiPdLifeStatus(api.status),
+  };
 }
 
 // Fresh-environment reset: no seed applications, only the two retained
@@ -320,6 +359,11 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [screeningData, setScreeningData] = useState<ScreeningItem[]>(initialMockData);
+  // Set once the real backend confirms who's logged in (see the effect
+  // below) - PD Life screens use this to tell "no real data yet" apart from
+  // "there really are zero applications."
+  const [pdLifeConnected, setPdLifeConnected] = useState(false);
+  const [pdLifeLoadError, setPdLifeLoadError] = useState<string | null>(null);
   // Shared between Follow-up Signature and Signed Applications - both pages
   // show/act on the same "has the client's signed form been received back"
   // state for a given issued policy, so marking it signed from either page
@@ -356,6 +400,29 @@ export default function App() {
     }
   }, [activeProduct, activeTab, activeSubTab]);
 
+  // Loads real PD Life applications once there's a real backend session
+  // (i.e. login actually went through the backend, not the mock fallback -
+  // see login.tsx). Every other product line still runs on mock data.
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    pdLifeApi
+      .list()
+      .then((apps) => {
+        if (cancelled) return;
+        setScreeningData(apps.map(mapApiToScreeningItem));
+        setPdLifeConnected(true);
+        setPdLifeLoadError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to load PD Life applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   const handleLoginSuccess = (rememberMe: boolean, role: string) => {
@@ -380,6 +447,8 @@ export default function App() {
     } catch {
       // See handleLoginSuccess.
     }
+    clearAuthToken();
+    setPdLifeConnected(false);
     setCurrentUserRole(null);
     setIsAuthenticated(false);
   };
@@ -388,11 +457,54 @@ export default function App() {
     return <Login onLoginSuccess={handleLoginSuccess} darkMode={darkMode} setDarkMode={toggleDarkMode} users={users} />;
   }
 
+  // Fire-and-forget from the detail pages' point of view (they just call
+  // onUpdateStatus(status) synchronously, same as always) - the real PATCH
+  // happens here, and this is also where a PD Life application actually
+  // transmits to iPeak server-side once it leaves "Received".
   const handleUpdateStatus = (newStatus: string) => {
     if (!selectedApp) return;
-    setScreeningData(prev => prev.map(app => 
-      app.id === selectedApp.id ? { ...app, status: newStatus } : app
-    ));
+    if (!pdLifeConnected) {
+      setScreeningData(prev => prev.map(app =>
+        app.id === selectedApp.id ? { ...app, status: newStatus } : app
+      ));
+      return;
+    }
+    pdLifeApi
+      .updateStatus(selectedApp.id, toApiPdLifeStatus(newStatus))
+      .then((updated) => {
+        setScreeningData(prev => prev.map(app => (app.id === updated.id ? mapApiToScreeningItem(updated) : app)));
+      })
+      .catch((err) => {
+        setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to update status.');
+      });
+  };
+
+  // Shared by both PdLifeCreateApplication call sites (Inquiry tab and
+  // Screening tab) - posts to the real backend when a real session exists,
+  // otherwise keeps the old local-only behavior so mock-only logins are
+  // unaffected. Returns the application with its real id/dates/status once
+  // the backend confirms it, so the wizard's confirmation screen shows the
+  // real record rather than the locally-invented placeholder one.
+  const handleCreatePdLifeApp = async (app: PdLifeApplication): Promise<PdLifeApplication> => {
+    if (!pdLifeConnected) {
+      setScreeningData(prev => [app, ...prev]);
+      return app;
+    }
+    const created = await pdLifeApi.create({
+      payor: app.payor,
+      planCategory: toApiPlanCategory(app.planCategory),
+      planCode: app.planCode,
+      planDesc: app.planDesc,
+      premium: app.premium,
+      source: app.source,
+      dateReceived: new Date().toISOString(),
+      screenedBy: app.screenedBy,
+      status: toApiPdLifeStatus(app.status),
+      details: app.details as unknown as Record<string, unknown>,
+    });
+    const mapped = mapApiToScreeningItem(created);
+    setScreeningData(prev => [mapped, ...prev]);
+    return { ...app, id: created.id, dateReceived: mapped.dateReceived, dateScreened: mapped.dateScreened, status: mapped.status };
   };
 
   const renderApplicationDetail = (readOnly: boolean = false) => {
@@ -406,7 +518,10 @@ export default function App() {
     const initialStatus = currentApp ? currentApp.status : 'Received';
 
     const props = {
-      applicationId: selectedApp.id,
+      // Show the real iPeak policy number once assigned, not the internal
+      // database id - the id is only meaningful for API calls (see
+      // handleUpdateStatus, which keys off selectedApp.id, unaffected by this).
+      applicationId: currentApp?.policyNumber || selectedApp.id,
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,
@@ -546,6 +661,12 @@ export default function App() {
         {/* GTP Payment Transactions */}
         {activeTab === 'gtp-payments' && <GtpPaymentTransactions data={gtpApplications} currentUserRole={currentUserRole} />}
 
+        {pdLifeLoadError && ['applications', 'inquiry', 'screening'].includes(activeTab) && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+            {pdLifeLoadError}
+          </div>
+        )}
+
         {/* Applications hub */}
         {activeTab === 'applications' && (
           <PdLifeApplicationsHub data={screeningData} onNavigate={setActiveTab} />
@@ -557,7 +678,7 @@ export default function App() {
             <PdLifeCreateApplication
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingPdLifeApp(false)}
-              onCreate={(app: PdLifeApplication) => setScreeningData(prev => [app, ...prev])}
+              onCreate={handleCreatePdLifeApp}
               rates={premiumRates}
             />
           ) : (
@@ -605,7 +726,7 @@ export default function App() {
             <PdLifeCreateApplication
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingPdLifeApp(false)}
-              onCreate={(app: PdLifeApplication) => setScreeningData(prev => [app, ...prev])}
+              onCreate={handleCreatePdLifeApp}
               rates={premiumRates}
             />
           ) : (

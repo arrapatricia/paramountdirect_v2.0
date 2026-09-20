@@ -105,7 +105,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
 
   const handleViewDetails = (row: ScreeningItem) => {
     if (row.screenedBy !== CURRENT_LOGGED_USER && row.status !== 'Issued') {
-      setAccessWarning(`Access Restricted: Application #${row.id} is assigned to Issuer "${row.screenedBy}".`);
+      setAccessWarning(`Access Restricted: Application #${row.policyNumber || row.id} is assigned to Issuer "${row.screenedBy}".`);
       setTimeout(() => setAccessWarning(null), 4000);
       return;
     }
@@ -339,7 +339,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                           )}
                         </button>
                       </td>
-                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.id}</td>
+                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.policyNumber || row.id}</td>
                       <td className="py-3.5 px-2 font-bold text-slate-900 text-xs dark:text-white">{row.payor}</td>
                       <td className="py-3.5 px-2">
                         <span className="font-extrabold text-slate-900 dark:text-white">{row.planCode}</span>
