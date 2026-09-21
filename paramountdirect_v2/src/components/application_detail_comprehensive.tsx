@@ -4,7 +4,10 @@ import {
   NotificationBanner, DetailHeader, StatusControl, Section, Field, FieldGrid, AddRowButton,
   editInputClass, editSelectClass, type NotificationState,
 } from './application_detail_ui';
-import { PD_LIFE_REFERRAL_SOURCES } from './pdlife_types';
+import {
+  PD_LIFE_REFERRAL_SOURCES,
+  type PolicyOwnerInfo, type ContactInfo, type PayorInfo, type ComprehensiveDetails,
+} from './pdlife_types';
 
 interface Props {
   applicationId: string;
@@ -15,6 +18,14 @@ interface Props {
   // Application Inquiry is a lookup view - opened from there, this page is
   // fully read-only (no status changes, no section editing).
   readOnly?: boolean;
+  // The application's actual submitted data - see pdlife_types.ts's
+  // PdLifeApplicationDetails. Loosely typed since it comes straight off the
+  // backend's Json column; narrowed defensively below.
+  payor: string;
+  premium: string;
+  source: string;
+  planDesc: string;
+  details: Record<string, unknown>;
 }
 
 export default function ApplicationDetailComprehensive({
@@ -23,8 +34,19 @@ export default function ApplicationDetailComprehensive({
   initialStatus,
   onUpdateStatus,
   onBack,
-  readOnly = false
+  readOnly = false,
+  premium,
+  source,
+  planDesc,
+  details,
 }: Props) {
+  const owner = (details?.policyOwner ?? {}) as Partial<PolicyOwnerInfo>;
+  const contact = (details?.contact ?? {}) as Partial<ContactInfo>;
+  const payorInfo = (details?.payor ?? {}) as Partial<PayorInfo>;
+  const cat = (details?.category ?? {}) as Partial<ComprehensiveDetails>;
+  const fullName = [owner.firstName, owner.middleName, owner.lastName].filter(Boolean).join(' ');
+  const fullAddress = [contact.houseNumber, contact.street, contact.building, contact.barangay, contact.city, contact.region, contact.zipcode]
+    .filter(Boolean).join(', ');
   // Map Plan Code to Product Name
   const productNames: Record<string, string> = {
     'MPR': 'MoneyPlus Protection Plan',
@@ -46,29 +68,35 @@ export default function ApplicationDetailComprehensive({
   // Edit Mode Tracking
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
-  // Date Tracking
-  const [birthdate, setBirthdate] = useState('1994-01-08');
+  // Date Tracking - seeded from the real submitted birthdate.
+  const [birthdate, setBirthdate] = useState(owner.birthdate ?? '');
 
-  const [hasOtherLifeInsurance, setHasOtherLifeInsurance] = useState(false);
-  const [intendsToReplace, setIntendsToReplace] = useState(false);
-  const [isPayorSameAsInsured, setIsPayorSameAsInsured] = useState(true);
+  const [hasOtherLifeInsurance, setHasOtherLifeInsurance] = useState(cat.hasExistingPolicy ?? false);
+  const [intendsToReplace, setIntendsToReplace] = useState(cat.intendsToReplaceExistingPolicy ?? false);
+  const [isPayorSameAsInsured, setIsPayorSameAsInsured] = useState(payorInfo.sameAsInsured ?? true);
   const [mailToDifferentAddress, setMailToDifferentAddress] = useState(false);
-  const [medicalAnswers, setMedicalAnswers] = useState({ consulted: false, advised: false, impairment: false });
+  const [medicalAnswers, setMedicalAnswers] = useState({
+    consulted: cat.medicalQuestionnaire?.consultedDoctorPast5Years ?? false,
+    advised: cat.medicalQuestionnaire?.advisedOfSeriousCondition ?? false,
+    impairment: cat.medicalQuestionnaire?.awareOfImpairment ?? false,
+  });
 
-  // Philippine Geo Tracking
-  const [region, setRegion] = useState('NCR');
-  const [city, setCity] = useState('Manila City');
-  const [barangay, setBarangay] = useState('Barangay 101');
+  // Philippine Geo Tracking - seeded from the real submitted address; the
+  // option lists are still a placeholder subset (see pdlife_create_application.tsx),
+  // not the full PH geography, so the real value is included even if not in the list.
+  const [region, setRegion] = useState(contact.region ?? 'NCR');
+  const [city, setCity] = useState(contact.city ?? 'Manila City');
+  const [barangay, setBarangay] = useState(contact.barangay ?? 'Barangay 101');
 
-  const phRegions = ['NCR', 'CAR', 'Region III'];
-  const phCities = ['Bangued', 'Makati City', 'Manila City'];
-  const phBarangays = ['Agtangao', 'Barangay 101', 'Barangay 102'];
+  const phRegions = Array.from(new Set(['NCR', 'CAR', 'Region III', region]));
+  const phCities = Array.from(new Set(['Bangued', 'Makati City', 'Manila City', city]));
+  const phBarangays = Array.from(new Set(['Agtangao', 'Barangay 101', 'Barangay 102', barangay]));
 
-  // Calculate Age dynamically
+  // Calculate age as of today from a yyyy-mm-dd birthdate.
   const calculateAge = (dobString: string) => {
     if (!dobString) return '--';
     const dob = new Date(dobString);
-    const today = new Date('2026-08-29');
+    const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
     if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) {
       age--;
@@ -127,7 +155,7 @@ export default function ApplicationDetailComprehensive({
         applicationId={applicationId}
         productName={productName}
         planCode={planCode}
-        premium="Premium: ₱892.00"
+        premium={`Premium: ₱${premium.replace(/^₱/, '')}`}
         onBack={onBack}
         statusControl={
           <StatusControl
@@ -148,15 +176,15 @@ export default function ApplicationDetailComprehensive({
         <Section icon={ClipboardList} title="General Details" isEditing={editingSection === 'general'} onToggleEdit={() => toggleEdit('general')} hideEditButton={readOnly}>
           <FieldGrid>
             <Field
-              label="Campaign Source" editing={editingSection === 'general'} view="Facebook"
-              edit={<select className={editSelectClass}>{PD_LIFE_REFERRAL_SOURCES.map(s => <option key={s}>{s}</option>)}</select>}
+              label="Campaign Source" editing={editingSection === 'general'} view={source}
+              edit={<select className={editSelectClass} defaultValue={source}>{PD_LIFE_REFERRAL_SOURCES.map(s => <option key={s}>{s}</option>)}</select>}
             />
             <Field
-              label="Plan" editing={editingSection === 'general'} view="Plan 100 - 10 years to pay"
-              edit={<select className={editSelectClass}><option>Plan 100 - 10 years to pay</option><option>Plan 200 - 10 years to pay</option></select>}
+              label="Plan" editing={editingSection === 'general'} view={planDesc}
+              edit={<select className={editSelectClass} defaultValue={planDesc}><option>{planDesc}</option></select>}
             />
             <Field
-              label="Payment Option" editing={editingSection === 'general'} view="Monthly"
+              label="Payment Option" editing={editingSection === 'general'} view={null}
               edit={<select className={editSelectClass}><option>Monthly</option></select>}
             />
           </FieldGrid>
@@ -165,25 +193,25 @@ export default function ApplicationDetailComprehensive({
         {/* Personal Information */}
         <Section icon={UserCircle2} title="Personal Information" isEditing={editingSection === 'personal'} onToggleEdit={() => toggleEdit('personal')} hideEditButton={readOnly}>
           <Field
-            label="Name" editing={editingSection === 'personal'} view="Rea Test To"
+            label="Name" editing={editingSection === 'personal'} view={fullName || null}
             edit={
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" defaultValue="Rea" placeholder="First Name" className={editInputClass} />
-                <input type="text" defaultValue="" placeholder="Middle Name (Optional)" className={editInputClass} />
-                <input type="text" defaultValue="Test To" placeholder="Last Name" className={editInputClass} />
+                <input type="text" defaultValue={owner.firstName ?? ''} placeholder="First Name" className={editInputClass} />
+                <input type="text" defaultValue={owner.middleName ?? ''} placeholder="Middle Name (Optional)" className={editInputClass} />
+                <input type="text" defaultValue={owner.lastName ?? ''} placeholder="Last Name" className={editInputClass} />
               </div>
             }
           />
 
           <FieldGrid>
             <Field
-              label="Title" editing={editingSection === 'personal'} view="Ms"
-              edit={<select className={`${editSelectClass} max-w-[120px]`}><option>Ms</option><option>Mr</option></select>}
+              label="Title" editing={editingSection === 'personal'} view={owner.title ?? null}
+              edit={<select className={`${editSelectClass} max-w-[120px]`} defaultValue={owner.title}><option>Ms.</option><option>Mr.</option><option>Mrs.</option></select>}
             />
 
             <Field
               label="Birthdate" editing={editingSection === 'personal'}
-              view={<span>{birthdate} <span className="ml-2 px-2 py-0.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span></span>}
+              view={birthdate ? <span>{birthdate} <span className="ml-2 px-2 py-0.5 bg-red-50 border border-red-100 text-[#d0112b] font-black rounded-lg dark:bg-red-950/30 dark:border-red-900/40">{calculateAge(birthdate)} yrs</span></span> : null}
               edit={
                 <div className="flex items-center space-x-4">
                   <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={`w-48 ${editInputClass}`} />
@@ -196,30 +224,29 @@ export default function ApplicationDetailComprehensive({
             />
 
             <Field
-              label="Nationality" editing={editingSection === 'personal'} view="Filipino"
-              edit={<select className={`${editSelectClass} max-w-[192px]`}><option>Filipino</option></select>}
+              label="Nationality" editing={editingSection === 'personal'} view={owner.nationality ?? null}
+              edit={<select className={`${editSelectClass} max-w-[192px]`} defaultValue={owner.nationality}><option>Filipino</option><option>American</option><option>Chinese</option><option>Japanese</option><option>Korean</option><option>Others</option></select>}
             />
 
             <Field
-              label="Place Of Birth" editing={editingSection === 'personal'} view={null}
-              edit={<input type="text" className={editInputClass} />}
+              label="Place Of Birth" editing={editingSection === 'personal'} view={owner.placeOfBirth ?? null}
+              edit={<input type="text" defaultValue={owner.placeOfBirth ?? ''} className={editInputClass} />}
             />
 
-            {/* SSP Specific Fields */}
             <Field
-              label="Weight (kg)" editing={editingSection === 'personal'} view={null}
+              label="Weight (kg)" editing={editingSection === 'personal'} view={cat.weightKg ?? null}
               edit={
                 <div className="w-48 relative">
-                  <input type="number" className={editInputClass} />
+                  <input type="number" defaultValue={cat.weightKg ?? ''} className={editInputClass} />
                   <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">kg</span>
                 </div>
               }
             />
             <Field
-              label="Height (cm)" editing={editingSection === 'personal'} view={null}
+              label="Height (cm)" editing={editingSection === 'personal'} view={cat.heightCm ?? null}
               edit={
                 <div className="w-48 relative">
-                  <input type="number" className={editInputClass} />
+                  <input type="number" defaultValue={cat.heightCm ?? ''} className={editInputClass} />
                   <span className="absolute right-3 top-2 text-slate-400 font-medium dark:text-slate-500">cm</span>
                 </div>
               }
@@ -231,13 +258,13 @@ export default function ApplicationDetailComprehensive({
         <Section icon={MapPin} title="Contact Information" isEditing={editingSection === 'contact'} onToggleEdit={() => toggleEdit('contact')} hideEditButton={readOnly}>
           <Field
             label="Address" editing={editingSection === 'contact'} align="start"
-            view={`${barangay}, ${city}, ${region}`}
+            view={fullAddress || null}
             edit={
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input type="text" placeholder="Unit / House No." className={editInputClass} />
-                  <input type="text" placeholder="Street" className={editInputClass} />
-                  <input type="text" placeholder="Building Name (Optional)" className={editInputClass} />
+                  <input type="text" defaultValue={contact.houseNumber ?? ''} placeholder="Unit / House No." className={editInputClass} />
+                  <input type="text" defaultValue={contact.street ?? ''} placeholder="Street" className={editInputClass} />
+                  <input type="text" defaultValue={contact.building ?? ''} placeholder="Building Name (Optional)" className={editInputClass} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <select value={barangay} onChange={(e) => setBarangay(e.target.value)} className={editSelectClass}>{phBarangays.map(b => <option key={b} value={b}>{b}</option>)}</select>
@@ -245,16 +272,16 @@ export default function ApplicationDetailComprehensive({
                   <select value={region} onChange={(e) => setRegion(e.target.value)} className={editSelectClass}>{phRegions.map(r => <option key={r} value={r}>{r}</option>)}</select>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input type="text" placeholder="Zip Code" className={editInputClass} />
+                  <input type="text" defaultValue={contact.zipcode ?? ''} placeholder="Zip Code" className={editInputClass} />
                 </div>
               </div>
             }
           />
 
           <FieldGrid>
-            <Field label="Mobile Number" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
-            <Field label="Telephone Number" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
-            <Field label="Email Address" editing={editingSection === 'contact'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
+            <Field label="Mobile Number" editing={editingSection === 'contact'} view={contact.mobileNumber ?? null} edit={<input type="text" defaultValue={contact.mobileNumber ?? ''} className={`w-48 ${editInputClass}`} />} />
+            <Field label="Telephone Number" editing={editingSection === 'contact'} view={contact.telephoneNumber ?? null} edit={<input type="text" defaultValue={contact.telephoneNumber ?? ''} className={`w-48 ${editInputClass}`} />} />
+            <Field label="Email Address" editing={editingSection === 'contact'} view={contact.email ?? null} edit={<input type="text" defaultValue={contact.email ?? ''} className={`w-72 ${editInputClass}`} />} />
           </FieldGrid>
 
           <label className="flex items-center space-x-2 text-slate-700 font-semibold dark:text-slate-300">
@@ -294,22 +321,21 @@ export default function ApplicationDetailComprehensive({
         {/* Employment Information */}
         <Section icon={Briefcase} title="Employment Information" isEditing={editingSection === 'employment'} onToggleEdit={() => toggleEdit('employment')} hideEditButton={readOnly}>
           <FieldGrid>
-            <Field label="Occupation" editing={editingSection === 'employment'} view="Adult Literacy, Remedial Education, and GED Teachers" edit={<input type="text" defaultValue="Adult Literacy, Remedial Education, and GED Teachers" className={editInputClass} />} />
-            <Field label="Specific duties" editing={editingSection === 'employment'} view="Teacher" edit={<input type="text" defaultValue="Teacher" className={editInputClass} />} />
-            <Field label="Office address" editing={editingSection === 'employment'} view="Sta. Ana Manila" edit={<input type="text" defaultValue="Sta. Ana Manila" className={editInputClass} />} />
-            <Field label="Zipcode" editing={editingSection === 'employment'} view="1009" edit={<input type="text" defaultValue="1009" className={`w-48 ${editInputClass}`} />} />
+            <Field label="Occupation" editing={editingSection === 'employment'} view={cat.occupation ?? null} edit={<input type="text" defaultValue={cat.occupation ?? ''} className={editInputClass} />} />
+            <Field label="Specific duties" editing={editingSection === 'employment'} view={cat.specificDuties ?? null} edit={<input type="text" defaultValue={cat.specificDuties ?? ''} className={editInputClass} />} />
+            <Field label="Office address" editing={editingSection === 'employment'} view={cat.officeAddress ?? null} edit={<input type="text" defaultValue={cat.officeAddress ?? ''} className={editInputClass} />} />
+            <Field label="Zipcode" editing={editingSection === 'employment'} view={cat.officeZipcode ?? null} edit={<input type="text" defaultValue={cat.officeZipcode ?? ''} className={`w-48 ${editInputClass}`} />} />
             <Field
-              label="Office Tel. No." editing={editingSection === 'employment'} view="000 0000000"
+              label="Office Tel. No." editing={editingSection === 'employment'} view={cat.officeTelephone ?? null}
               edit={
                 <div className="flex items-center space-x-2">
-                  <input type="text" defaultValue="000" placeholder="Area Code" className={`w-20 ${editInputClass}`} />
-                  <input type="text" defaultValue="0000000" placeholder="Phone number" className={`w-32 ${editInputClass}`} />
+                  <input type="text" defaultValue={cat.officeTelephone ?? ''} placeholder="Phone number" className={`w-32 ${editInputClass}`} />
                 </div>
               }
             />
-            <Field label="Source of Funds" editing={editingSection === 'employment'} view="Salary" edit={<input type="text" defaultValue="Salary" className={editInputClass} />} />
-            <Field label="TIN" editing={editingSection === 'employment'} view="125447555844799929" edit={<input type="text" defaultValue="125447555844799929" className={`w-48 ${editInputClass}`} />} />
-            <Field label="GSIS / SSS" editing={editingSection === 'employment'} view="484948982" edit={<input type="text" defaultValue="484948982" className={`w-48 ${editInputClass}`} />} />
+            <Field label="Source of Funds" editing={editingSection === 'employment'} view={cat.sourceOfFunds ?? null} edit={<input type="text" defaultValue={cat.sourceOfFunds ?? ''} className={editInputClass} />} />
+            <Field label="TIN" editing={editingSection === 'employment'} view={cat.tin ?? null} edit={<input type="text" defaultValue={cat.tin ?? ''} className={`w-48 ${editInputClass}`} />} />
+            <Field label="GSIS / SSS" editing={editingSection === 'employment'} view={cat.gsisOrSss ?? null} edit={<input type="text" defaultValue={cat.gsisOrSss ?? ''} className={`w-48 ${editInputClass}`} />} />
           </FieldGrid>
         </Section>
 
@@ -318,34 +344,37 @@ export default function ApplicationDetailComprehensive({
           <div className="flex items-center text-slate-400 font-extrabold uppercase text-[10px] tracking-wide dark:text-slate-500">
             <div className="flex-1 px-1">Full Name</div><div className="w-48 px-1">Relationship to you</div><div className="w-48 px-1">Birthdate</div><div className="w-32 px-1">Revocable?</div>
           </div>
-          <div className="flex items-center">
-            <div className="flex-1 px-1">
-              {editingSection === 'beneficiaries'
-                ? <input type="text" defaultValue="TEST TORIBIO" className={editInputClass} />
-                : <span className="text-xs font-bold text-slate-900 dark:text-white">TEST TORIBIO</span>}
+          {(cat.beneficiaries ?? []).length === 0 ? (
+            <p className="text-slate-300 dark:text-slate-700 text-xs">No beneficiaries added.</p>
+          ) : (cat.beneficiaries ?? []).map((b, idx) => (
+            <div className="flex items-center" key={idx}>
+              <div className="flex-1 px-1">
+                {editingSection === 'beneficiaries'
+                  ? <input type="text" defaultValue={b.fullName} className={editInputClass} />
+                  : <span className="text-xs font-bold text-slate-900 dark:text-white">{b.fullName}</span>}
+              </div>
+              <div className="w-48 px-1">
+                {editingSection === 'beneficiaries' ? (
+                  <select className={editSelectClass} defaultValue={b.relationship}>
+                    <option>Aunt</option><option>Brother</option><option>Cousin</option><option>Daughter</option>
+                    <option>Father</option><option>Grandfather</option><option>Grandmother</option><option>Husband</option>
+                    <option>Mother</option><option>Nephew</option><option>Niece</option><option>Sister</option>
+                    <option>Son</option><option>Uncle</option><option>Wife</option><option>Others</option>
+                  </select>
+                ) : <span className="text-xs font-bold text-slate-900 dark:text-white">{b.relationship}</span>}
+              </div>
+              <div className="w-48 px-1">
+                {editingSection === 'beneficiaries'
+                  ? <input type="date" defaultValue={b.birthdate} className={editInputClass} />
+                  : <span className="text-xs font-bold text-slate-900 dark:text-white">{b.birthdate || <span className="text-slate-300 dark:text-slate-700">&mdash;</span>}</span>}
+              </div>
+              <div className="w-32 px-1">
+                {editingSection === 'beneficiaries' ? (
+                  <select className={editSelectClass} defaultValue={b.revocable ? 'Revocable' : 'Irrevocable'}><option>Revocable</option><option>Irrevocable</option></select>
+                ) : <span className="text-xs font-bold text-slate-900 dark:text-white">{b.revocable ? 'Revocable' : 'Irrevocable'}</span>}
+              </div>
             </div>
-            <div className="w-48 px-1">
-              {editingSection === 'beneficiaries' ? (
-                <select className={editSelectClass}>
-                  <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
-                  <option>Cousin</option><option>Granddaughter</option><option>Grandparent</option>
-                  <option>Grandson</option><option>In-Law</option><option>Nephew</option>
-                  <option>Niece</option><option>Parent</option><option>Sibling</option>
-                  <option>Spouse</option><option>Uncle</option>
-                </select>
-              ) : <span className="text-xs font-bold text-slate-900 dark:text-white">Aunt</span>}
-            </div>
-            <div className="w-48 px-1">
-              {editingSection === 'beneficiaries'
-                ? <input type="date" className={editInputClass} />
-                : <span className="text-slate-300 dark:text-slate-700">&mdash;</span>}
-            </div>
-            <div className="w-32 px-1">
-              {editingSection === 'beneficiaries' ? (
-                <select className={editSelectClass}><option>Revocable</option><option>Irrevocable</option></select>
-              ) : <span className="text-xs font-bold text-slate-900 dark:text-white">Revocable</span>}
-            </div>
-          </div>
+          ))}
           <div className="pt-2"><AddRowButton label="Add Beneficiary" disabled={editingSection !== 'beneficiaries'} /></div>
         </Section>
 
@@ -353,13 +382,13 @@ export default function ApplicationDetailComprehensive({
         <Section icon={ShieldQuestion} title="Non-forfeiture Options" isEditing={editingSection === 'forfeiture'} onToggleEdit={() => toggleEdit('forfeiture')} hideEditButton={readOnly}>
           <p className="text-slate-600 font-medium dark:text-slate-300">If premium is unpaid on expiry of grace period, apply cash value, if any, to effect:</p>
           {editingSection === 'forfeiture' ? (
-            <select className={`${editSelectClass} max-w-xs`}>
+            <select className={`${editSelectClass} max-w-xs`} defaultValue={cat.nonForfeitureOption}>
               <option>Paid-up Insurance</option>
               <option>Automatic Payment of Premium</option>
               <option>Cash Surrender</option>
             </select>
           ) : (
-            <span className="text-xs font-bold text-slate-900 dark:text-white">Paid-up Insurance</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white">{cat.nonForfeitureOption ?? <span className="text-slate-300 dark:text-slate-700 font-normal">&mdash;</span>}</span>
           )}
         </Section>
 
@@ -381,8 +410,8 @@ export default function ApplicationDetailComprehensive({
           </div>
           {hasOtherLifeInsurance && (
             <Field
-              label="If yes, please provide details" editing={editingSection === 'declaration'} align="start" view={null}
-              edit={<textarea rows={2} className={editInputClass} />}
+              label="If yes, please provide details" editing={editingSection === 'declaration'} align="start" view={cat.existingPolicyDetails ?? null}
+              edit={<textarea rows={2} defaultValue={cat.existingPolicyDetails ?? ''} className={editInputClass} />}
             />
           )}
           <div className="flex items-center space-x-4">
@@ -425,8 +454,8 @@ export default function ApplicationDetailComprehensive({
           ))}
           {(medicalAnswers.consulted || medicalAnswers.advised || medicalAnswers.impairment) && (
             <Field
-              label="If yes to any, please give full details" editing={editingSection === 'medical'} align="start" view={null}
-              edit={<textarea rows={3} placeholder="Person treated, physician's name, address/name of hospital, date and nature of consultation/sickness/impairment" className={editInputClass} />}
+              label="If yes to any, please give full details" editing={editingSection === 'medical'} align="start" view={cat.medicalQuestionnaire?.detailsIfYes ?? null}
+              edit={<textarea rows={3} defaultValue={cat.medicalQuestionnaire?.detailsIfYes ?? ''} placeholder="Person treated, physician's name, address/name of hospital, date and nature of consultation/sickness/impairment" className={editInputClass} />}
             />
           )}
         </Section>
@@ -456,27 +485,20 @@ export default function ApplicationDetailComprehensive({
           {!isPayorSameAsInsured && (
             <>
               <Field
-                label="Name" editing={editingSection === 'payor'} view={null}
-                edit={
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="text" placeholder="First Name" className={editInputClass} />
-                    <input type="text" placeholder="Middle Name (Optional)" className={editInputClass} />
-                    <input type="text" placeholder="Last Name" className={editInputClass} />
-                  </div>
-                }
+                label="Name" editing={editingSection === 'payor'} view={payorInfo.name || null}
+                edit={<input type="text" defaultValue={payorInfo.name ?? ''} placeholder="Full Name" className={editInputClass} />}
               />
               <FieldGrid>
-                <Field label="Contact Number" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-48 ${editInputClass}`} />} />
-                <Field label="Email Address" editing={editingSection === 'payor'} view={null} edit={<input type="text" className={`w-72 ${editInputClass}`} />} />
+                <Field label="Contact Number" editing={editingSection === 'payor'} view={payorInfo.contactNumber ?? null} edit={<input type="text" defaultValue={payorInfo.contactNumber ?? ''} className={`w-48 ${editInputClass}`} />} />
+                <Field label="Email Address" editing={editingSection === 'payor'} view={payorInfo.email ?? null} edit={<input type="text" defaultValue={payorInfo.email ?? ''} className={`w-72 ${editInputClass}`} />} />
                 <Field
-                  label="Relationship" editing={editingSection === 'payor'} view={null}
+                  label="Relationship" editing={editingSection === 'payor'} view={payorInfo.relationship ?? null}
                   edit={
-                    <select className={`${editSelectClass} max-w-xs`}>
-                      <option>Aunt</option><option>Child</option><option>Common Law Partner</option>
-                      <option>Cousin</option><option>Employer</option><option>Granddaughter</option>
-                      <option>Grandparent</option><option>Grandson</option><option>In-Law</option>
-                      <option>Nephew</option><option>Niece</option><option>Other</option>
-                      <option>Parent</option><option>Sibling</option><option>Spouse</option><option>Uncle</option>
+                    <select className={`${editSelectClass} max-w-xs`} defaultValue={payorInfo.relationship}>
+                      <option>Aunt</option><option>Brother</option><option>Cousin</option><option>Daughter</option>
+                      <option>Father</option><option>Grandfather</option><option>Grandmother</option><option>Husband</option>
+                      <option>Mother</option><option>Nephew</option><option>Niece</option><option>Sister</option>
+                      <option>Son</option><option>Uncle</option><option>Wife</option><option>Others</option>
                     </select>
                   }
                 />

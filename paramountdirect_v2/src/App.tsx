@@ -79,6 +79,11 @@ export interface ScreeningItem {
   dateScreened: string;
   screenedBy: string;
   status: string;
+  // Category-specific structured data the application was actually
+  // submitted with (policyOwner/contact/payor/category) - see
+  // pdlife_types.ts's PdLifeApplicationDetails. Loosely typed here since it
+  // comes straight from the backend's Json column.
+  details?: Record<string, unknown>;
 }
 
 // Maps a real backend PdLifeApplication (dates as ISO strings, status/
@@ -104,6 +109,7 @@ function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
     dateScreened: toDisplayDate(api.dateScreened),
     screenedBy: api.screenedBy ?? '-',
     status: fromApiPdLifeStatus(api.status),
+    details: api.details,
   };
 }
 
@@ -493,7 +499,7 @@ export default function App() {
   // real record rather than the locally-invented placeholder one.
   const handleCreatePdLifeApp = async (app: PdLifeApplication): Promise<PdLifeApplication> => {
     if (!pdLifeConnected) {
-      setScreeningData(prev => [app, ...prev]);
+      setScreeningData(prev => [{ ...app, details: app.details as unknown as Record<string, unknown> }, ...prev]);
       return app;
     }
     const created = await pdLifeApi.create({
@@ -532,13 +538,23 @@ export default function App() {
       initialStatus,
       onUpdateStatus: handleUpdateStatus,
       onBack: () => setSelectedApp(null),
-      readOnly
+      readOnly,
+      // The actual submitted data - everything these pages used to hardcode
+      // (name, birthdate, address, employment, beneficiaries, etc.) now
+      // comes from here instead. `key` forces a remount per application so
+      // each page's internal edit-mode state doesn't leak between records.
+      payor: currentApp?.payor ?? '',
+      premium: currentApp?.premium ?? '',
+      source: currentApp?.source ?? '',
+      planDesc: currentApp?.planDesc ?? '',
+      details: currentApp?.details ?? {},
+      key: selectedApp.id,
     };
 
     if (healthPlans.includes(selectedApp.planCode)) return <ApplicationDetailHealth {...props} />;
     if (lifeAccidentPlans.includes(selectedApp.planCode)) return <ApplicationDetailLifeAccident {...props} />;
     if (comprehensivePlans.includes(selectedApp.planCode)) return <ApplicationDetailComprehensive {...props} />;
-    
+
     return <ApplicationDetailHealth {...props} />;
   };
 
