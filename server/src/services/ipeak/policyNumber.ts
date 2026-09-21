@@ -2,7 +2,8 @@
 // PLANCODE-NNNNNN-D (e.g. "HCP-043385-0"), confirmed against the actual
 // AS400 "New Application for Upload" queue. The sequential number is
 // per-plan-code and PD 2.0-generated (not assigned by iPeak); the trailing
-// digit is a check digit iPeak doesn't validate, so it's cosmetic only.
+// digit is a check digit iPeak doesn't validate (cosmetic only), and it is
+// always 0 or 1 (a parity bit), never 0-9.
 import { prisma } from '../../lib/prisma';
 
 async function nextSequenceNumber(planCode: string): Promise<number> {
@@ -19,6 +20,6 @@ async function nextSequenceNumber(planCode: string): Promise<number> {
 export async function generatePolicyNumber(planCode: string): Promise<string> {
   const n = await nextSequenceNumber(planCode);
   const padded = String(n).padStart(6, '0');
-  const checkDigit = n % 10;
+  const checkDigit = n % 2;
   return `${planCode}-${padded}-${checkDigit}`;
 }

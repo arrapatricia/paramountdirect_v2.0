@@ -104,7 +104,8 @@ router.patch(
     try {
       if (existing.status === 'Received' && status !== 'Received') {
         await submitNewBusinessToIpeak(application, processorEmail);
-      } else if (status === 'Issued') {
+      }
+      if (status === 'Issued') {
         await updateIpeakStatus(application, 'APR', processorEmail);
       }
     } catch (err) {

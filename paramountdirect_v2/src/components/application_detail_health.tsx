@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { UserCircle2, MapPin, Users, Wallet, ClipboardList, Briefcase } from 'lucide-react';
 import {
-  NotificationBanner, DetailHeader, StatusControl, Section, Field, FieldGrid, AddRowButton,
+  NotificationBanner, DetailHeader, StatusControl, IssueConfirmModal, Section, Field, FieldGrid, AddRowButton,
   editInputClass, editSelectClass, type NotificationState,
 } from './application_detail_ui';
 import {
@@ -14,6 +14,9 @@ interface Props {
   planCode: string;
   initialStatus: string;
   onUpdateStatus: (status: string) => void;
+  // Reported once the screener confirms whether the client's application
+  // form was already signed at the moment of issuance - see IssueConfirmModal.
+  onIssueDecision?: (signed: boolean) => void;
   onBack: () => void;
   // Application Inquiry is a lookup view - opened from there, this page is
   // fully read-only (no status changes, no section editing).
@@ -32,6 +35,7 @@ export default function ApplicationDetailHealth({
   planCode,
   initialStatus,
   onUpdateStatus,
+  onIssueDecision,
   onBack,
   readOnly = false,
   premium,
@@ -61,6 +65,12 @@ export default function ApplicationDetailHealth({
   const statusOptions = ['For Verification', 'For Evaluation', 'Paid', 'Issued'];
 
   const [notification, setNotification] = useState<NotificationState>(null);
+
+  // Issuance Signature Gate - selecting "Issued" from the status menu opens
+  // this instead of committing immediately; the status change and the
+  // signed/unsigned decision are only applied together on confirm.
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [pendingIssueSigned, setPendingIssueSigned] = useState<boolean | null>(null);
 
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [birthdate, setBirthdate] = useState(owner.birthdate ?? '');
@@ -95,19 +105,31 @@ export default function ApplicationDetailHealth({
   };
 
   const handleSelectStatus = (newStatus: string) => {
-    setStatus(newStatus);
     setIsStatusMenuOpen(false);
 
     if (newStatus === 'Issued') {
-      setSavedStatus('Issued');
-      onUpdateStatus('Issued');
-      setNotification({ type: 'success', message: 'The application has been successfully issued and transmitted to iPeak' });
-    } else {
-      setSavedStatus(newStatus);
-      onUpdateStatus(newStatus);
-      setNotification({ type: 'info', message: `The application is updated to ${newStatus}` });
+      // Deferred to confirmIssue - the screener must record Signed/Unsigned
+      // before the status change actually commits.
+      setPendingIssueSigned(null);
+      setShowIssueModal(true);
+      return;
     }
 
+    setStatus(newStatus);
+    setSavedStatus(newStatus);
+    onUpdateStatus(newStatus);
+    setNotification({ type: 'info', message: `The application is updated to ${newStatus}` });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const confirmIssue = () => {
+    if (pendingIssueSigned === null) return;
+    setShowIssueModal(false);
+    setStatus('Issued');
+    setSavedStatus('Issued');
+    onUpdateStatus('Issued');
+    onIssueDecision?.(pendingIssueSigned);
+    setNotification({ type: 'success', message: 'The application has been successfully issued and transmitted to iPeak' });
     setTimeout(() => setNotification(null), 5000);
   };
 
@@ -115,6 +137,15 @@ export default function ApplicationDetailHealth({
     <div className="p-4 md:p-6 space-y-4 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-200">
 
       <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} />
+
+      {showIssueModal && (
+        <IssueConfirmModal
+          signed={pendingIssueSigned}
+          onSelectSigned={setPendingIssueSigned}
+          onConfirm={confirmIssue}
+          onCancel={() => setShowIssueModal(false)}
+        />
+      )}
 
       <DetailHeader
         applicationId={applicationId}

@@ -124,6 +124,23 @@ export const fromApiPlanCategory = (category: string): string => PLAN_CATEGORY_F
 // human-readable reference before a real iPeak policy number exists.
 export const formatApplicationId = (seq: number): string => String(seq).padStart(7, '0');
 
+// Matches server/prisma/schema.prisma's AuditLog.
+export interface AuditLogApi {
+  id: string;
+  timestamp: string;
+  userId: string | null;
+  userLabel: string;
+  role: string;
+  action: string;
+  module: string;
+  details: string;
+  ipAddress: string;
+}
+
+export const auditLogApi = {
+  list: () => apiFetch<AuditLogApi[]>('/api/audit-logs'),
+};
+
 export const pdLifeApi = {
   list: () => apiFetch<PdLifeApplicationApi[]>('/api/applications/pd-life'),
   create: (payload: Omit<PdLifeApplicationApi, 'id' | 'applicationSeq' | 'policyNumber' | 'dateScreened'> & { dateScreened?: string }) =>

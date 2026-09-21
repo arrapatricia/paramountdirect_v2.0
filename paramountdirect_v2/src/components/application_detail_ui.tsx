@@ -103,6 +103,74 @@ export function StatusControl({ status, savedStatus, isMenuOpen, setIsMenuOpen, 
   );
 }
 
+interface IssueConfirmModalProps {
+  signed: boolean | null;
+  onSelectSigned: (signed: boolean) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+// Gates the move to "Issued" - the screener must record whether the
+// client's physical application form has already been signed, since that
+// determines whether the policy lands straight in Signed Applications or
+// in the Follow-Up Signature chasing queue.
+export function IssueConfirmModal({ signed, onSelectSigned, onConfirm, onCancel }: IssueConfirmModalProps) {
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+      <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-5 font-sans dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-900 uppercase dark:text-white">Confirm Issuance</h2>
+          <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer dark:hover:bg-slate-800">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold text-slate-700 mb-3 dark:text-slate-300">Has the client's application form been signed?</p>
+          <div className="flex items-center space-x-6">
+            <label className="flex items-center space-x-2 cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <input
+                type="radio"
+                name="issue-signed"
+                checked={signed === true}
+                onChange={() => onSelectSigned(true)}
+                className="accent-[#d0112b] w-4 h-4 cursor-pointer"
+              />
+              <span>Signed</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <input
+                type="radio"
+                name="issue-signed"
+                checked={signed === false}
+                onChange={() => onSelectSigned(false)}
+                className="accent-[#d0112b] w-4 h-4 cursor-pointer"
+              />
+              <span>Unsigned</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={signed === null}
+            className="px-5 py-2 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+          >
+            Confirm Issue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface DetailHeaderProps {
   applicationId: string;
   productName: string;

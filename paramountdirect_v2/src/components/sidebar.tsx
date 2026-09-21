@@ -166,13 +166,13 @@ export default function Sidebar({
             (Statistics + Maintenance both expanded) don't get clipped on
             short screens; the user section below stays pinned. */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5">
-          <div className={`flex mb-6 ${isCollapsed ? 'flex-col items-center space-y-3' : 'items-center justify-between h-14'}`}>
+          <div className={`flex mb-6 ${isCollapsed ? 'flex-col items-center space-y-3' : 'items-center justify-between h-16'}`}>
             <div className="flex items-center space-x-2 overflow-hidden">
               <img
                 src={darkMode ? logoImgWhite : logoImg}
                 alt="Paramount Direct"
                 className={`transition-all duration-300 object-contain ${
-                  isCollapsed ? 'h-8 max-w-[60px]' : 'h-12 max-w-[190px]'
+                  isCollapsed ? 'h-9 max-w-[60px]' : 'h-16 max-w-[230px]'
                 }`}
               />
             </div>
