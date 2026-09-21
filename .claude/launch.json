@@ -11,6 +11,12 @@
       "runtimeArgs": ["--prefix", "server", "run", "dev"],
       "port": 4000,
       "autoPort": true
+    },
+    {
+      "name": "paramountdirect_v2-db-studio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "server", "run", "prisma:studio"],
+      "port": 5555
     }
   ]
 }
