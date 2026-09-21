@@ -5,9 +5,8 @@ import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, parseDate
 
 interface GtpDashboardProps {
   data: GtpApplication[];
+  annualTarget: number;
 }
-
-const ANNUAL_TARGET = 2_950_000;
 
 const TRAVEL_TYPE_COLORS: Record<GtpApplication['travelType'], string> = {
   International: '#002f6c',
@@ -22,7 +21,7 @@ const FULL_MONTH_NAME: Record<string, string> = {
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function GtpDashboard({ data }: GtpDashboardProps) {
+export default function GtpDashboard({ data, annualTarget }: GtpDashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
@@ -46,7 +45,7 @@ export default function GtpDashboard({ data }: GtpDashboardProps) {
   const completeMonths2026 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
   const premiumYtd2026 = monthlyPremium.reduce((s, m) => s + (m.y2026 ?? 0), 0);
   const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
-  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, ANNUAL_TARGET)));
+  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, annualTarget)));
 
   const applicationsYoyPct = safePct(ytdApplications.y2026 - ytdApplications.y2025, ytdApplications.y2025);
   const issuedYoyPct = safePct(ytdIssued.y2026 - ytdIssued.y2025, ytdIssued.y2025);
@@ -133,7 +132,7 @@ export default function GtpDashboard({ data }: GtpDashboardProps) {
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Annual Premium Target</h3>
           <div className="flex items-baseline space-x-1.5">
             <p className="text-xl font-black text-slate-900 dark:text-white">{peso(premiumYtd2026)}</p>
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {peso(ANNUAL_TARGET)}</span>
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {peso(annualTarget)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-3 dark:bg-slate-800">
             <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${attainmentPct}%` }} />

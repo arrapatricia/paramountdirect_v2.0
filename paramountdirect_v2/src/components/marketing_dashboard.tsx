@@ -10,7 +10,9 @@ import {
   ExternalLink,
   Edit2,
   Trash2,
+  Check,
 } from 'lucide-react';
+import type { AnnualTargets } from '../App';
 
 interface PageClickStat {
   page: string;
@@ -84,8 +86,45 @@ const KPI_COMPLETED = 0;
 const KPI_UNFINISHED = KPI_STARTED - KPI_COMPLETED;
 const KPI_COMPLETION_RATE = KPI_STARTED === 0 ? '0.0' : ((KPI_COMPLETED / KPI_STARTED) * 100).toFixed(1);
 
-export default function MarketingDashboard() {
+interface MarketingDashboardProps {
+  annualTargets: AnnualTargets;
+  onUpdateAnnualTargets: (targets: AnnualTargets) => void;
+}
+
+const ANNUAL_TARGET_FIELDS: { key: keyof AnnualTargets; label: string; currency: '₱' | '$' }[] = [
+  { key: 'pdLife', label: 'PD Life (Sales)', currency: '₱' },
+  { key: 'ofw', label: 'OFW', currency: '$' },
+  { key: 'ctpl', label: 'CTPL', currency: '₱' },
+  { key: 'gtp', label: 'GTP', currency: '₱' },
+];
+
+export default function MarketingDashboard({ annualTargets, onUpdateAnnualTargets }: MarketingDashboardProps) {
   const [remindedIds, setRemindedIds] = useState<string[]>([]);
+  const [targetDrafts, setTargetDrafts] = useState<Record<keyof AnnualTargets, string>>(() => ({
+    pdLife: String(annualTargets.pdLife),
+    ofw: String(annualTargets.ofw),
+    ctpl: String(annualTargets.ctpl),
+    gtp: String(annualTargets.gtp),
+  }));
+  const [targetsSaved, setTargetsSaved] = useState(false);
+
+  const handleSaveTargets = () => {
+    const parsed: AnnualTargets = {
+      pdLife: Math.max(0, Number(targetDrafts.pdLife) || 0),
+      ofw: Math.max(0, Number(targetDrafts.ofw) || 0),
+      ctpl: Math.max(0, Number(targetDrafts.ctpl) || 0),
+      gtp: Math.max(0, Number(targetDrafts.gtp) || 0),
+    };
+    onUpdateAnnualTargets(parsed);
+    setTargetDrafts({
+      pdLife: String(parsed.pdLife),
+      ofw: String(parsed.ofw),
+      ctpl: String(parsed.ctpl),
+      gtp: String(parsed.gtp),
+    });
+    setTargetsSaved(true);
+    setTimeout(() => setTargetsSaved(false), 2000);
+  };
 
   const maxPageClicks = Math.max(1, ...gaPageClicks.map(p => p.clicks));
   const maxDropOff = Math.max(1, ...dropOffSteps.map(d => d.count));
@@ -109,6 +148,54 @@ export default function MarketingDashboard() {
             </h1>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Google Analytics traffic, source performance &amp; application drop-off for paramountdirect.com</p>
           </div>
+        </div>
+      </div>
+
+      {/* Annual Sales/Premium Targets */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center space-x-2">
+            <Target className="w-4 h-4 text-[#d0112b]" />
+            <h2 className="text-sm font-extrabold text-slate-800 uppercase dark:text-slate-100">Annual Targets</h2>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">The goal each product's dashboard measures YTD attainment against</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {ANNUAL_TARGET_FIELDS.map((field) => (
+            <div key={field.key}>
+              <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 dark:text-slate-500" htmlFor={`annual-target-${field.key}`}>
+                {field.label}
+              </label>
+              <div className="flex items-center rounded-xl border border-slate-200 overflow-hidden focus-within:border-[#d0112b] dark:border-slate-700">
+                <span className="px-3 text-sm font-bold text-slate-400 dark:text-slate-500">{field.currency}</span>
+                <input
+                  id={`annual-target-${field.key}`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={targetDrafts[field.key]}
+                  onChange={(e) => setTargetDrafts((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  className="w-full py-2 pr-3 text-sm font-bold text-slate-900 bg-transparent outline-none dark:text-white"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center space-x-3 mt-5">
+          <button
+            onClick={handleSaveTargets}
+            className="px-5 py-2 rounded-xl bg-[#d0112b] text-white text-xs font-bold hover:bg-[#a80e23] transition-colors cursor-pointer"
+          >
+            Save Targets
+          </button>
+          {targetsSaved && (
+            <span className="flex items-center space-x-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <Check className="w-3.5 h-3.5" />
+              <span>Saved</span>
+            </span>
+          )}
         </div>
       </div>
 

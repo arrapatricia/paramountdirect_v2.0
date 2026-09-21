@@ -2,13 +2,16 @@
 import { Building2, BarChart3, Globe } from 'lucide-react';
 import BranchDirectory from './branch_directory';
 import MarketingDashboard from './marketing_dashboard';
+import type { AnnualTargets } from '../App';
 
 interface Props {
   activeSubTab?: string;
   setActiveSubTab?: (tab: string) => void;
+  annualTargets: AnnualTargets;
+  onUpdateAnnualTargets: (targets: AnnualTargets) => void;
 }
 
-export default function Maintenance({ activeSubTab = 'branch', setActiveSubTab }: Props) {
+export default function Maintenance({ activeSubTab = 'branch', setActiveSubTab, annualTargets, onUpdateAnnualTargets }: Props) {
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-gray-50 dark:bg-slate-950 dark:text-slate-100">
       {/* Sub-Module Nav Header */}
@@ -54,7 +57,9 @@ export default function Maintenance({ activeSubTab = 'branch', setActiveSubTab }
       <div>
         {activeSubTab === 'branch' && <BranchDirectory />}
 
-        {activeSubTab === 'marketing' && <MarketingDashboard />}
+        {activeSubTab === 'marketing' && (
+          <MarketingDashboard annualTargets={annualTargets} onUpdateAnnualTargets={onUpdateAnnualTargets} />
+        )}
 
         {activeSubTab === 'cms' && (
           <div className="p-12 text-center text-slate-400 font-bold max-w-[1600px] mx-auto dark:text-slate-500">

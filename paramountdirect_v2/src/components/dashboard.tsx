@@ -5,9 +5,8 @@ import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, countByFi
 
 interface DashboardProps {
   data: ScreeningItem[];
+  annualTarget: number;
 }
-
-const ANNUAL_TARGET = 2_200_000;
 
 // Fixed color per acquisition source, so the donut's palette stays stable
 // as real sources show up (falls back to slate for anything unlisted).
@@ -46,7 +45,7 @@ const FULL_MONTH_NAME: Record<string, string> = {
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function Dashboard({ data }: DashboardProps) {
+export default function Dashboard({ data, annualTarget }: DashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
@@ -88,7 +87,7 @@ export default function Dashboard({ data }: DashboardProps) {
   const premiumYtd2026 = monthlySales.reduce((s, m) => s + (m.y2026 ?? 0), 0);
   const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
 
-  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, ANNUAL_TARGET)));
+  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, annualTarget)));
 
   const applicationsYoyPct = safePct(ytdApplications.y2026 - ytdApplications.y2025, ytdApplications.y2025);
   const issuedYoyPct = safePct(ytdIssued.y2026 - ytdIssued.y2025, ytdIssued.y2025);
@@ -140,7 +139,7 @@ export default function Dashboard({ data }: DashboardProps) {
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Annual Sales Target</h3>
           <div className="flex items-baseline space-x-1.5">
             <p className="text-xl font-black text-slate-900 dark:text-white">{peso(premiumYtd2026)}</p>
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {peso(ANNUAL_TARGET)}</span>
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {peso(annualTarget)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-3 dark:bg-slate-800">
             <div className="h-full rounded-full bg-[#d0112b]" style={{ width: `${attainmentPct}%` }} />

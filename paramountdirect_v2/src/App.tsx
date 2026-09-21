@@ -1136,7 +1136,7 @@ export default function App() {
 
       {/* Primary Main Content View */}
       <main className="flex-1 overflow-y-auto">
-        {activeTab === 'dashboard' && <Dashboard data={screeningData} />}
+        {activeTab === 'dashboard' && <Dashboard data={screeningData} annualTarget={annualTargets.pdLife} />}
 
         {/* Life Statistics */}
         {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" />}
@@ -1148,7 +1148,7 @@ export default function App() {
         {activeTab === 'life-application-statuses' && <LifeApplicationStatuses />}
 
         {/* OFW Dashboard */}
-        {activeTab === 'ofw-dashboard' && <OfwDashboard data={ofwApplications} />}
+        {activeTab === 'ofw-dashboard' && <OfwDashboard data={ofwApplications} annualTarget={annualTargets.ofw} />}
 
         {/* OFW Applications */}
         {activeTab === 'ofw-applications' && (
@@ -1172,7 +1172,7 @@ export default function App() {
         {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} currentUserRole={currentUserRole} />}
 
         {/* CTPL Dashboard */}
-        {activeTab === 'ctpl-dashboard' && <CtplDashboard data={ctplApplications} />}
+        {activeTab === 'ctpl-dashboard' && <CtplDashboard data={ctplApplications} annualTarget={annualTargets.ctpl} />}
 
         {/* CTPL Applications */}
         {activeTab === 'ctpl-applications' && (
@@ -1196,7 +1196,7 @@ export default function App() {
         {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} currentUserRole={currentUserRole} />}
 
         {/* GTP Dashboard */}
-        {activeTab === 'gtp-dashboard' && <GtpDashboard data={gtpApplications} />}
+        {activeTab === 'gtp-dashboard' && <GtpDashboard data={gtpApplications} annualTarget={annualTargets.gtp} />}
 
         {/* GTP Applications */}
         {activeTab === 'gtp-applications' && (
@@ -1303,6 +1303,8 @@ export default function App() {
           <Maintenance
             activeSubTab={activeSubTab}
             setActiveSubTab={setActiveSubTab}
+            annualTargets={annualTargets}
+            onUpdateAnnualTargets={handleUpdateAnnualTargets}
           />
         )}
 
