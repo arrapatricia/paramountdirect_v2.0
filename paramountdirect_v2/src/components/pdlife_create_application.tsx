@@ -14,8 +14,9 @@ import {
 } from './pdlife_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { getHcpPremium, getHcpAvailableTiers, type HcpInsuredOption } from './pdlife_rates_hcp';
-import { getHipPremium, HIP_TIERS, type HipInsuredOption } from './pdlife_rates_hip';
-import { getGlaPremium, GLA_MAX_UNITS } from './pdlife_rates_gla';
+import { getHipPremium, type HipInsuredOption } from './pdlife_rates_hip';
+import { getGlaPremium, GLA_UNITS } from './pdlife_rates_gla';
+import { PH_REGION_NAMES, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
 interface Props {
   onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
@@ -24,9 +25,6 @@ interface Props {
   rates: PremiumRate[];
 }
 
-const PH_REGIONS = ['NCR', 'Region III', 'Region IV-A'];
-const PH_CITIES = ['Pasay City', 'Makati City', 'Manila City', 'Quezon City'];
-const PH_BARANGAYS = ['Barangay 101', 'Barangay 102', 'Barangay 103'];
 const NATIONALITIES = ['Filipino', 'American', 'Chinese', 'Japanese', 'Korean', 'Others'];
 const PAYMENT_OPTIONS = ['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'] as const;
 const NON_FORFEITURE_OPTIONS: NonForfeitureOption[] = ['Paid-up Insurance', 'Automatic Payment of Premium', 'Cash Surrender'];
@@ -47,6 +45,17 @@ const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
 const cardClass = 'bg-white border border-slate-200 rounded-lg p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800';
 const sectionHeadingClass = 'text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800';
+
+// Real eligible-age ranges, confirmed directly against each plan's own page
+// on paramountdirect.com (Health Care Insurance / Life & Accident Insurance
+// overview tables): HCP 20-50, HIP 20-64, GLA 40-75. Plans without a
+// confirmed real range yet (still on placeholder rates) are left out rather
+// than guessed.
+const PLAN_AGE_RANGE: Partial<Record<string, { min: number; max: number }>> = {
+  HCP: { min: 20, max: 50 },
+  HIP: { min: 20, max: 64 },
+  GLA: { min: 40, max: 75 },
+};
 
 const calculateAge = (dobString: string) => {
   if (!dobString) return null;
@@ -137,7 +146,7 @@ function PdLifeCategoryForm({
   });
   const [contact, setContact] = useState<ContactInfo>({
     houseNumber: '', street: '', building: '',
-    region: PH_REGIONS[0], city: PH_CITIES[0], barangay: PH_BARANGAYS[0], zipcode: '',
+    region: PH_REGION_NAMES[0], city: citiesForRegion(PH_REGION_NAMES[0])[0], barangay: GENERIC_BARANGAYS[0], zipcode: '',
     mobileNumber: '', telephoneNumber: '', email: '',
   });
   const [payorInfo, setPayorInfo] = useState<PayorInfo>({
@@ -148,9 +157,6 @@ function PdLifeCategoryForm({
   const [insuredOption, setInsuredOption] = useState<'Individual' | 'Married Couple' | 'Family'>('Individual');
   const [hasLegalSpouse, setHasLegalSpouse] = useState(false);
   const [children, setChildren] = useState<ChildBeneficiary[]>([]);
-  // Benefit/plan amount tier - only meaningful for HCP and HIP so far, whose
-  // real rate cards are wired in (pdlife_rates_hcp.ts / pdlife_rates_hip.ts).
-  const [benefitTier, setBenefitTier] = useState(500);
 
   // Life & Accident / Comprehensive shared
   const [paymentOption, setPaymentOption] = useState<(typeof PAYMENT_OPTIONS)[number]>('Monthly');
@@ -181,10 +187,22 @@ function PdLifeCategoryForm({
   const planName = planOptions.find((p) => p.code === planCode)?.name ?? '';
 
   const hcpTiers = age !== null ? getHcpAvailableTiers(insuredOption as HcpInsuredOption, age) : [];
+  // Benefit amount is never a free choice at intake - it's the plan's own
+  // base/entry tier (₱500), fully determined by Plan + Insured Option +
+  // Payment Option, the same way the real paramountdirect.com apply flow
+  // sells a single named "Plan 500 - Individual" rather than letting the
+  // applicant pick an arbitrary peso amount.
+  const benefitTier = 500;
   // HCP/HIP need the applicant's age to price at all - without it, showing
   // any number (even a placeholder) misleadingly looks like a real premium
-  // that just isn't reacting to Payment Option/Benefit Amount yet.
+  // that just isn't reacting to Insured Option/Payment Option yet.
   const premiumNeedsAge = (planCode === 'HCP' || planCode === 'HIP') && age === null;
+
+  const ageRange = planCode ? PLAN_AGE_RANGE[planCode] : undefined;
+  const ageEligibilityError =
+    age !== null && ageRange && (age < ageRange.min || age > ageRange.max)
+      ? `${planCode} is only available to ages ${ageRange.min}-${ageRange.max} - the entered birthdate makes the applicant ${age}.`
+      : null;
 
   const premiumValue =
     !planCode ? 0 :
@@ -204,6 +222,7 @@ function PdLifeCategoryForm({
   const canSubmit =
     planCode &&
     owner.firstName && owner.lastName && owner.birthdate && owner.placeOfBirth &&
+    !ageEligibilityError &&
     contact.houseNumber && contact.street && contact.zipcode && contact.mobileNumber && contact.email &&
     (payorInfo.sameAsInsured || (payorInfo.name && payorInfo.contactNumber && payorInfo.email)) &&
     (category !== 'Comprehensive' || (occupation && weightKg && heightCm));
@@ -246,7 +265,9 @@ function PdLifeCategoryForm({
       payor: fullName,
       planCode,
       planDesc: planName,
-      premium: `₱${premiumValue.toFixed(2)}`,
+      // Stored as a plain number string - no currency sign in the data itself,
+      // only where it's displayed (the ₱ shown above and in the review step).
+      premium: premiumValue.toFixed(2),
       source,
       dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       dateScreened: '-',
@@ -383,19 +404,8 @@ function PdLifeCategoryForm({
               <div>
                 <label className={labelClass}>Units</label>
                 <select value={units} onChange={(e) => setUnits(Number(e.target.value))} className={inputClass}>
-                  {(planCode === 'GLA' ? Array.from({ length: GLA_MAX_UNITS }, (_, i) => i + 1) : [1, 2, 3, 5, 7, 10, 15, 20]).map((u) => (
+                  {(planCode === 'GLA' ? GLA_UNITS : [1, 2, 3, 5, 7, 10, 15, 20]).map((u) => (
                     <option key={u} value={u}>{u} Unit(s)</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {category === 'Health' && (planCode === 'HCP' || planCode === 'HIP') && (
-              <div>
-                <label className={labelClass}>Benefit Amount</label>
-                <select value={benefitTier} onChange={(e) => setBenefitTier(Number(e.target.value))} className={inputClass}>
-                  {(planCode === 'HCP' ? (hcpTiers.length ? hcpTiers : [500]) : HIP_TIERS).map((t) => (
-                    <option key={t} value={t}>₱{t.toLocaleString()}</option>
                   ))}
                 </select>
               </div>
@@ -447,6 +457,9 @@ function PdLifeCategoryForm({
             <div>
               <label className={labelClass}>Birthdate {age !== null && <span className="text-[#d0112b]">&middot; {age} yrs old</span>}</label>
               <input required type="date" value={owner.birthdate} onChange={(e) => setOwner((o) => ({ ...o, birthdate: e.target.value }))} className={inputClass} />
+              {ageEligibilityError && (
+                <p className="text-[11px] font-bold text-[#d0112b] mt-1">{ageEligibilityError}</p>
+              )}
             </div>
             <div><label className={labelClass}>Place of Birth</label><input required value={owner.placeOfBirth} onChange={(e) => setOwner((o) => ({ ...o, placeOfBirth: e.target.value }))} className={inputClass} /></div>
 
@@ -476,20 +489,27 @@ function PdLifeCategoryForm({
 
             <div>
               <label className={labelClass}>Region</label>
-              <select value={contact.region} onChange={(e) => setContact((c) => ({ ...c, region: e.target.value }))} className={inputClass}>
-                {PH_REGIONS.map((r) => <option key={r}>{r}</option>)}
+              <select
+                value={contact.region}
+                onChange={(e) => {
+                  const nextRegion = e.target.value;
+                  setContact((c) => ({ ...c, region: nextRegion, city: citiesForRegion(nextRegion)[0] ?? '' }));
+                }}
+                className={inputClass}
+              >
+                {PH_REGION_NAMES.map((r) => <option key={r}>{r}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>City/Municipality</label>
               <select value={contact.city} onChange={(e) => setContact((c) => ({ ...c, city: e.target.value }))} className={inputClass}>
-                {PH_CITIES.map((c) => <option key={c}>{c}</option>)}
+                {citiesForRegion(contact.region).map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>Barangay</label>
               <select value={contact.barangay} onChange={(e) => setContact((c) => ({ ...c, barangay: e.target.value }))} className={inputClass}>
-                {PH_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
+                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
 
