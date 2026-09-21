@@ -305,6 +305,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                   </button>
                 </th>
                 <th className="py-3 px-2">ID</th>
+                <th className="py-3 px-2">Policy Number</th>
                 <th className="py-3 px-2">Payor</th>
                 <th className="py-3 px-2">Plan</th>
                 <th className="py-3 px-2">Premium</th>
@@ -319,7 +320,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
+                  <td colSpan={12} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
                     No applications match the current filters.
                   </td>
                 </tr>
@@ -339,7 +340,8 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                           )}
                         </button>
                       </td>
-                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.policyNumber || row.applicationId || row.id}</td>
+                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.applicationId || row.id}</td>
+                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.policyNumber || '-'}</td>
                       <td className="py-3.5 px-2 font-bold text-slate-900 text-xs dark:text-white">{row.payor}</td>
                       <td className="py-3.5 px-2">
                         <span className="font-extrabold text-slate-900 dark:text-white">{row.planCode}</span>

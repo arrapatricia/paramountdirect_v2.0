@@ -296,6 +296,7 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
                 </th>
                 <th className="py-3 px-2">App ID / Policy Number</th>
                 <th className="py-3 px-2">Policy Holder</th>
+                <th className="py-3 px-2">Premium</th>
                 <th className="py-3 px-2">Application Status</th>
                 <th className="py-3 px-2">Payment Status</th>
                 <th className="py-3 px-2 text-center">Actions</th>
@@ -304,7 +305,7 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-bold dark:text-slate-500">
                     No applications match the current filters.
                   </td>
                 </tr>
@@ -326,6 +327,7 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
                       </td>
                       <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{displayPolicyNumber}</td>
                       <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{item.payor}</td>
+                      <td className="py-3.5 px-2 font-bold text-[#d0112b]">{item.premium}</td>
                       <td className="py-3.5 px-2">{getStatusBadge(item.status)}</td>
                       <td className="py-3.5 px-2">{getPaymentBadge(paymentStatus)}</td>
                       <td className="py-3.5 px-2 text-center">
