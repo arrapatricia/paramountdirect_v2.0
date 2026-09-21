@@ -89,6 +89,7 @@ async function main() {
     { email: 'dm.operations@paramount.com.ph', firstName: 'DM', lastName: 'Operations', roleName: 'DM Operations', products: ['PD Life'] },
     { email: 'dm.pos@paramount.com.ph', firstName: 'DM', lastName: 'POS', roleName: 'DM POS', products: ['PD Life'] },
     { email: 'dm.marketing@paramount.com.ph', firstName: 'DM', lastName: 'Marketing', roleName: 'DM Marketing', products: ['PD Life'] },
+    { email: 'contact.center@paramount.com.ph', firstName: 'Contact', lastName: 'Center', roleName: 'Contact Center', products: ['PD Life'] },
     { email: 'life.cashier@paramount.com.ph', firstName: 'Life', lastName: 'Cashier', roleName: 'Life Cashier', products: ['PD Life'] },
     { email: 'nonlife.cashier@paramount.com.ph', firstName: 'Non-Life', lastName: 'Cashier', roleName: 'Non-Life Cashier', products: ['OFW', 'CTPL', 'GTP'] },
     { email: 'cashier.admin@paramount.com.ph', firstName: 'Cashier', lastName: 'Admin', roleName: 'Cashier Admin', products: ['PD Life', 'OFW', 'CTPL', 'GTP'] },

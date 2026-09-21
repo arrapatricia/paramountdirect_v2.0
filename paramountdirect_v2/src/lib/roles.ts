@@ -44,6 +44,12 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     description: 'Read-only view of submitted applications, plus CMS website content.',
   },
   {
+    name: 'Contact Center',
+    group: 'Direct Marketing',
+    products: ['PD Life'],
+    description: 'Read-only access to Application Inquiry, the Follow-up Calls statistics page, and Payment Transactions for PD Life.',
+  },
+  {
     name: 'Life Cashier',
     group: 'Cashiering',
     products: ['PD Life'],
@@ -114,6 +120,7 @@ export const PRODUCT_MODULE_MAP: Record<ProductScope, string[]> = {
   'PD Life': [
     'Application Screening',
     'Application Inquiry',
+    'Follow-up Calls',
     'Sending of Policy Docs',
     'Sending of Billing',
     'Payment Transactions & Ledger',
@@ -136,6 +143,7 @@ export const MODULES_NOT_YET_BUILT = new Set(['Sending of Billing', 'Call Out'])
 export const MODULE_DESCRIPTIONS: Partial<Record<string, string>> = {
   'Application Screening': 'Review, verify and update the status of incoming online applications.',
   'Application Inquiry': 'Read-only lookup of application details and status history.',
+  'Follow-up Calls': 'Statistics page tracking outbound follow-up call activity on submitted applications.',
   'Sending of Policy Docs': 'Dispatch issued policy documents to policyholders.',
   'Sending of Billing': 'Send billing notices and statements to policyholders.',
   'Call Out': 'Contact Center outbound call queue for application follow-up.',
@@ -168,6 +176,13 @@ const ROLE_PERMISSION_TEMPLATES: Partial<Record<string, Partial<Record<ProductSc
     'PD Life': {
       'Application Inquiry': { canRead: true },
       'CMS Content': { canRead: true, canWrite: true },
+    },
+  },
+  'Contact Center': {
+    'PD Life': {
+      'Application Inquiry': { canRead: true },
+      'Follow-up Calls': { canRead: true },
+      'Payment Transactions & Ledger': { canRead: true },
     },
   },
   'Life Cashier': {
