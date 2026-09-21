@@ -4,8 +4,6 @@ import {
   MousePointerClick,
   Users,
   Target,
-  TrendingUp,
-  TrendingDown,
   Clock,
   AlertTriangle,
   Mail,
@@ -48,53 +46,52 @@ interface UnfinishedApplication {
   source: string;
 }
 
+// No history yet on the new system — page/source/step structure is real,
+// but every metric starts at zero and fills in as real traffic and
+// applications come through.
 const gaPageClicks: PageClickStat[] = [
-  { page: '/health-insurance', product: 'Health Care', clicks: 8420, visitors: 6210, ctr: '5.8%', avgDuration: '2m 14s' },
-  { page: '/life-accident-insurance', product: 'Life & Accident', clicks: 5310, visitors: 4025, ctr: '4.1%', avgDuration: '1m 48s' },
-  { page: '/comprehensive-insurance', product: 'Comprehensive', clicks: 3980, visitors: 2890, ctr: '3.2%', avgDuration: '2m 02s' },
-  { page: '/apply/healthcare-cash-plan', product: 'Health Care', clicks: 1240, visitors: 980, ctr: '9.4%', avgDuration: '4m 32s' },
-  { page: '/apply/golden-life-advantage-plan', product: 'Life & Accident', clicks: 860, visitors: 690, ctr: '8.1%', avgDuration: '3m 58s' },
-  { page: '/apply/sure-savings-plan', product: 'Comprehensive', clicks: 705, visitors: 540, ctr: '7.6%', avgDuration: '5m 10s' },
+  { page: '/health-insurance', product: 'Health Care', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
+  { page: '/life-accident-insurance', product: 'Life & Accident', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
+  { page: '/comprehensive-insurance', product: 'Comprehensive', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
+  { page: '/apply/healthcare-cash-plan', product: 'Health Care', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
+  { page: '/apply/golden-life-advantage-plan', product: 'Life & Accident', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
+  { page: '/apply/sure-savings-plan', product: 'Comprehensive', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
 ];
 
 const sourcePerformance: SourcePerformance[] = [
-  { id: 1, name: 'ML', type: 'Affiliate', status: 'Active', clicks: 2140, applications: 312, conversionRate: '14.6%' },
-  { id: 2, name: 'Email', type: 'Direct', status: 'Active', clicks: 3680, applications: 588, conversionRate: '16.0%' },
-  { id: 3, name: 'Non-Life', type: 'Cross-Sell', status: 'Active', clicks: 1120, applications: 96, conversionRate: '8.6%' },
-  { id: 4, name: 'Google', type: 'Paid Search', status: 'Active', clicks: 12480, applications: 1840, conversionRate: '14.7%' },
-  { id: 5, name: 'Facebook', type: 'Social Media', status: 'Active', clicks: 6720, applications: 715, conversionRate: '10.6%' },
-  { id: 6, name: 'Direct', type: 'Organic', status: 'Inactive', clicks: 380, applications: 22, conversionRate: '5.8%' },
+  { id: 1, name: 'ML', type: 'Affiliate', status: 'Active', clicks: 0, applications: 0, conversionRate: '0.0%' },
+  { id: 2, name: 'Email', type: 'Direct', status: 'Active', clicks: 0, applications: 0, conversionRate: '0.0%' },
+  { id: 3, name: 'Non-Life', type: 'Cross-Sell', status: 'Active', clicks: 0, applications: 0, conversionRate: '0.0%' },
+  { id: 4, name: 'Google', type: 'Paid Search', status: 'Active', clicks: 0, applications: 0, conversionRate: '0.0%' },
+  { id: 5, name: 'Facebook', type: 'Social Media', status: 'Active', clicks: 0, applications: 0, conversionRate: '0.0%' },
+  { id: 6, name: 'Direct', type: 'Organic', status: 'Inactive', clicks: 0, applications: 0, conversionRate: '0.0%' },
 ];
 
 const dropOffSteps: DropOffStep[] = [
-  { step: 'Policy Owner Information', count: 180 },
-  { step: 'Contact Information', count: 410 },
-  { step: 'Other / Employment Information', count: 325 },
-  { step: 'Payor Information', count: 210 },
+  { step: 'Policy Owner Information', count: 0 },
+  { step: 'Contact Information', count: 0 },
+  { step: 'Other / Employment Information', count: 0 },
+  { step: 'Payor Information', count: 0 },
 ];
 
-const unfinishedApplications: UnfinishedApplication[] = [
-  { id: 'DRF10231', product: 'Sure Savings Plan', planCode: 'SSP', stepReached: 'Employment Information', dateStarted: '09/12/2026 at 3:14 PM', lastActivity: '2 hours ago', source: 'Google' },
-  { id: 'DRF10230', product: 'Golden Life Advantage Plan', planCode: 'GLA', stepReached: 'Contact Information', dateStarted: '09/12/2026 at 1:02 PM', lastActivity: '4 hours ago', source: 'Facebook' },
-  { id: 'DRF10229', product: 'HealthCare Cash Plan', planCode: 'HCP', stepReached: 'Payor Information', dateStarted: '09/11/2026 at 5:47 PM', lastActivity: '1 day ago', source: 'Pd Site' },
-  { id: 'DRF10228', product: 'MoneyPlus Protection Plan', planCode: 'MPR', stepReached: 'Other Information', dateStarted: '09/11/2026 at 2:20 PM', lastActivity: '1 day ago', source: 'Email Newsletter' },
-  { id: 'DRF10227', product: 'Go Protect Plan', planCode: 'GPR', stepReached: 'Contact Information', dateStarted: '09/10/2026 at 11:35 AM', lastActivity: '2 days ago', source: 'Google' },
-  { id: 'DRF10226', product: 'Hospital Income Benefit Plan', planCode: 'HIP', stepReached: 'Policy Owner Information', dateStarted: '09/10/2026 at 9:12 AM', lastActivity: '2 days ago', source: 'Facebook' },
-];
+// Real unfinished-application records only — nothing has been abandoned yet.
+const unfinishedApplications: UnfinishedApplication[] = [];
 
 const KPI_TOTAL_CLICKS = gaPageClicks.reduce((sum, p) => sum + p.clicks, 0);
 const KPI_TOTAL_VISITORS = gaPageClicks.reduce((sum, p) => sum + p.visitors, 0);
-const KPI_STARTED = 3140;
-const KPI_COMPLETED = 2015;
+const KPI_STARTED = 0;
+const KPI_COMPLETED = 0;
 const KPI_UNFINISHED = KPI_STARTED - KPI_COMPLETED;
-const KPI_COMPLETION_RATE = ((KPI_COMPLETED / KPI_STARTED) * 100).toFixed(1);
+const KPI_COMPLETION_RATE = KPI_STARTED === 0 ? '0.0' : ((KPI_COMPLETED / KPI_STARTED) * 100).toFixed(1);
 
 export default function MarketingDashboard() {
   const [remindedIds, setRemindedIds] = useState<string[]>([]);
 
-  const maxPageClicks = Math.max(...gaPageClicks.map(p => p.clicks));
-  const maxDropOff = Math.max(...dropOffSteps.map(d => d.count));
+  const maxPageClicks = Math.max(1, ...gaPageClicks.map(p => p.clicks));
+  const maxDropOff = Math.max(1, ...dropOffSteps.map(d => d.count));
   const totalDropOff = dropOffSteps.reduce((sum, d) => sum + d.count, 0);
+  const safePct = (numerator: number, denominator: number) => (denominator === 0 ? 0 : (numerator / denominator) * 100);
+  const topDropOffStep = dropOffSteps.reduce((best, d) => (d.count > best.count ? d : best), dropOffSteps[0]);
 
   const handleSendReminder = (id: string) => {
     setRemindedIds(prev => (prev.includes(id) ? prev : [...prev, id]));
@@ -124,9 +121,7 @@ export default function MarketingDashboard() {
           </div>
           <p className="text-xl font-black text-slate-900 dark:text-white">{KPI_TOTAL_CLICKS.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
-            <TrendingUp className="w-3 h-3 text-emerald-500" />
-            <span className="text-emerald-500">+8.2%</span>
-            <span className="text-slate-400 dark:text-slate-500">vs Last Month</span>
+            <span className="text-slate-400 dark:text-slate-500">No data yet</span>
           </div>
         </div>
 
@@ -137,9 +132,7 @@ export default function MarketingDashboard() {
           </div>
           <p className="text-xl font-black text-slate-900 dark:text-white">{KPI_TOTAL_VISITORS.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
-            <TrendingUp className="w-3 h-3 text-emerald-500" />
-            <span className="text-emerald-500">+5.6%</span>
-            <span className="text-slate-400 dark:text-slate-500">vs Last Month</span>
+            <span className="text-slate-400 dark:text-slate-500">No data yet</span>
           </div>
         </div>
 
@@ -150,9 +143,7 @@ export default function MarketingDashboard() {
           </div>
           <p className="text-xl font-black text-slate-900 dark:text-white">{KPI_STARTED.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
-            <TrendingUp className="w-3 h-3 text-emerald-500" />
-            <span className="text-emerald-500">+3.1%</span>
-            <span className="text-slate-400 dark:text-slate-500">vs Last Month</span>
+            <span className="text-slate-400 dark:text-slate-500">No data yet</span>
           </div>
         </div>
 
@@ -174,9 +165,7 @@ export default function MarketingDashboard() {
           </div>
           <p className="text-xl font-black text-[#d0112b]">{KPI_UNFINISHED.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
-            <TrendingDown className="w-3 h-3 text-rose-500" />
-            <span className="text-rose-500">+2.4%</span>
-            <span className="text-slate-400 dark:text-slate-500">vs Last Month</span>
+            <span className="text-slate-400 dark:text-slate-500">No data yet</span>
           </div>
         </div>
 
@@ -185,9 +174,9 @@ export default function MarketingDashboard() {
             <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest dark:text-slate-500">Top Drop-off Step</h3>
             <Clock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
           </div>
-          <p className="text-sm font-black text-slate-900 leading-snug dark:text-white">Contact Information</p>
+          <p className="text-sm font-black text-slate-900 leading-snug dark:text-white">{totalDropOff === 0 ? '—' : topDropOffStep.step}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
-            <span className="text-slate-400 dark:text-slate-500">{dropOffSteps[1].count} abandoned here</span>
+            <span className="text-slate-400 dark:text-slate-500">{totalDropOff === 0 ? 'No data yet' : `${topDropOffStep.count} abandoned here`}</span>
           </div>
         </div>
       </div>
@@ -246,7 +235,7 @@ export default function MarketingDashboard() {
               <div key={d.step}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-bold text-slate-700 dark:text-slate-300">{d.step}</span>
-                  <span className="font-black text-slate-900 dark:text-white">{d.count} <span className="text-slate-400 dark:text-slate-500 font-semibold">({((d.count / totalDropOff) * 100).toFixed(0)}%)</span></span>
+                  <span className="font-black text-slate-900 dark:text-white">{d.count} <span className="text-slate-400 dark:text-slate-500 font-semibold">({safePct(d.count, totalDropOff).toFixed(0)}%)</span></span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
                   <div
@@ -341,37 +330,45 @@ export default function MarketingDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {unfinishedApplications.map((app) => (
-                <tr key={app.id} className="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/60">
-                  <td className="py-4 px-4 font-bold text-slate-500 dark:text-slate-400">{app.id}</td>
-                  <td className="py-4 px-4">
-                    <span className="font-extrabold text-slate-900 dark:text-white">{app.planCode}</span>
-                    <span className="text-[10px] font-semibold text-slate-500 ml-1.5 dark:text-slate-400">{app.product}</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                      {app.stepReached}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-300">{app.source}</td>
-                  <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-300">{app.dateStarted}</td>
-                  <td className="py-4 px-4 font-semibold text-slate-500 dark:text-slate-400">{app.lastActivity}</td>
-                  <td className="py-4 px-4 text-right">
-                    <button
-                      onClick={() => handleSendReminder(app.id)}
-                      disabled={remindedIds.includes(app.id)}
-                      className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
-                        remindedIds.includes(app.id)
-                          ? 'bg-emerald-50 text-emerald-600 cursor-default dark:bg-emerald-950/30 dark:text-emerald-300'
-                          : 'bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300'
-                      }`}
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      <span>{remindedIds.includes(app.id) ? 'Reminder Sent' : 'Send Reminder'}</span>
-                    </button>
+              {unfinishedApplications.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 px-4 text-center font-semibold text-slate-400 dark:text-slate-500">
+                    No unfinished applications yet
                   </td>
                 </tr>
-              ))}
+              ) : (
+                unfinishedApplications.map((app) => (
+                  <tr key={app.id} className="hover:bg-slate-50 transition-colors dark:hover:bg-slate-800/60">
+                    <td className="py-4 px-4 font-bold text-slate-500 dark:text-slate-400">{app.id}</td>
+                    <td className="py-4 px-4">
+                      <span className="font-extrabold text-slate-900 dark:text-white">{app.planCode}</span>
+                      <span className="text-[10px] font-semibold text-slate-500 ml-1.5 dark:text-slate-400">{app.product}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                        {app.stepReached}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-300">{app.source}</td>
+                    <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-300">{app.dateStarted}</td>
+                    <td className="py-4 px-4 font-semibold text-slate-500 dark:text-slate-400">{app.lastActivity}</td>
+                    <td className="py-4 px-4 text-right">
+                      <button
+                        onClick={() => handleSendReminder(app.id)}
+                        disabled={remindedIds.includes(app.id)}
+                        className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
+                          remindedIds.includes(app.id)
+                            ? 'bg-emerald-50 text-emerald-600 cursor-default dark:bg-emerald-950/30 dark:text-emerald-300'
+                            : 'bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300'
+                        }`}
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>{remindedIds.includes(app.id) ? 'Reminder Sent' : 'Send Reminder'}</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Sun, Moon, AlertCircle } from 'lucide-react';
 import ForgotPassword from './forgot_password';
-import type { UserAccount } from './user_management';
+import type { UserAccount } from './user_role_management';
 import { authApi, setAuthToken } from '../lib/api';
 
 // Import light and dark logos
@@ -41,7 +41,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
     try {
       const { token, user } = await authApi.login(email, password);
       setAuthToken(token, rememberMe);
-      onLoginSuccess(rememberMe, user.role?.name ?? 'Admin');
+      onLoginSuccess(rememberMe, user.role?.name ?? 'System Admin');
       return;
     } catch {
       // Not a real backend account (or backend unreachable) - fall through
@@ -73,7 +73,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
       return;
     }
 
-    onLoginSuccess(rememberMe, isDefaultAdmin ? 'Admin' : matchedUser!.role);
+    onLoginSuccess(rememberMe, isDefaultAdmin ? 'System Admin' : matchedUser!.role);
   };
 
   // Render Forgot Password component when triggered

@@ -32,6 +32,7 @@ import NonLifePaymentTransactions from './nonlife_payment_transactions';
 import type { CtplApplication } from './ctpl_types';
 import type { OfwApplication } from './ofw_types';
 import type { GtpApplication } from './gtp_types';
+import { canCreatePayments } from '../lib/roles';
 
 export interface PaymentLedgerItem {
   yrInstal: string;
@@ -246,9 +247,10 @@ export default function PaymentTransactions({
   gtpApplications = [],
   currentUserRole = null,
 }: Props) {
-  // Admin is the seeded demo login used to test every role-gated feature,
-  // so it's treated as a superset of Cashier access rather than excluded.
-  const canCreatePayment = currentUserRole === 'Cashier' || currentUserRole === 'Admin';
+  const canCreateLifePayment = canCreatePayments(currentUserRole, 'PD Life');
+  const canCreateNonLifePayment = canCreatePayments(currentUserRole, 'CTPL')
+    || canCreatePayments(currentUserRole, 'OFW')
+    || canCreatePayments(currentUserRole, 'GTP');
   const [activeSection, setActiveSection] = useState<'life' | 'nonlife'>('life');
   const [transactions, setTransactions] = useState<PaymentTransaction[]>(INITIAL_TRANSACTIONS);
   const [searchTerm, setSearchTerm] = useState('');
@@ -519,7 +521,7 @@ export default function PaymentTransactions({
             <span>Upload Batch Payment</span>
           </button>
 
-          {canCreatePayment && activeSection === 'life' && (
+          {canCreateLifePayment && activeSection === 'life' && (
             <button
               onClick={() => setIsCreatingLifeTransaction(true)}
               className="flex items-center space-x-2 bg-[#d0112b] hover:bg-[#b00e24] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
@@ -560,7 +562,7 @@ export default function PaymentTransactions({
           ctplData={ctplApplications}
           ofwData={ofwApplications}
           gtpData={gtpApplications}
-          canCreate={canCreatePayment}
+          canCreate={canCreateNonLifePayment}
         />
       )}
 
@@ -874,7 +876,7 @@ export default function PaymentTransactions({
       </>
       )}
 
-      {/* Create Transaction Modal (Cashier / Admin only) */}
+      {/* Create Transaction Modal (DM POS / DM Operations / System Admin only) */}
       {isCreatingLifeTransaction && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
           <form

@@ -13,6 +13,9 @@ import nonLifePaymentRoutes from './routes/payments.nonlife';
 import auditLogRoutes from './routes/auditLogs';
 import documentRoutes from './routes/documents';
 import ingestPdLifeRoutes from './routes/ingest.pdlife';
+import ingestOfwRoutes from './routes/ingest.ofw';
+import ingestCtplRoutes from './routes/ingest.ctpl';
+import ingestGtpRoutes from './routes/ingest.gtp';
 import { errorHandler } from './middleware/errorHandler';
 
 export function createApp() {
@@ -37,6 +40,9 @@ export function createApp() {
   app.use('/api/audit-logs', auditLogRoutes);
   app.use('/api/documents', documentRoutes);
   app.use('/api/ingest/pd-life', ingestPdLifeRoutes);
+  app.use('/api/ingest/ofw', ingestOfwRoutes);
+  app.use('/api/ingest/ctpl', ingestCtplRoutes);
+  app.use('/api/ingest/gtp', ingestGtpRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
   app.use(errorHandler);

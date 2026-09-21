@@ -298,6 +298,15 @@ enum OfwStatus {
   Reversed
 }
 
+// OFW-only caveat: unlike CTPL/GTP's straight-through website payment, an
+// issuer must first verify the employment contract before the client is
+// even sent instructions to pay - see OfwApplication.employmentVerified.
+enum EmploymentVerifiedStatus {
+  Pending
+  Yes
+  No
+}
+
 model OfwApplication {
   id                 String             @id @default(cuid())
   lastName           String
@@ -308,7 +317,9 @@ model OfwApplication {
   birthdate          DateTime
   placeOfBirth       String
   phAddress          String
+  phRegion           String             @default("")
   phCity             String
+  phBarangay         String             @default("")
   phone              String
   email              String
   referralSource     String
@@ -338,6 +349,15 @@ model OfwApplication {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
+  // See EmploymentVerifiedStatus - must be verified before a payment
+  // instruction can be sent, which itself must happen before isPaid can be true.
+  employmentVerified     EmploymentVerifiedStatus @default(Pending)
+  paymentInstructionSent Boolean                  @default(false)
+  isPaid                 Boolean                  @default(false)
+
+  // At least one required, up to three - see OfwBeneficiary.
+  beneficiaries OfwBeneficiary[]
+
   // Assigned once the policy is issued / once payment is confirmed - also
   // exposed on NonLifePaymentTransaction rows for display/search even when
   // ofwApplicationId is set, since that's the natural lookup key for a payment.
@@ -348,6 +368,18 @@ model OfwApplication {
   paymentTransactions NonLifePaymentTransaction[]
 
   @@index([status])
+}
+
+model OfwBeneficiary {
+  id             String          @id @default(cuid())
+  applicationId  String
+  application    OfwApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fullName       String
+  relationship   String
+  birthdate      DateTime
+  createdAt      DateTime        @default(now())
+
+  @@index([applicationId])
 }
 
 // ---------------------------------------------------------------------------
@@ -389,6 +421,10 @@ model CtplApplication {
   ownerFirstName      String
   ownerMiddleName     String
   ownerSurname        String
+  ownerAddress        String         @default("")
+  ownerRegion         String         @default("")
+  ownerCity           String         @default("")
+  ownerBarangay       String         @default("")
   sameAsOwner         Boolean        @default(true)
   applicantFirstName  String
   applicantSurname    String
@@ -405,6 +441,7 @@ model CtplApplication {
   dateReceived  DateTime
   status        CtplStatus @default(Completed)
   screenedBy    String?
+  isPaid        Boolean    @default(false)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -470,6 +507,7 @@ model GtpApplication {
   dateReceived  DateTime
   status        GtpStatus @default(Received)
   screenedBy    String?
+  isPaid        Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

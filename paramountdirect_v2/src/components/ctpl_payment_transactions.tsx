@@ -1,6 +1,7 @@
 
 import ProductPaymentTransactions from './product_payment_transactions';
 import type { CtplApplication } from './ctpl_types';
+import { canCreatePayments } from '../lib/roles';
 
 interface Props {
   data: CtplApplication[];
@@ -20,9 +21,7 @@ export default function CtplPaymentTransactions({ data, currentUserRole = null }
       dateReceived: d.dateReceived,
     }));
 
-  // Admin is the seeded demo login used to test every role-gated feature,
-  // so it's treated as a superset of Cashier access rather than excluded.
-  const canCreate = currentUserRole === 'Cashier' || currentUserRole === 'Admin';
+  const canCreate = canCreatePayments(currentUserRole, 'CTPL');
 
   return <ProductPaymentTransactions productLabel="CTPL" accentColor="#002f6c" rows={rows} canCreate={canCreate} />;
 }

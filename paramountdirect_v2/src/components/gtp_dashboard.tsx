@@ -1,104 +1,108 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown, TrendingUp, ShieldAlert } from 'lucide-react';
+import type { GtpApplication } from './gtp_types';
+import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, parseDateParts } from '../lib/dashboardStats';
 
-const MONTHLY_PREMIUM: { month: string; y2025: number; y2026: number | null }[] = [
-  { month: 'Jan', y2025: 185000, y2026: 205000 },
-  { month: 'Feb', y2025: 175000, y2026: 195000 },
-  { month: 'Mar', y2025: 210000, y2026: 235000 },
-  { month: 'Apr', y2025: 240000, y2026: 270000 },
-  { month: 'May', y2025: 230000, y2026: 260000 },
-  { month: 'Jun', y2025: 260000, y2026: 295000 },
-  { month: 'Jul', y2025: 290000, y2026: 330000 },
-  { month: 'Aug', y2025: 275000, y2026: 315000 },
-  { month: 'Sep', y2025: 220000, y2026: 110000 }, // month-to-date
-  { month: 'Oct', y2025: 230000, y2026: null },
-  { month: 'Nov', y2025: 210000, y2026: null },
-  { month: 'Dec', y2025: 260000, y2026: null },
-];
-const CURRENT_MONTH_INDEX = 8;
+interface GtpDashboardProps {
+  data: GtpApplication[];
+}
 
 const ANNUAL_TARGET = 2_950_000;
 
-const YTD_APPLICATIONS = { y2025: 5100, y2026: 5820 };
-const YTD_ISSUED = { y2025: 4650, y2026: 5390 };
-
-const TRAVEL_TYPE_BY_YEAR: Record<string, { label: string; count: number; color: string }[]> = {
-  '2026': [
-    { label: 'International', count: 4780, color: '#002f6c' },
-    { label: 'Domestic', count: 1040, color: '#49b1ea' },
-  ],
-  '2025': [
-    { label: 'International', count: 4050, color: '#002f6c' },
-    { label: 'Domestic', count: 1050, color: '#49b1ea' },
-  ],
+const TRAVEL_TYPE_COLORS: Record<GtpApplication['travelType'], string> = {
+  International: '#002f6c',
+  Domestic: '#49b1ea',
 };
-
-const APPLICATION_TYPE = {
-  '2026': [
-    { label: 'Individual', count: 4230 },
-    { label: 'Family', count: 1590 },
-  ],
-  '2025': [
-    { label: 'Individual', count: 3720 },
-    { label: 'Family', count: 1380 },
-  ],
-};
-
-const TOP_DESTINATIONS = [
-  { country: 'Japan', applications: 1120 },
-  { country: 'United States', applications: 890 },
-  { country: 'Hong Kong', applications: 640 },
-  { country: 'South Korea', applications: 610 },
-  { country: 'Thailand', applications: 420 },
-  { country: 'France', applications: 280 },
-];
-
-const CRUISE_ATTACH_YTD = 145;
-const HAZARDOUS_SPORTS_ATTACH_YTD = 210;
 
 const peso = (n: number) => `₱${n.toLocaleString('en-PH')}`;
+const safePct = (numerator: number, denominator: number) => (denominator === 0 ? 0 : (numerator / denominator) * 100);
 
 const FULL_MONTH_NAME: Record<string, string> = {
   Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June',
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function GtpDashboard() {
+export default function GtpDashboard({ data }: GtpDashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
-  const completeMonths2025 = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
-  const completeMonths2026 = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYtd2026 = MONTHLY_PREMIUM.reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYoyPct = ((completeMonths2026 - completeMonths2025) / completeMonths2025) * 100;
-  const attainmentPct = Math.min(100, Math.round((premiumYtd2026 / ANNUAL_TARGET) * 100));
+  const monthlyPremium = useMemo(
+    () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premium),
+    [data]
+  );
 
-  const applicationsYoyPct = ((YTD_APPLICATIONS.y2026 - YTD_APPLICATIONS.y2025) / YTD_APPLICATIONS.y2025) * 100;
-  const issuedYoyPct = ((YTD_ISSUED.y2026 - YTD_ISSUED.y2025) / YTD_ISSUED.y2025) * 100;
-  const conversion2026 = (YTD_ISSUED.y2026 / YTD_APPLICATIONS.y2026) * 100;
-  const conversion2025 = (YTD_ISSUED.y2025 / YTD_APPLICATIONS.y2025) * 100;
+  const recordsByYear = useMemo(() => {
+    const forYear = (year: number) => data.filter((r) => parseDateParts(r.dateReceived)?.year === year);
+    return { 2026: forYear(CURRENT_YEAR), 2025: forYear(CURRENT_YEAR - 1) };
+  }, [data]);
+
+  const ytdApplications = { y2025: recordsByYear[2025].length, y2026: recordsByYear[2026].length };
+  const ytdIssued = {
+    y2025: recordsByYear[2025].filter((r) => r.isPaid).length,
+    y2026: recordsByYear[2026].filter((r) => r.isPaid).length,
+  };
+
+  const completeMonths2025 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
+  const completeMonths2026 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYtd2026 = monthlyPremium.reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
+  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, ANNUAL_TARGET)));
+
+  const applicationsYoyPct = safePct(ytdApplications.y2026 - ytdApplications.y2025, ytdApplications.y2025);
+  const issuedYoyPct = safePct(ytdIssued.y2026 - ytdIssued.y2025, ytdIssued.y2025);
+  const conversion2026 = safePct(ytdIssued.y2026, ytdApplications.y2026);
+  const conversion2025 = safePct(ytdIssued.y2025, ytdApplications.y2025);
   const conversionDeltaPts = conversion2026 - conversion2025;
 
-  const travelTypes = TRAVEL_TYPE_BY_YEAR[selectedYear];
+  const recordsForSelectedYear = selectedYear === '2026' ? recordsByYear[2026] : recordsByYear[2025];
+
+  const travelTypes = useMemo(() => {
+    const counts: Record<GtpApplication['travelType'], number> = { International: 0, Domestic: 0 };
+    for (const r of recordsForSelectedYear) counts[r.travelType]++;
+    return (Object.keys(TRAVEL_TYPE_COLORS) as GtpApplication['travelType'][]).map((label) => ({
+      label,
+      count: counts[label],
+      color: TRAVEL_TYPE_COLORS[label],
+    }));
+  }, [recordsForSelectedYear]);
   const travelTotal = travelTypes.reduce((s, c) => s + c.count, 0);
   let cumulative = 0;
   const gradientStops = travelTypes.map((c) => {
-    const start = (cumulative / travelTotal) * 360;
+    const start = safePct(cumulative, travelTotal) * 3.6;
     cumulative += c.count;
-    const end = (cumulative / travelTotal) * 360;
+    const end = safePct(cumulative, travelTotal) * 3.6;
     return `${c.color} ${start}deg ${end}deg`;
   });
-  const travelGradient = `conic-gradient(${gradientStops.join(', ')})`;
+  const travelGradient = travelTotal === 0 ? '#e2e8f0' : `conic-gradient(${gradientStops.join(', ')})`;
 
-  const applicationType = APPLICATION_TYPE[selectedYear];
+  const applicationType = useMemo(() => {
+    const counts: Record<GtpApplication['applicationType'], number> = { Individual: 0, Family: 0 };
+    for (const r of recordsForSelectedYear) counts[r.applicationType]++;
+    return (['Individual', 'Family'] as const).map((label) => ({ label, count: counts[label] }));
+  }, [recordsForSelectedYear]);
   const applicationTypeTotal = applicationType.reduce((s, e) => s + e.count, 0);
-  const maxDestinationApplications = Math.max(...TOP_DESTINATIONS.map((c) => c.applications));
 
-  const maxMonthly = Math.max(...MONTHLY_PREMIUM.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
-  const peakMonth = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
-    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best
+  const topDestinations = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const r of recordsByYear[2026]) {
+      for (const destination of r.destinations) counts[destination] = (counts[destination] ?? 0) + 1;
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([country, applications]) => ({ country, applications }));
+  }, [recordsByYear]);
+  const maxDestinationApplications = Math.max(1, ...topDestinations.map((c) => c.applications));
+
+  const cruiseAttachYtd = recordsByYear[2026].filter((r) => r.cruiseCoverage).length;
+  const hazardousSportsAttachYtd = recordsByYear[2026].filter((r) => r.hazardousSportsCoverage).length;
+
+  const maxMonthly = Math.max(1, ...monthlyPremium.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
+  const peakMonth = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
+    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best,
+    monthlyPremium[0]
   );
-  const peakMonthGrowthPct = Math.round((((peakMonth.y2026 ?? 0) - peakMonth.y2025) / peakMonth.y2025) * 100);
+  const peakMonthGrowthPct = Math.round(safePct((peakMonth.y2026 ?? 0) - peakMonth.y2025, peakMonth.y2025));
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -139,17 +143,17 @@ export default function GtpDashboard() {
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">New Applications (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_APPLICATIONS.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdApplications.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{applicationsYoyPct.toFixed(1)}%</span>
-            <span className="text-slate-400 dark:text-slate-500">YoY vs {YTD_APPLICATIONS.y2025.toLocaleString()} last year</span>
+            <span className="text-slate-400 dark:text-slate-500">YoY vs {ytdApplications.y2025.toLocaleString()} last year</span>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Policies Issued (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_ISSUED.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdIssued.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{issuedYoyPct.toFixed(1)}%</span>
@@ -214,7 +218,7 @@ export default function GtpDashboard() {
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{item.label}</span>
                 <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">
-                  {item.count.toLocaleString()} &middot; {((item.count / travelTotal) * 100).toFixed(0)}%
+                  {item.count.toLocaleString()} &middot; {safePct(item.count, travelTotal).toFixed(0)}%
                 </span>
               </div>
             ))}
@@ -236,7 +240,7 @@ export default function GtpDashboard() {
           </div>
 
           <div className="flex-1 flex items-end justify-between px-2 pb-2 mt-6 space-x-2 min-h-[180px]">
-            {MONTHLY_PREMIUM.map((m, i) => (
+            {monthlyPremium.map((m, i) => (
               <div key={m.month} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
                 <div className="flex items-end space-x-1 w-full justify-center h-full">
                   <div
@@ -261,7 +265,7 @@ export default function GtpDashboard() {
             <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <p className="font-semibold">
               {FULL_MONTH_NAME[peakMonth.month]} was our strongest month this year — {peso(peakMonth.y2026 ?? 0)}, up {peakMonthGrowthPct}% from {FULL_MONTH_NAME[peakMonth.month]} last year, in line with the peak summer travel season.
-              {' '}{FULL_MONTH_NAME[MONTHLY_PREMIUM[CURRENT_MONTH_INDEX].month]} is tracking at {peso(MONTHLY_PREMIUM[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
+              {' '}{FULL_MONTH_NAME[monthlyPremium[CURRENT_MONTH_INDEX].month]} is tracking at {peso(monthlyPremium[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
             </p>
           </div>
         </div>
@@ -280,10 +284,10 @@ export default function GtpDashboard() {
               <div key={e.label}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-bold text-slate-700 dark:text-slate-300">{e.label}</span>
-                  <span className="font-black text-slate-900 dark:text-white">{e.count.toLocaleString()} <span className="text-slate-400 font-semibold dark:text-slate-500">({((e.count / applicationTypeTotal) * 100).toFixed(0)}%)</span></span>
+                  <span className="font-black text-slate-900 dark:text-white">{e.count.toLocaleString()} <span className="text-slate-400 font-semibold dark:text-slate-500">({safePct(e.count, applicationTypeTotal).toFixed(0)}%)</span></span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-[#49b1ea]" style={{ width: `${(e.count / applicationTypeTotal) * 100}%` }} />
+                  <div className="h-full rounded-full bg-[#49b1ea]" style={{ width: `${safePct(e.count, applicationTypeTotal)}%` }} />
                 </div>
               </div>
             ))}
@@ -292,11 +296,11 @@ export default function GtpDashboard() {
           <div className="mt-6 pt-4 border-t border-slate-100 space-y-2 dark:border-slate-800">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-semibold text-slate-600 dark:text-slate-300">Cruise Coverage attached (YTD)</span>
-              <span className="font-black text-slate-900 dark:text-white">{CRUISE_ATTACH_YTD}</span>
+              <span className="font-black text-slate-900 dark:text-white">{cruiseAttachYtd}</span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-semibold text-slate-600 dark:text-slate-300">Hazardous Sports Coverage attached (YTD)</span>
-              <span className="font-black text-slate-900 dark:text-white">{HAZARDOUS_SPORTS_ATTACH_YTD}</span>
+              <span className="font-black text-slate-900 dark:text-white">{hazardousSportsAttachYtd}</span>
             </div>
           </div>
 
@@ -313,19 +317,23 @@ export default function GtpDashboard() {
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-white">Top Destinations</h2>
           <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">Applications by destination country, 2026 YTD</p>
 
-          <div className="space-y-4">
-            {TOP_DESTINATIONS.map((c) => (
-              <div key={c.country}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{c.country}</span>
-                  <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
+          {topDestinations.length === 0 ? (
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">No applications yet</p>
+          ) : (
+            <div className="space-y-4">
+              {topDestinations.map((c) => (
+                <div key={c.country}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{c.country}</span>
+                    <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
+                    <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxDestinationApplications) * 100}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxDestinationApplications) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

@@ -34,6 +34,7 @@ export const TAB_PATHS: Record<string, string> = {
 
   maintenance: '/maintenance',
   audit: '/audit',
+  'users-roles': '/users-roles',
 };
 
 const PATH_TO_TAB: Record<string, string> = Object.fromEntries(

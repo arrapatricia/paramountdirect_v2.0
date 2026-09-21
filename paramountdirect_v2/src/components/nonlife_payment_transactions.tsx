@@ -303,7 +303,7 @@ export default function NonLifePaymentTransactions({ ctplData, ofwData, gtpData,
         </PrintableDocumentModal>
       )}
 
-      {/* Create Transaction Modal (Cashier / Admin only) */}
+      {/* Create Transaction Modal (product admin / issuer roles only) */}
       {isCreating && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
           <form

@@ -1,87 +1,90 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown, TrendingUp, ShieldAlert } from 'lucide-react';
+import type { OfwApplication } from './ofw_types';
+import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, parseDateParts } from '../lib/dashboardStats';
 
-// OFW premium is collected in USD, unlike PD Life's PHP - the live application
-// form itself quotes "Premium: $..." per applicant.
-const MONTHLY_PREMIUM: { month: string; y2025: number; y2026: number | null }[] = [
-  { month: 'Jan', y2025: 8200, y2026: 9100 },
-  { month: 'Feb', y2025: 7900, y2026: 8700 },
-  { month: 'Mar', y2025: 8600, y2026: 9600 },
-  { month: 'Apr', y2025: 8400, y2026: 9800 },
-  { month: 'May', y2025: 8900, y2026: 10200 },
-  { month: 'Jun', y2025: 9300, y2026: 10900 },
-  { month: 'Jul', y2025: 8950, y2026: 10400 },
-  { month: 'Aug', y2025: 9600, y2026: 11200 },
-  { month: 'Sep', y2025: 9750, y2026: 5300 }, // month-to-date
-  { month: 'Oct', y2025: 10050, y2026: null },
-  { month: 'Nov', y2025: 10400, y2026: null },
-  { month: 'Dec', y2025: 11100, y2026: null },
-];
-const CURRENT_MONTH_INDEX = 8; // September, partial
+interface OfwDashboardProps {
+  data: OfwApplication[];
+}
 
 const ANNUAL_TARGET = 125_000;
 
-const YTD_APPLICATIONS = { y2025: 1840, y2026: 2150 };
-const YTD_ISSUED = { y2025: 1520, y2026: 1790 };
-
-
-// Nature of Employment, the other classification asked on the form.
-const EMPLOYMENT_NATURE = {
-  '2026': [
-    { label: 'Direct-hired', count: 1310 },
-    { label: 'Balik-Manggagawa (returning worker)', count: 840 },
-  ],
-  '2025': [
-    { label: 'Direct-hired', count: 1180 },
-    { label: 'Balik-Manggagawa (returning worker)', count: 660 },
-  ],
-};
-
-const TOP_COUNTRIES = [
-  { country: 'Saudi Arabia', applications: 480 },
-  { country: 'United Arab Emirates', applications: 410 },
-  { country: 'Qatar', applications: 310 },
-  { country: 'Hong Kong', applications: 285 },
-  { country: 'Singapore', applications: 240 },
-  { country: 'Kuwait', applications: 195 },
-];
-
-const CONFLICT_ZONE_ACKNOWLEDGMENTS_YTD = 34;
-
 const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
+const safePct = (numerator: number, denominator: number) => (denominator === 0 ? 0 : (numerator / denominator) * 100);
 
 const FULL_MONTH_NAME: Record<string, string> = {
   Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June',
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function OfwDashboard() {
+const EMPLOYMENT_LABELS: Record<OfwApplication['natureOfEmployment'], string> = {
+  'Direct-hired': 'Direct-hired',
+  'Balik-Manggagawa': 'Balik-Manggagawa (returning worker)',
+};
+
+export default function OfwDashboard({ data }: OfwDashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
-  const completeMonths2025 = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
-  const completeMonths2026 = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYtd2026 = MONTHLY_PREMIUM.reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYoyPct = ((completeMonths2026 - completeMonths2025) / completeMonths2025) * 100;
-  const attainmentPct = Math.min(100, Math.round((premiumYtd2026 / ANNUAL_TARGET) * 100));
+  const monthlyPremium = useMemo(
+    () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premium),
+    [data]
+  );
 
-  const applicationsYoyPct = ((YTD_APPLICATIONS.y2026 - YTD_APPLICATIONS.y2025) / YTD_APPLICATIONS.y2025) * 100;
-  const issuedYoyPct = ((YTD_ISSUED.y2026 - YTD_ISSUED.y2025) / YTD_ISSUED.y2025) * 100;
-  const conversion2026 = (YTD_ISSUED.y2026 / YTD_APPLICATIONS.y2026) * 100;
-  const conversion2025 = (YTD_ISSUED.y2025 / YTD_APPLICATIONS.y2025) * 100;
+  const recordsByYear = useMemo(() => {
+    const forYear = (year: number) => data.filter((r) => parseDateParts(r.dateReceived)?.year === year);
+    return { 2026: forYear(CURRENT_YEAR), 2025: forYear(CURRENT_YEAR - 1) };
+  }, [data]);
+
+  const ytdApplications = { y2025: recordsByYear[2025].length, y2026: recordsByYear[2026].length };
+  const ytdIssued = {
+    y2025: recordsByYear[2025].filter((r) => r.isPaid).length,
+    y2026: recordsByYear[2026].filter((r) => r.isPaid).length,
+  };
+
+  const completeMonths2025 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
+  const completeMonths2026 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYtd2026 = monthlyPremium.reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
+  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, ANNUAL_TARGET)));
+
+  const applicationsYoyPct = safePct(ytdApplications.y2026 - ytdApplications.y2025, ytdApplications.y2025);
+  const issuedYoyPct = safePct(ytdIssued.y2026 - ytdIssued.y2025, ytdIssued.y2025);
+  const conversion2026 = safePct(ytdIssued.y2026, ytdApplications.y2026);
+  const conversion2025 = safePct(ytdIssued.y2025, ytdApplications.y2025);
   const conversionDeltaPts = conversion2026 - conversion2025;
 
-  const applicationsForYear = selectedYear === '2026' ? YTD_APPLICATIONS.y2026 : YTD_APPLICATIONS.y2025;
+  const applicationsForYear = selectedYear === '2026' ? ytdApplications.y2026 : ytdApplications.y2025;
 
-  const employmentNature = EMPLOYMENT_NATURE[selectedYear];
+  const employmentNature = useMemo(() => {
+    const records = selectedYear === '2026' ? recordsByYear[2026] : recordsByYear[2025];
+    const counts: Record<OfwApplication['natureOfEmployment'], number> = { 'Direct-hired': 0, 'Balik-Manggagawa': 0 };
+    for (const r of records) counts[r.natureOfEmployment]++;
+    return (Object.keys(EMPLOYMENT_LABELS) as OfwApplication['natureOfEmployment'][]).map((key) => ({
+      label: EMPLOYMENT_LABELS[key],
+      count: counts[key],
+    }));
+  }, [recordsByYear, selectedYear]);
   const employmentTotal = employmentNature.reduce((s, e) => s + e.count, 0);
-  const maxCountryApplications = Math.max(...TOP_COUNTRIES.map((c) => c.applications));
 
-  const maxMonthly = Math.max(...MONTHLY_PREMIUM.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
-  const peakMonth = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
-    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best
+  const topCountries = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const r of recordsByYear[2026]) counts[r.employerCountry] = (counts[r.employerCountry] ?? 0) + 1;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([country, applications]) => ({ country, applications }));
+  }, [recordsByYear]);
+  const maxCountryApplications = Math.max(1, ...topCountries.map((c) => c.applications));
+
+  const conflictZoneAcknowledgmentsYtd = recordsByYear[2026].filter((r) => r.isConflictZone).length;
+
+  const maxMonthly = Math.max(1, ...monthlyPremium.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
+  const peakMonth = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
+    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best,
+    monthlyPremium[0]
   );
-  const peakMonthGrowthPct = Math.round((((peakMonth.y2026 ?? 0) - peakMonth.y2025) / peakMonth.y2025) * 100);
+  const peakMonthGrowthPct = Math.round(safePct((peakMonth.y2026 ?? 0) - peakMonth.y2025, peakMonth.y2025));
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -122,17 +125,17 @@ export default function OfwDashboard() {
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">New Applications (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_APPLICATIONS.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdApplications.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{applicationsYoyPct.toFixed(1)}%</span>
-            <span className="text-slate-400 dark:text-slate-500">YoY vs {YTD_APPLICATIONS.y2025.toLocaleString()} last year</span>
+            <span className="text-slate-400 dark:text-slate-500">YoY vs {ytdApplications.y2025.toLocaleString()} last year</span>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Policies Issued (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_ISSUED.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdIssued.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{issuedYoyPct.toFixed(1)}%</span>
@@ -215,7 +218,7 @@ export default function OfwDashboard() {
           </div>
 
           <div className="flex-1 flex items-end justify-between px-2 pb-2 mt-6 space-x-2 min-h-[180px]">
-            {MONTHLY_PREMIUM.map((m, i) => (
+            {monthlyPremium.map((m, i) => (
               <div key={m.month} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
                 <div className="flex items-end space-x-1 w-full justify-center h-full">
                   <div
@@ -240,7 +243,7 @@ export default function OfwDashboard() {
             <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <p className="font-semibold">
               {FULL_MONTH_NAME[peakMonth.month]} was our strongest month this year — {usd(peakMonth.y2026 ?? 0)}, up {peakMonthGrowthPct}% from {FULL_MONTH_NAME[peakMonth.month]} last year.
-              {' '}{FULL_MONTH_NAME[MONTHLY_PREMIUM[CURRENT_MONTH_INDEX].month]} is tracking at {usd(MONTHLY_PREMIUM[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
+              {' '}{FULL_MONTH_NAME[monthlyPremium[CURRENT_MONTH_INDEX].month]} is tracking at {usd(monthlyPremium[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
             </p>
           </div>
         </div>
@@ -259,10 +262,10 @@ export default function OfwDashboard() {
               <div key={e.label}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-bold text-slate-700 dark:text-slate-300">{e.label}</span>
-                  <span className="font-black text-slate-900 dark:text-white">{e.count.toLocaleString()} <span className="text-slate-400 font-semibold dark:text-slate-500">({((e.count / employmentTotal) * 100).toFixed(0)}%)</span></span>
+                  <span className="font-black text-slate-900 dark:text-white">{e.count.toLocaleString()} <span className="text-slate-400 font-semibold dark:text-slate-500">({safePct(e.count, employmentTotal).toFixed(0)}%)</span></span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-[#49b1ea]" style={{ width: `${(e.count / employmentTotal) * 100}%` }} />
+                  <div className="h-full rounded-full bg-[#49b1ea]" style={{ width: `${safePct(e.count, employmentTotal)}%` }} />
                 </div>
               </div>
             ))}
@@ -271,7 +274,7 @@ export default function OfwDashboard() {
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-start space-x-2 dark:border-slate-800">
             <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
             <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-              {CONFLICT_ZONE_ACKNOWLEDGMENTS_YTD} applications this year required the conflict-zone advisory acknowledgment before proceeding.
+              {conflictZoneAcknowledgmentsYtd} applications this year required the conflict-zone advisory acknowledgment before proceeding.
             </p>
           </div>
         </div>
@@ -281,19 +284,23 @@ export default function OfwDashboard() {
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-white">Top Countries of Employment</h2>
           <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">Applications by foreign employer's country, 2026 YTD</p>
 
-          <div className="space-y-4">
-            {TOP_COUNTRIES.map((c) => (
-              <div key={c.country}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{c.country}</span>
-                  <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
+          {topCountries.length === 0 ? (
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">No applications yet</p>
+          ) : (
+            <div className="space-y-4">
+              {topCountries.map((c) => (
+                <div key={c.country}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{c.country}</span>
+                    <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
+                    <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxCountryApplications) * 100}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxCountryApplications) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

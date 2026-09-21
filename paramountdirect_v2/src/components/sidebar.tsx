@@ -14,7 +14,6 @@ import {
   Globe,
   BarChart3,
   Users,
-  FolderTree,
   Plane,
   Car,
   Cross,
@@ -62,6 +61,7 @@ interface SidebarProps {
   onClose?: () => void;
   currentUserName?: string;
   currentUserEmail?: string;
+  currentUserRole?: string | null;
   activeProduct?: ProductLine;
   setActiveProduct?: (product: ProductLine) => void;
   darkMode?: boolean;
@@ -78,6 +78,7 @@ export default function Sidebar({
   onClose,
   currentUserName = 'Juan Dela Cruz',
   currentUserEmail = 'juan.delacruz@paramount.com.ph',
+  currentUserRole = null,
   activeProduct = 'PD Life',
   setActiveProduct,
   darkMode = false,
@@ -133,8 +134,6 @@ export default function Sidebar({
   ];
 
   const maintenanceSubItems = [
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'roles', label: 'Role Access Matrix', icon: FolderTree },
     // Premium Maintenance removed from nav per request - the page and its
     // data (premium_maintenance.tsx, premium_rates.ts) still exist, just not
     // linked from anywhere, in case this gets revisited later.
@@ -456,6 +455,28 @@ export default function Sidebar({
                 </div>
               )}
             </div>
+
+            {/* Users & Role Management - System Admin only */}
+            {currentUserRole === 'System Admin' && (
+              <button
+                onClick={() => {
+                  setActiveTab('users-roles');
+                  if (onClose) onClose();
+                }}
+                title={isCollapsed ? "Users & Roles" : undefined}
+                className={`
+                  w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
+                  ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
+                  ${activeTab === 'users-roles'
+                    ? 'bg-[#d0112b] text-white shadow-md shadow-[#d0112b]/20'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                  }
+                `}
+              >
+                <Users className={`w-5 h-5 flex-shrink-0 ${activeTab === 'users-roles' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                {!isCollapsed && <span className="truncate">Users & Roles</span>}
+              </button>
+            )}
 
             {/* Audit Logs */}
             <button

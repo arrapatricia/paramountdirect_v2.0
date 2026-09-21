@@ -226,7 +226,7 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
         </PrintableDocumentModal>
       )}
 
-      {/* Enter New Transaction Modal (Cashier / Admin only) */}
+      {/* Enter New Transaction Modal (product admin / issuer roles only) */}
       {isCreating && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
           <form

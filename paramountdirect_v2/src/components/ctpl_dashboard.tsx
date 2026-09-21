@@ -1,90 +1,96 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown, TrendingUp, Info } from 'lucide-react';
-import { PLATE_ENDING_SCHEDULE } from './ctpl_types';
+import { PLATE_ENDING_SCHEDULE, type CtplApplication } from './ctpl_types';
+import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, parseDateParts } from '../lib/dashboardStats';
 
-const MONTHLY_PREMIUM: { month: string; y2025: number; y2026: number | null }[] = [
-  { month: 'Jan', y2025: 420000, y2026: 465000 },
-  { month: 'Feb', y2025: 405000, y2026: 440000 },
-  { month: 'Mar', y2025: 460000, y2026: 505000 },
-  { month: 'Apr', y2025: 455000, y2026: 500000 },
-  { month: 'May', y2025: 480000, y2026: 525000 },
-  { month: 'Jun', y2025: 505000, y2026: 555000 },
-  { month: 'Jul', y2025: 470000, y2026: 515000 },
-  { month: 'Aug', y2025: 510000, y2026: 565000 },
-  { month: 'Sep', y2025: 495000, y2026: 260000 }, // month-to-date
-  { month: 'Oct', y2025: 520000, y2026: null },
-  { month: 'Nov', y2025: 540000, y2026: null },
-  { month: 'Dec', y2025: 580000, y2026: null },
-];
-const CURRENT_MONTH_INDEX = 8;
+interface CtplDashboardProps {
+  data: CtplApplication[];
+}
 
 const ANNUAL_TARGET = 6_200_000;
 
-const YTD_APPLICATIONS = { y2025: 8200, y2026: 9150 };
-const YTD_ISSUED = { y2025: 7100, y2026: 8050 };
-
-const POLICY_TYPE_BY_YEAR: Record<string, { label: string; count: number; color: string }[]> = {
-  '2026': [
-    { label: 'Private Car', count: 6200, color: '#002f6c' },
-    { label: 'Motorcycle', count: 2100, color: '#49b1ea' },
-    { label: 'Commercial Vehicle', count: 850, color: '#b2b2b2' },
-  ],
-  '2025': [
-    { label: 'Private Car', count: 5500, color: '#002f6c' },
-    { label: 'Motorcycle', count: 1900, color: '#49b1ea' },
-    { label: 'Commercial Vehicle', count: 800, color: '#b2b2b2' },
-  ],
+const POLICY_TYPE_COLORS: Record<CtplApplication['policyType'], string> = {
+  'Private Car': '#002f6c',
+  Motorcycle: '#49b1ea',
+  'Commercial Vehicle': '#b2b2b2',
 };
 
-const TOP_MV_TYPES = [
-  { type: 'Car', applications: 4800 },
-  { type: 'Motorcycle', applications: 2100 },
-  { type: 'Sports Utility Vehicle', applications: 1200 },
-  { type: 'Utility Vehicle', applications: 650 },
-  { type: 'Truck', applications: 250 },
-  { type: 'Tricycle', applications: 150 },
-];
-
 const peso = (n: number) => `₱${n.toLocaleString('en-PH')}`;
+const safePct = (numerator: number, denominator: number) => (denominator === 0 ? 0 : (numerator / denominator) * 100);
 
 const FULL_MONTH_NAME: Record<string, string> = {
   Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June',
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function CtplDashboard() {
+export default function CtplDashboard({ data }: CtplDashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
-  const completeMonths2025 = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
-  const completeMonths2026 = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYtd2026 = MONTHLY_PREMIUM.reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYoyPct = ((completeMonths2026 - completeMonths2025) / completeMonths2025) * 100;
-  const attainmentPct = Math.min(100, Math.round((premiumYtd2026 / ANNUAL_TARGET) * 100));
+  const monthlyPremium = useMemo(
+    () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premium),
+    [data]
+  );
 
-  const applicationsYoyPct = ((YTD_APPLICATIONS.y2026 - YTD_APPLICATIONS.y2025) / YTD_APPLICATIONS.y2025) * 100;
-  const issuedYoyPct = ((YTD_ISSUED.y2026 - YTD_ISSUED.y2025) / YTD_ISSUED.y2025) * 100;
-  const conversion2026 = (YTD_ISSUED.y2026 / YTD_APPLICATIONS.y2026) * 100;
-  const conversion2025 = (YTD_ISSUED.y2025 / YTD_APPLICATIONS.y2025) * 100;
+  const recordsByYear = useMemo(() => {
+    const forYear = (year: number) => data.filter((r) => parseDateParts(r.dateReceived)?.year === year);
+    return { 2026: forYear(CURRENT_YEAR), 2025: forYear(CURRENT_YEAR - 1) };
+  }, [data]);
+
+  const ytdApplications = { y2025: recordsByYear[2025].length, y2026: recordsByYear[2026].length };
+  const ytdIssued = {
+    y2025: recordsByYear[2025].filter((r) => r.isPaid).length,
+    y2026: recordsByYear[2026].filter((r) => r.isPaid).length,
+  };
+
+  const completeMonths2025 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
+  const completeMonths2026 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYtd2026 = monthlyPremium.reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
+  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, ANNUAL_TARGET)));
+
+  const applicationsYoyPct = safePct(ytdApplications.y2026 - ytdApplications.y2025, ytdApplications.y2025);
+  const issuedYoyPct = safePct(ytdIssued.y2026 - ytdIssued.y2025, ytdIssued.y2025);
+  const conversion2026 = safePct(ytdIssued.y2026, ytdApplications.y2026);
+  const conversion2025 = safePct(ytdIssued.y2025, ytdApplications.y2025);
   const conversionDeltaPts = conversion2026 - conversion2025;
 
-  const policyTypes = POLICY_TYPE_BY_YEAR[selectedYear];
+  const policyTypes = useMemo(() => {
+    const records = selectedYear === '2026' ? recordsByYear[2026] : recordsByYear[2025];
+    const counts: Record<CtplApplication['policyType'], number> = { 'Private Car': 0, Motorcycle: 0, 'Commercial Vehicle': 0 };
+    for (const r of records) counts[r.policyType]++;
+    return (Object.keys(POLICY_TYPE_COLORS) as CtplApplication['policyType'][]).map((label) => ({
+      label,
+      count: counts[label],
+      color: POLICY_TYPE_COLORS[label],
+    }));
+  }, [recordsByYear, selectedYear]);
   const policyTotal = policyTypes.reduce((s, c) => s + c.count, 0);
   let cumulative = 0;
   const gradientStops = policyTypes.map((c) => {
-    const start = (cumulative / policyTotal) * 360;
+    const start = safePct(cumulative, policyTotal) * 3.6;
     cumulative += c.count;
-    const end = (cumulative / policyTotal) * 360;
+    const end = safePct(cumulative, policyTotal) * 3.6;
     return `${c.color} ${start}deg ${end}deg`;
   });
-  const policyGradient = `conic-gradient(${gradientStops.join(', ')})`;
+  const policyGradient = policyTotal === 0 ? '#e2e8f0' : `conic-gradient(${gradientStops.join(', ')})`;
 
-  const maxMvApplications = Math.max(...TOP_MV_TYPES.map((c) => c.applications));
-  const maxMonthly = Math.max(...MONTHLY_PREMIUM.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
-  const peakMonth = MONTHLY_PREMIUM.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
-    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best
+  const topMvTypes = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const r of recordsByYear[2026]) counts[r.mvType] = (counts[r.mvType] ?? 0) + 1;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([type, applications]) => ({ type, applications }));
+  }, [recordsByYear]);
+  const maxMvApplications = Math.max(1, ...topMvTypes.map((c) => c.applications));
+
+  const maxMonthly = Math.max(1, ...monthlyPremium.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
+  const peakMonth = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
+    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best,
+    monthlyPremium[0]
   );
-  const peakMonthGrowthPct = Math.round((((peakMonth.y2026 ?? 0) - peakMonth.y2025) / peakMonth.y2025) * 100);
+  const peakMonthGrowthPct = Math.round(safePct((peakMonth.y2026 ?? 0) - peakMonth.y2025, peakMonth.y2025));
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -125,17 +131,17 @@ export default function CtplDashboard() {
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">New Applications (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_APPLICATIONS.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdApplications.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{applicationsYoyPct.toFixed(1)}%</span>
-            <span className="text-slate-400 dark:text-slate-500">YoY vs {YTD_APPLICATIONS.y2025.toLocaleString()} last year</span>
+            <span className="text-slate-400 dark:text-slate-500">YoY vs {ytdApplications.y2025.toLocaleString()} last year</span>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">COCs Issued (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_ISSUED.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdIssued.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{issuedYoyPct.toFixed(1)}%</span>
@@ -200,7 +206,7 @@ export default function CtplDashboard() {
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{item.label}</span>
                 <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">
-                  {item.count.toLocaleString()} &middot; {((item.count / policyTotal) * 100).toFixed(0)}%
+                  {item.count.toLocaleString()} &middot; {safePct(item.count, policyTotal).toFixed(0)}%
                 </span>
               </div>
             ))}
@@ -222,7 +228,7 @@ export default function CtplDashboard() {
           </div>
 
           <div className="flex-1 flex items-end justify-between px-2 pb-2 mt-6 space-x-2 min-h-[180px]">
-            {MONTHLY_PREMIUM.map((m, i) => (
+            {monthlyPremium.map((m, i) => (
               <div key={m.month} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
                 <div className="flex items-end space-x-1 w-full justify-center h-full">
                   <div
@@ -247,7 +253,7 @@ export default function CtplDashboard() {
             <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <p className="font-semibold">
               {FULL_MONTH_NAME[peakMonth.month]} was our strongest month this year — {peso(peakMonth.y2026 ?? 0)}, up {peakMonthGrowthPct}% from {FULL_MONTH_NAME[peakMonth.month]} last year.
-              {' '}{FULL_MONTH_NAME[MONTHLY_PREMIUM[CURRENT_MONTH_INDEX].month]} is tracking at {peso(MONTHLY_PREMIUM[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
+              {' '}{FULL_MONTH_NAME[monthlyPremium[CURRENT_MONTH_INDEX].month]} is tracking at {peso(monthlyPremium[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
             </p>
           </div>
         </div>
@@ -261,19 +267,23 @@ export default function CtplDashboard() {
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-white">Top Vehicle Types</h2>
           <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">Applications by LTO MV Type, 2026 YTD</p>
 
-          <div className="space-y-4">
-            {TOP_MV_TYPES.map((c) => (
-              <div key={c.type}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{c.type}</span>
-                  <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
+          {topMvTypes.length === 0 ? (
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">No applications yet</p>
+          ) : (
+            <div className="space-y-4">
+              {topMvTypes.map((c) => (
+                <div key={c.type}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{c.type}</span>
+                    <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
+                    <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxMvApplications) * 100}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxMvApplications) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Plate Ending Schedule reference */}

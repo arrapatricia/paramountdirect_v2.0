@@ -25,6 +25,7 @@ erDiagram
     LIFE_PAYMENT_TRANSACTION ||--o{ PAYMENT_LEDGER_ITEM : "installments"
 
     OFW_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
+    OFW_APPLICATION ||--o{ OFW_BENEFICIARY : "names"
     CTPL_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
     GTP_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
 
@@ -152,16 +153,28 @@ No relations — a sequence counter table.
 | Field | Type | Notes |
 |---|---|---|
 | `id` PK | String (cuid) | |
-| `lastName` … `referralSource` (12 cols) | String / enum | applicant identity/contact; `gender`, `civilStatus` enums |
+| `lastName` … `referralSource` (12 cols) | String / enum | applicant identity/contact; `gender`, `civilStatus` enums; includes `phRegion` / `phBarangay` alongside `phAddress` / `phCity` |
 | `natureOfEmployment` | enum | `Direct_hired` \| `Balik_Manggagawa` |
 | `coverageType` | enum | `Land_based` \| `Sea_based` |
 | `salaryAmount` / `salaryCurrency` | Float / enum | `PHP` \| `USD` \| `HKD` \| `Others` |
 | `employerName` / `employerCountry` / `contractStart` / `contractEnd` / `insuranceStart` / `isConflictZone` | mixed | |
 | `passportDoc` / `visaDoc` / `employmentContractDoc` / `medicalCertificateDoc` | enum | `Uploaded` \| `Missing` — per-document checklist status, not file storage |
 | `status` | enum | `Received` \| `Cancelled` \| `Duplicate` \| `Reversed` |
+| `employmentVerified` | enum | `Pending` \| `Yes` \| `No` — must be verified before a payment instruction can be sent |
+| `paymentInstructionSent` | Boolean | |
+| `isPaid` | Boolean | |
 | `policyNumber` UK / `referenceNo` UK | String? | assigned once paid/issued |
 
-Relations: has many `NonLifePaymentTransaction` (`product = OFW`).
+Relations: has many `NonLifePaymentTransaction` (`product = OFW`); has many `OfwBeneficiary`.
+
+### `OfwBeneficiary`
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` PK | String (cuid) | |
+| `applicationId` FK | String | → `OfwApplication.id`, cascade delete |
+| `fullName` / `relationship` / `birthdate` | String / String / DateTime | at least one required, up to three per application |
+| `createdAt` | DateTime | |
 
 ## CTPL applications
 
@@ -175,9 +188,11 @@ Relations: has many `NonLifePaymentTransaction` (`product = OFW`).
 | `renewalType` | enum | `New_1_Year` \| `Renewal` |
 | `clientType` | enum | `Individual` \| `Corporate_without_assignee` \| `Corporate_with_assignee` |
 | `ownerFirstName` … `mobileNumber` (8 cols) | String / Boolean | owner vs. applicant identity; `sameAsOwner` toggle |
+| `ownerAddress` / `ownerRegion` / `ownerCity` / `ownerBarangay` | String | registered owner's address breakdown |
 | `plateNumber` / `mvFileNumber` / `chassisNumber` | String | |
 | `requiresCOV` | Boolean | |
 | `status` | enum | `Completed` \| `Spoiled` \| `Duplicate` \| `Reversed` \| `Cancelled` |
+| `isPaid` | Boolean | |
 | `policyNumber` UK / `referenceNo` UK | String? | assigned once paid/issued |
 
 Relations: has many `NonLifePaymentTransaction` (`product = CTPL`).
@@ -197,6 +212,7 @@ Relations: has many `NonLifePaymentTransaction` (`product = CTPL`).
 | `planVariant` | enum | `Single_Trip` \| `Multi_Trip_90` \| `Multi_Trip_180` |
 | `cruiseCoverage` / `hazardousSportsCoverage` / `isSchengenDestination` | Boolean | |
 | `status` | enum | `Received` \| `Cancelled` \| `Duplicate` |
+| `isPaid` | Boolean | |
 | `policyNumber` UK / `referenceNo` UK | String? | assigned once paid/issued |
 
 Relations: has many `NonLifePaymentTransaction` (`product = GTP`).

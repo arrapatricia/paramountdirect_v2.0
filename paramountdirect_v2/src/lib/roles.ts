@@ -1,0 +1,303 @@
+// Single source of truth for the system's roles, the products each role can
+// touch, and the module-level access each role gets by default. Shared by
+// the merged Users & Roles page (users tab picks a role from ROLE_DEFINITIONS;
+// the role matrix tab renders getDefaultPermissions for it) so the two views
+// can never drift out of sync with each other.
+
+export type ProductScope = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
+
+export type RoleGroup = 'System' | 'Direct Marketing' | 'Cashiering' | 'Non-Life Product Admin' | 'Non-Life Cross-Product';
+
+export interface RoleDefinition {
+  name: string;
+  group: RoleGroup;
+  // Which product line(s) this role can access. Unlike the old per-product
+  // role catalogs, a user's assigned products are now derived entirely from
+  // their role rather than picked independently.
+  products: ProductScope[];
+  description: string;
+}
+
+export const ROLE_DEFINITIONS: RoleDefinition[] = [
+  {
+    name: 'System Admin',
+    group: 'System',
+    products: ['PD Life', 'OFW', 'CTPL', 'GTP'],
+    description: 'Full access to every product line, plus the only role that can open Users & Role Management.',
+  },
+  {
+    name: 'DM Operations',
+    group: 'Direct Marketing',
+    products: ['PD Life'],
+    description: 'Screens applications, sends policy docs and billing, and manages payment transactions for PD Life.',
+  },
+  {
+    name: 'DM POS',
+    group: 'Direct Marketing',
+    products: ['PD Life'],
+    description: 'Point-of-sale/cashiering role — records PD Life payment transactions.',
+  },
+  {
+    name: 'DM Marketing',
+    group: 'Direct Marketing',
+    products: ['PD Life'],
+    description: 'Read-only view of submitted applications, plus CMS website content.',
+  },
+  {
+    name: 'Life Cashier',
+    group: 'Cashiering',
+    products: ['PD Life'],
+    description: 'Read-only view of PD Life payment transactions and application inquiry — no create/edit rights.',
+  },
+  {
+    name: 'Non-Life Cashier',
+    group: 'Cashiering',
+    products: ['OFW', 'CTPL', 'GTP'],
+    description: 'Read-only view of non-life (OFW, CTPL, GTP) payment transactions and application inquiry — no create/edit rights.',
+  },
+  {
+    name: 'Cashier Admin',
+    group: 'Cashiering',
+    products: ['PD Life', 'OFW', 'CTPL', 'GTP'],
+    description: 'Full create/manage access to payment transactions across every product line, plus application inquiry — not a product/issuance admin.',
+  },
+  {
+    name: 'CTPL Admin',
+    group: 'Non-Life Product Admin',
+    products: ['CTPL'],
+    description: 'Full administrative access to the CTPL product line.',
+  },
+  {
+    name: 'GTP Admin',
+    group: 'Non-Life Product Admin',
+    products: ['GTP'],
+    description: 'Full administrative access to the GTP product line.',
+  },
+  {
+    name: 'OFW Admin',
+    group: 'Non-Life Product Admin',
+    products: ['OFW'],
+    description: 'Full administrative access to the OFW product line.',
+  },
+  {
+    name: 'Non-Life Admin',
+    group: 'Non-Life Cross-Product',
+    products: ['OFW', 'CTPL', 'GTP'],
+    description: 'Issuance and overall view across all non-life products (OFW, CTPL, GTP) for work spanning more than one product.',
+  },
+  {
+    name: 'Non-Life Issuer',
+    group: 'Non-Life Cross-Product',
+    products: ['OFW', 'CTPL', 'GTP'],
+    description: 'Create issuance and extract reports across all non-life products (OFW, CTPL, GTP) — no rate or configuration access.',
+  },
+];
+
+export function getRoleDefinition(role: string): RoleDefinition | undefined {
+  return ROLE_DEFINITIONS.find((r) => r.name === role);
+}
+
+export function productsForRole(role: string): ProductScope[] {
+  return getRoleDefinition(role)?.products ?? [];
+}
+
+export const ROLE_GROUP_ORDER: RoleGroup[] = ['System', 'Direct Marketing', 'Cashiering', 'Non-Life Product Admin', 'Non-Life Cross-Product'];
+
+export interface ModulePermission {
+  moduleName: string;
+  canRead: boolean;
+  canWrite: boolean;
+  canDelete: boolean;
+}
+
+export const PRODUCT_MODULE_MAP: Record<ProductScope, string[]> = {
+  'PD Life': [
+    'Application Screening',
+    'Application Inquiry',
+    'Sending of Policy Docs',
+    'Sending of Billing',
+    'Payment Transactions & Ledger',
+    'Call Out',
+    'Maintenance & Rate Tables',
+    'CMS Content',
+    'Audit Logs',
+  ],
+  'OFW': ['OFW Contracts & Screening', 'OEC Payment Ledger', 'POEA Rate Configuration', 'Agency Audit Logs'],
+  'CTPL': ['LTO Motor Registration', 'CTPL Certificate Ledger', 'Tariff & Premium Calculator', 'Agent Logs'],
+  'GTP': ['Group Corporate Accounts', 'Billing Schedule & Master Roll', 'Endorsements & Rates', 'Audit Logs'],
+};
+
+// These modules describe workflows Direct Marketing has committed to, but
+// the underlying pages haven't been built yet (Billing send-outs, the
+// Contact Center's Call Out queue). Roles can still be pre-configured for
+// them so access is ready to go the day the page ships.
+export const MODULES_NOT_YET_BUILT = new Set(['Sending of Billing', 'Call Out']);
+
+export const MODULE_DESCRIPTIONS: Partial<Record<string, string>> = {
+  'Application Screening': 'Review, verify and update the status of incoming online applications.',
+  'Application Inquiry': 'Read-only lookup of application details and status history.',
+  'Sending of Policy Docs': 'Dispatch issued policy documents to policyholders.',
+  'Sending of Billing': 'Send billing notices and statements to policyholders.',
+  'Call Out': 'Contact Center outbound call queue for application follow-up.',
+};
+
+type PermissionTemplate = Partial<Record<string, { canRead?: boolean; canWrite?: boolean; canDelete?: boolean }>>;
+
+// Role -> product -> module template. Keyed by product as well as role
+// because a cross-product role (Non-Life Admin/Issuer) needs a different
+// template per product, and because module names aren't unique across
+// products (e.g. "Audit Logs" appears under both PD Life and GTP).
+const ROLE_PERMISSION_TEMPLATES: Partial<Record<string, Partial<Record<ProductScope, PermissionTemplate>>>> = {
+  'DM Operations': {
+    'PD Life': {
+      'Application Screening': { canRead: true, canWrite: true },
+      'Application Inquiry': { canRead: true },
+      'Sending of Policy Docs': { canRead: true, canWrite: true },
+      'Sending of Billing': { canRead: true, canWrite: true },
+      'Payment Transactions & Ledger': { canRead: true, canWrite: true },
+      'Audit Logs': { canRead: true },
+    },
+  },
+  'DM POS': {
+    'PD Life': {
+      'Application Inquiry': { canRead: true },
+      'Payment Transactions & Ledger': { canRead: true, canWrite: true },
+    },
+  },
+  'DM Marketing': {
+    'PD Life': {
+      'Application Inquiry': { canRead: true },
+      'CMS Content': { canRead: true, canWrite: true },
+    },
+  },
+  'Life Cashier': {
+    'PD Life': {
+      'Application Inquiry': { canRead: true },
+      'Payment Transactions & Ledger': { canRead: true },
+    },
+  },
+  'Non-Life Cashier': {
+    'OFW': {
+      'OEC Payment Ledger': { canRead: true },
+    },
+    'CTPL': {
+      'CTPL Certificate Ledger': { canRead: true },
+    },
+    'GTP': {
+      'Billing Schedule & Master Roll': { canRead: true },
+    },
+  },
+  'Cashier Admin': {
+    'PD Life': {
+      'Application Inquiry': { canRead: true },
+      'Payment Transactions & Ledger': { canRead: true, canWrite: true },
+    },
+    'OFW': {
+      'OEC Payment Ledger': { canRead: true, canWrite: true },
+    },
+    'CTPL': {
+      'CTPL Certificate Ledger': { canRead: true, canWrite: true },
+    },
+    'GTP': {
+      'Billing Schedule & Master Roll': { canRead: true, canWrite: true },
+    },
+  },
+  'CTPL Admin': {
+    'CTPL': {
+      'LTO Motor Registration': { canRead: true, canWrite: true, canDelete: true },
+      'CTPL Certificate Ledger': { canRead: true, canWrite: true, canDelete: true },
+      'Tariff & Premium Calculator': { canRead: true, canWrite: true, canDelete: true },
+      'Agent Logs': { canRead: true },
+    },
+  },
+  'GTP Admin': {
+    'GTP': {
+      'Group Corporate Accounts': { canRead: true, canWrite: true, canDelete: true },
+      'Billing Schedule & Master Roll': { canRead: true, canWrite: true, canDelete: true },
+      'Endorsements & Rates': { canRead: true, canWrite: true, canDelete: true },
+      'Audit Logs': { canRead: true },
+    },
+  },
+  'OFW Admin': {
+    'OFW': {
+      'OFW Contracts & Screening': { canRead: true, canWrite: true, canDelete: true },
+      'OEC Payment Ledger': { canRead: true, canWrite: true, canDelete: true },
+      'POEA Rate Configuration': { canRead: true, canWrite: true, canDelete: true },
+      'Agency Audit Logs': { canRead: true },
+    },
+  },
+  'Non-Life Admin': {
+    'OFW': {
+      'OFW Contracts & Screening': { canRead: true, canWrite: true, canDelete: true },
+      'OEC Payment Ledger': { canRead: true, canWrite: true, canDelete: true },
+      'POEA Rate Configuration': { canRead: true, canWrite: true, canDelete: true },
+      'Agency Audit Logs': { canRead: true },
+    },
+    'CTPL': {
+      'LTO Motor Registration': { canRead: true, canWrite: true, canDelete: true },
+      'CTPL Certificate Ledger': { canRead: true, canWrite: true, canDelete: true },
+      'Tariff & Premium Calculator': { canRead: true, canWrite: true, canDelete: true },
+      'Agent Logs': { canRead: true },
+    },
+    'GTP': {
+      'Group Corporate Accounts': { canRead: true, canWrite: true, canDelete: true },
+      'Billing Schedule & Master Roll': { canRead: true, canWrite: true, canDelete: true },
+      'Endorsements & Rates': { canRead: true, canWrite: true, canDelete: true },
+      'Audit Logs': { canRead: true },
+    },
+  },
+  'Non-Life Issuer': {
+    'OFW': {
+      'OFW Contracts & Screening': { canRead: true, canWrite: true },
+      'OEC Payment Ledger': { canRead: true },
+      'POEA Rate Configuration': { canRead: true },
+      'Agency Audit Logs': { canRead: true },
+    },
+    'CTPL': {
+      'LTO Motor Registration': { canRead: true, canWrite: true },
+      'CTPL Certificate Ledger': { canRead: true, canWrite: true },
+      'Tariff & Premium Calculator': { canRead: true },
+      'Agent Logs': { canRead: true },
+    },
+    'GTP': {
+      'Group Corporate Accounts': { canRead: true, canWrite: true },
+      'Billing Schedule & Master Roll': { canRead: true },
+      'Endorsements & Rates': { canRead: true },
+      'Audit Logs': { canRead: true },
+    },
+  },
+};
+
+// System Admin has no template above - it always gets full read/write/
+// delete across every module of every product it's given, computed
+// directly rather than spelled out module-by-module.
+export function getDefaultPermissions(role: string, product: ProductScope): ModulePermission[] {
+  const modules = PRODUCT_MODULE_MAP[product];
+
+  if (role === 'System Admin') {
+    return modules.map((m) => ({ moduleName: m, canRead: true, canWrite: true, canDelete: true }));
+  }
+
+  const template = ROLE_PERMISSION_TEMPLATES[role]?.[product];
+  if (!template) {
+    return modules.map((m) => ({ moduleName: m, canRead: false, canWrite: false, canDelete: false }));
+  }
+
+  return modules.map((m) => ({
+    moduleName: m,
+    canRead: !!template[m]?.canRead,
+    canWrite: !!template[m]?.canWrite,
+    canDelete: !!template[m]?.canDelete,
+  }));
+}
+
+// Which roles can record a new payment transaction for a given product -
+// used to gate the Create button on each product's Payment Transactions
+// page. Every role with write access to that product's ledger/issuance
+// module qualifies (see ROLE_PERMISSION_TEMPLATES above).
+export function canCreatePayments(role: string | null | undefined, product: ProductScope): boolean {
+  if (!role) return false;
+  if (role === 'System Admin' || role === 'Cashier Admin') return true;
+  if (product === 'PD Life') return role === 'DM POS' || role === 'DM Operations';
+  return role === `${product} Admin` || role === 'Non-Life Admin' || role === 'Non-Life Issuer';
+}

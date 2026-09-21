@@ -16,6 +16,7 @@ router.get(
     const applications = await prisma.ofwApplication.findMany({
       where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
+      include: { beneficiaries: true },
     });
     res.json(applications);
   })
@@ -24,7 +25,10 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const application = await prisma.ofwApplication.findUnique({ where: { id: req.params.id } });
+    const application = await prisma.ofwApplication.findUnique({
+      where: { id: req.params.id },
+      include: { beneficiaries: true },
+    });
     if (!application) throw new HttpError(404, 'Application not found');
     res.json(application);
   })
@@ -39,7 +43,9 @@ const createApplicationSchema = z.object({
   birthdate: z.coerce.date(),
   placeOfBirth: z.string().min(1),
   phAddress: z.string().min(1),
+  phRegion: z.string().min(1),
   phCity: z.string().min(1),
+  phBarangay: z.string().min(1),
   phone: z.string().min(1),
   email: z.string().email(),
   referralSource: z.string().min(1),
@@ -67,6 +73,19 @@ const createApplicationSchema = z.object({
   status: z.enum(['Received', 'Cancelled', 'Duplicate', 'Reversed']).default('Received'),
   screenedBy: z.string().optional(),
 
+  // OFW-only caveat: unlike CTPL/GTP's straight-through website payment, an
+  // issuer must first verify the employment contract before the client is
+  // even sent instructions to pay. Documents only unlock once isPaid is
+  // true, which itself can't happen until a payment instruction was sent.
+  employmentVerified: z.enum(['Pending', 'Yes', 'No']).default('Pending'),
+  paymentInstructionSent: z.boolean().default(false),
+  isPaid: z.boolean().default(false),
+
+  // At least one required, up to three.
+  beneficiaries: z
+    .array(z.object({ fullName: z.string().min(1), relationship: z.string().min(1), birthdate: z.coerce.date() }))
+    .default([]),
+
   policyNumber: z.string().optional(),
   referenceNo: z.string().optional(),
 });
@@ -74,9 +93,12 @@ const createApplicationSchema = z.object({
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const data = createApplicationSchema.parse(req.body);
+    const { beneficiaries, ...data } = createApplicationSchema.parse(req.body);
 
-    const application = await prisma.ofwApplication.create({ data });
+    const application = await prisma.ofwApplication.create({
+      data: { ...data, beneficiaries: { create: beneficiaries } },
+      include: { beneficiaries: true },
+    });
 
     await recordAudit(req, { action: 'CREATE', module: 'OFW Applications', details: `Created OFW application ${application.id} (${application.lastName}, ${application.firstName})` });
     res.status(201).json(application);
@@ -88,9 +110,19 @@ const updateApplicationSchema = createApplicationSchema.partial();
 router.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const data = updateApplicationSchema.parse(req.body);
+    const { beneficiaries, ...data } = updateApplicationSchema.parse(req.body);
 
-    const application = await prisma.ofwApplication.update({ where: { id: req.params.id }, data });
+    // Beneficiaries are a small, wholesale-replaced child collection (at
+    // most three) - simplest to delete and recreate rather than diff, same
+    // as how the create-application form always submits the full set.
+    const application = await prisma.ofwApplication.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        ...(beneficiaries ? { beneficiaries: { deleteMany: {}, create: beneficiaries } } : {}),
+      },
+      include: { beneficiaries: true },
+    });
 
     await recordAudit(req, { action: 'UPDATE', module: 'OFW Applications', details: `Updated OFW application ${application.id} (${application.lastName}, ${application.firstName})` });
     res.json(application);

@@ -39,6 +39,10 @@ const createApplicationSchema = z.object({
   ownerFirstName: z.string().min(1),
   ownerMiddleName: z.string().min(1),
   ownerSurname: z.string().min(1),
+  ownerAddress: z.string().min(1),
+  ownerRegion: z.string().min(1),
+  ownerCity: z.string().min(1),
+  ownerBarangay: z.string().min(1),
   sameAsOwner: z.boolean().default(true),
   applicantFirstName: z.string().min(1),
   applicantSurname: z.string().min(1),
@@ -55,6 +59,7 @@ const createApplicationSchema = z.object({
   dateReceived: z.coerce.date(),
   status: z.enum(['Completed', 'Spoiled', 'Duplicate', 'Reversed', 'Cancelled']).default('Completed'),
   screenedBy: z.string().optional(),
+  isPaid: z.boolean().default(false),
 
   policyNumber: z.string().optional(),
   referenceNo: z.string().optional(),

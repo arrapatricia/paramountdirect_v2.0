@@ -96,9 +96,17 @@ All routes except `POST /api/auth/login` require `Authorization: Bearer <token>`
 | GTP applications | `/api/applications/gtp` |
 | Payments | `/api/payments` |
 | Audit logs | `/api/audit-logs` (read-only) |
+| Website ingest (server-to-server, `X-Api-Key`, not `Authorization`) | `POST /api/ingest/pd-life`, `/api/ingest/ofw`, `/api/ingest/ctpl`, `/api/ingest/gtp` |
 
 Every list endpoint returns newest-first and accepts a `?status=` filter where applicable; every create/update/delete on a mutable resource writes an audit-log row automatically.
 
+The four ingest routes are how each public product website pushes a newly
+submitted application here without anyone re-keying it: paramountdirect.com,
+ofwinsurance.ph, ctpl.ph and yourtravelinsurance.ph each call their route
+right after saving an application on their own end. They're authenticated by
+`WEBSITE_INGEST_API_KEY` (see `.env.example`) rather than a login token,
+since there's no logged-in user on the website's side.
+
 ## Not yet built
 
-This first pass covers the core transactional data (auth, users/roles, branches, all four product lines' applications, payments, audit logs). Not covered yet, since they're more reporting/read-heavy and can be layered on once the frontend is wired up to real data: Marketing Dashboard analytics, Product Enrollment/CMS content. The frontend still runs entirely on its own in-memory mock data - connecting it to this API (replacing the `useState` mock arrays in `App.tsx` with real `fetch` calls) is a separate follow-up task.
+This first pass covers the core transactional data (auth, users/roles, branches, all four product lines' applications, payments, audit logs). Not covered yet, since they're more reporting/read-heavy and can be layered on once the frontend is wired up to real data: Marketing Dashboard analytics, Product Enrollment/CMS content. PD Life is wired to real data (`App.tsx` calls `pdLifeApi`); OFW/CTPL/GTP still run on in-memory mock arrays in `App.tsx` - wiring those to `/api/applications/{ofw,ctpl,gtp}` the same way is a separate follow-up task.

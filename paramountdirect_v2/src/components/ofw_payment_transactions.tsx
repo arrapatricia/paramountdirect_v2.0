@@ -1,6 +1,7 @@
 
 import ProductPaymentTransactions from './product_payment_transactions';
 import type { OfwApplication } from './ofw_types';
+import { canCreatePayments } from '../lib/roles';
 
 interface Props {
   data: OfwApplication[];
@@ -20,9 +21,7 @@ export default function OfwPaymentTransactions({ data, currentUserRole = null }:
       dateReceived: d.dateReceived,
     }));
 
-  // Admin is the seeded demo login used to test every role-gated feature,
-  // so it's treated as a superset of Cashier access rather than excluded.
-  const canCreate = currentUserRole === 'Cashier' || currentUserRole === 'Admin';
+  const canCreate = canCreatePayments(currentUserRole, 'OFW');
 
   return <ProductPaymentTransactions productLabel="OFW" accentColor="#002f6c" rows={rows} canCreate={canCreate} />;
 }

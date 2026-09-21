@@ -35,8 +35,7 @@ import OfwPaymentTransactions from './components/ofw_payment_transactions';
 import CtplPaymentTransactions from './components/ctpl_payment_transactions';
 import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
-import UserManagement, { INITIAL_USERS, type UserAccount } from './components/user_management';
-import RoleAccessMaintenance from './components/role_access_maintenance';
+import UserRoleManagement, { INITIAL_USERS, type UserAccount } from './components/user_role_management';
 import AuditLogs from './components/audit_logs';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
@@ -44,13 +43,31 @@ import AuditLogs from './components/audit_logs';
 import { INITIAL_PREMIUM_RATES, type PremiumRate } from './components/premium_rates';
 import {
   pdLifeApi,
+  ofwApi,
+  ctplApi,
+  gtpApi,
   clearAuthToken,
   getAuthToken,
   fromApiPdLifeStatus,
   toApiPdLifeStatus,
   toApiPlanCategory,
   formatApplicationId,
+  toApiOfwNature,
+  fromApiOfwNature,
+  toApiOfwCoverage,
+  fromApiOfwCoverage,
+  toApiCtplPolicyType,
+  fromApiCtplPolicyType,
+  toApiCtplRenewalType,
+  fromApiCtplRenewalType,
+  toApiCtplClientType,
+  fromApiCtplClientType,
+  toApiGtpPlanVariant,
+  fromApiGtpPlanVariant,
   type PdLifeApplicationApi,
+  type OfwApplicationApi,
+  type CtplApplicationApi,
+  type GtpApplicationApi,
 } from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
@@ -93,11 +110,6 @@ export interface ScreeningItem {
 // Life screen already expects (dates as short display strings, status/
 // planCategory with the spaces the UI has always used).
 function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
-  const toDisplayDate = (iso: string | null) => {
-    if (!iso) return '-';
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-US');
-  };
   // Applications ingested from paramountdirect.com already have a real
   // application id assigned on that site (see PdRevampSyncService's
   // build_payload -> details.sourceApplicationId) - screeners need that id,
@@ -125,8 +137,130 @@ function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
   };
 }
 
+// Shared by the OFW/CTPL/GTP mappers below - same short display-date
+// convention as PD Life's mapApiToScreeningItem.
+function toDisplayDate(iso: string | null): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-US');
+}
+// For fields the UI edits as a plain <input type="date">, e.g. birthdate.
+function toDisplayDateOnly(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+function mapApiToOfwApplication(api: OfwApplicationApi): OfwApplication {
+  return {
+    id: api.id,
+    lastName: api.lastName,
+    firstName: api.firstName,
+    middleName: api.middleName,
+    gender: api.gender as OfwApplication['gender'],
+    civilStatus: api.civilStatus as OfwApplication['civilStatus'],
+    birthdate: toDisplayDateOnly(api.birthdate),
+    placeOfBirth: api.placeOfBirth,
+    phAddress: api.phAddress,
+    phRegion: api.phRegion,
+    phCity: api.phCity,
+    phBarangay: api.phBarangay,
+    phone: api.phone,
+    email: api.email,
+    referralSource: api.referralSource,
+    natureOfEmployment: fromApiOfwNature(api.natureOfEmployment) as OfwApplication['natureOfEmployment'],
+    coverageType: fromApiOfwCoverage(api.coverageType) as OfwApplication['coverageType'],
+    occupation: api.occupation,
+    passportNumber: api.passportNumber,
+    salaryAmount: api.salaryAmount,
+    salaryCurrency: api.salaryCurrency as OfwApplication['salaryCurrency'],
+    employerName: api.employerName,
+    employerCountry: api.employerCountry,
+    contractStart: toDisplayDateOnly(api.contractStart),
+    contractEnd: toDisplayDateOnly(api.contractEnd),
+    insuranceStart: toDisplayDateOnly(api.insuranceStart),
+    beneficiaries: api.beneficiaries.map((b) => ({ fullName: b.fullName, relationship: b.relationship, birthdate: toDisplayDateOnly(b.birthdate) })),
+    isConflictZone: api.isConflictZone,
+    documents: {
+      passport: api.passportDoc as OfwApplication['documents']['passport'],
+      visa: api.visaDoc as OfwApplication['documents']['visa'],
+      employmentContract: api.employmentContractDoc as OfwApplication['documents']['employmentContract'],
+      medicalCertificate: api.medicalCertificateDoc as OfwApplication['documents']['medicalCertificate'],
+    },
+    premium: api.premium,
+    dateReceived: toDisplayDate(api.dateReceived),
+    status: api.status as OfwApplication['status'],
+    screenedBy: api.screenedBy ?? '-',
+    employmentVerified: api.employmentVerified as OfwApplication['employmentVerified'],
+    paymentInstructionSent: api.paymentInstructionSent,
+    isPaid: api.isPaid,
+    policyNumber: api.policyNumber ?? undefined,
+    referenceNo: api.referenceNo ?? undefined,
+  };
+}
+
+function mapApiToCtplApplication(api: CtplApplicationApi): CtplApplication {
+  return {
+    id: api.id,
+    policyType: fromApiCtplPolicyType(api.policyType) as CtplApplication['policyType'],
+    mvType: api.mvType,
+    renewalType: fromApiCtplRenewalType(api.renewalType) as CtplApplication['renewalType'],
+    clientType: fromApiCtplClientType(api.clientType) as CtplApplication['clientType'],
+    ownerFirstName: api.ownerFirstName,
+    ownerMiddleName: api.ownerMiddleName,
+    ownerSurname: api.ownerSurname,
+    ownerAddress: api.ownerAddress,
+    ownerRegion: api.ownerRegion,
+    ownerCity: api.ownerCity,
+    ownerBarangay: api.ownerBarangay,
+    sameAsOwner: api.sameAsOwner,
+    applicantFirstName: api.applicantFirstName,
+    applicantSurname: api.applicantSurname,
+    email: api.email,
+    mobileNumber: api.mobileNumber,
+    plateNumber: api.plateNumber,
+    mvFileNumber: api.mvFileNumber,
+    chassisNumber: api.chassisNumber,
+    requiresCOV: api.requiresCOV,
+    premium: api.premium,
+    dateReceived: toDisplayDate(api.dateReceived),
+    status: api.status as CtplApplication['status'],
+    screenedBy: api.screenedBy ?? '-',
+    isPaid: api.isPaid,
+    policyNumber: api.policyNumber ?? undefined,
+    referenceNo: api.referenceNo ?? undefined,
+  };
+}
+
+function mapApiToGtpApplication(api: GtpApplicationApi): GtpApplication {
+  return {
+    id: api.id,
+    travelType: api.travelType as GtpApplication['travelType'],
+    destinations: api.destinations,
+    departureDate: toDisplayDateOnly(api.departureDate),
+    returnDate: toDisplayDateOnly(api.returnDate),
+    daysOfTravel: api.daysOfTravel,
+    applicationType: api.applicationType as GtpApplication['applicationType'],
+    travelerFirstName: api.travelerFirstName,
+    travelerSurname: api.travelerSurname,
+    birthdate: toDisplayDateOnly(api.birthdate),
+    email: api.email,
+    mobileNumber: api.mobileNumber,
+    planVariant: fromApiGtpPlanVariant(api.planVariant) as GtpApplication['planVariant'],
+    cruiseCoverage: api.cruiseCoverage,
+    hazardousSportsCoverage: api.hazardousSportsCoverage,
+    isSchengenDestination: api.isSchengenDestination,
+    premium: api.premium,
+    dateReceived: toDisplayDate(api.dateReceived),
+    status: api.status as GtpApplication['status'],
+    screenedBy: api.screenedBy ?? '-',
+    isPaid: api.isPaid,
+    policyNumber: api.policyNumber ?? undefined,
+    referenceNo: api.referenceNo ?? undefined,
+  };
+}
+
 // Fresh-environment reset: no seed applications, only the two retained
-// accounts (see INITIAL_USERS in user_management.tsx). Set the length back
+// accounts (see INITIAL_USERS in user_role_management.tsx). Set the length back
 // above 0 to bring the demo dataset back.
 const initialMockData: ScreeningItem[] = Array.from({ length: 0 }).map((_, i) => {
   const plans = [
@@ -330,9 +464,9 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 0 }).map((_, i
 // a refresh but not closing the tab) actually do something.
 const AUTH_STORAGE_KEY = 'pd_authenticated';
 // Persisted the same way as AUTH_STORAGE_KEY - the logged-in user's role
-// drives role-gated UI (e.g. the Cashier-only Create button on Non-Life
-// Payment Transactions), so it needs to survive a refresh the same way the
-// auth flag does.
+// drives role-gated UI (e.g. the product-admin-only Create button on Payment
+// Transactions, and the System Admin-only Users & Roles nav entry), so it
+// needs to survive a refresh the same way the auth flag does.
 const ROLE_STORAGE_KEY = 'pd_current_user_role';
 
 function readStoredAuth(): boolean {
@@ -379,9 +513,9 @@ function resolveInitialNav(): StoredNav {
   const stored = readStoredNav();
   const parsed = parsePath(window.location.pathname);
   if (parsed) {
-    return { product: parsed.product, tab: parsed.tab, subTab: parsed.subTab ?? stored?.subTab ?? 'users' };
+    return { product: parsed.product, tab: parsed.tab, subTab: parsed.subTab ?? stored?.subTab ?? 'branch' };
   }
-  return stored ?? { product: 'PD Life', tab: 'dashboard', subTab: 'users' };
+  return stored ?? { product: 'PD Life', tab: 'dashboard', subTab: 'branch' };
 }
 
 export default function App() {
@@ -411,13 +545,19 @@ export default function App() {
   };
   const [ofwApplications, setOfwApplications] = useState<OfwApplication[]>(initialOfwMockData);
   const [isCreatingOfwApp, setIsCreatingOfwApp] = useState(false);
+  const [ofwConnected, setOfwConnected] = useState(false);
+  const [ofwLoadError, setOfwLoadError] = useState<string | null>(null);
   const [ctplApplications, setCtplApplications] = useState<CtplApplication[]>(initialCtplMockData);
   const [isCreatingCtplApp, setIsCreatingCtplApp] = useState(false);
+  const [ctplConnected, setCtplConnected] = useState(false);
+  const [ctplLoadError, setCtplLoadError] = useState<string | null>(null);
   const [gtpApplications, setGtpApplications] = useState<GtpApplication[]>(initialGtpMockData);
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
+  const [gtpConnected, setGtpConnected] = useState(false);
+  const [gtpLoadError, setGtpLoadError] = useState<string | null>(null);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
   const [premiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
-  // Lifted out of UserManagement so Login can validate against real
+  // Lifted out of UserRoleManagement so Login can validate against real
   // provisioned accounts, not just the hardcoded admin/noaccess demo logins.
   const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
 
@@ -472,7 +612,7 @@ export default function App() {
       if (parsed) {
         setActiveProduct(parsed.product);
         setActiveTab(parsed.tab);
-        if (parsed.tab === 'maintenance') setActiveSubTab(parsed.subTab ?? 'users');
+        if (parsed.tab === 'maintenance') setActiveSubTab(parsed.subTab ?? 'branch');
       } else {
         setActiveProduct('PD Life');
         setActiveTab('dashboard');
@@ -499,6 +639,68 @@ export default function App() {
       .catch((err) => {
         if (cancelled) return;
         setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to load PD Life applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  // Same real-backend-session gate as PD Life above, one effect per product
+  // line since each lives in its own table/route.
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    ofwApi
+      .list()
+      .then((apps) => {
+        if (cancelled) return;
+        setOfwApplications(apps.map(mapApiToOfwApplication));
+        setOfwConnected(true);
+        setOfwLoadError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setOfwLoadError(err instanceof Error ? err.message : 'Failed to load OFW applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    ctplApi
+      .list()
+      .then((apps) => {
+        if (cancelled) return;
+        setCtplApplications(apps.map(mapApiToCtplApplication));
+        setCtplConnected(true);
+        setCtplLoadError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setCtplLoadError(err instanceof Error ? err.message : 'Failed to load CTPL applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    gtpApi
+      .list()
+      .then((apps) => {
+        if (cancelled) return;
+        setGtpApplications(apps.map(mapApiToGtpApplication));
+        setGtpConnected(true);
+        setGtpLoadError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setGtpLoadError(err instanceof Error ? err.message : 'Failed to load GTP applications.');
       });
     return () => {
       cancelled = true;
@@ -589,6 +791,147 @@ export default function App() {
     return { ...app, id: created.id, dateReceived: mapped.dateReceived, dateScreened: mapped.dateScreened, status: mapped.status };
   };
 
+  // Same pattern as handleCreatePdLifeApp above, one per product line - the
+  // create-application wizard already builds a fully-formed local record
+  // with a placeholder id; when connected, that placeholder is discarded in
+  // favor of the real server record (real id/dateReceived/etc).
+  const handleCreateOfwApp = async (app: OfwApplication) => {
+    if (!ofwConnected) {
+      setOfwApplications(prev => [app, ...prev]);
+      return;
+    }
+    const created = await ofwApi.create({
+      lastName: app.lastName,
+      firstName: app.firstName,
+      middleName: app.middleName,
+      gender: app.gender,
+      civilStatus: app.civilStatus,
+      birthdate: new Date(app.birthdate).toISOString(),
+      placeOfBirth: app.placeOfBirth,
+      phAddress: app.phAddress,
+      phRegion: app.phRegion,
+      phCity: app.phCity,
+      phBarangay: app.phBarangay,
+      phone: app.phone,
+      email: app.email,
+      referralSource: app.referralSource,
+      natureOfEmployment: toApiOfwNature(app.natureOfEmployment),
+      coverageType: toApiOfwCoverage(app.coverageType),
+      occupation: app.occupation,
+      passportNumber: app.passportNumber,
+      salaryAmount: app.salaryAmount,
+      salaryCurrency: app.salaryCurrency,
+      employerName: app.employerName,
+      employerCountry: app.employerCountry,
+      contractStart: new Date(app.contractStart).toISOString(),
+      contractEnd: new Date(app.contractEnd).toISOString(),
+      insuranceStart: new Date(app.insuranceStart).toISOString(),
+      isConflictZone: app.isConflictZone,
+      passportDoc: app.documents.passport,
+      visaDoc: app.documents.visa,
+      employmentContractDoc: app.documents.employmentContract,
+      medicalCertificateDoc: app.documents.medicalCertificate,
+      premium: app.premium,
+      dateReceived: new Date().toISOString(),
+      status: app.status,
+      screenedBy: app.screenedBy,
+      employmentVerified: app.employmentVerified,
+      paymentInstructionSent: app.paymentInstructionSent,
+      isPaid: app.isPaid,
+      beneficiaries: app.beneficiaries.map((b) => ({ fullName: b.fullName, relationship: b.relationship, birthdate: new Date(b.birthdate).toISOString() })),
+    });
+    setOfwApplications(prev => [mapApiToOfwApplication(created), ...prev]);
+  };
+
+  const handleUpdateOfwApp = (id: string, patch: Partial<OfwApplication>) => {
+    setOfwApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app));
+    if (!ofwConnected) return;
+    ofwApi.update(id, patch).catch((err) => {
+      setOfwLoadError(err instanceof Error ? err.message : 'Failed to update OFW application.');
+    });
+  };
+
+  const handleCreateCtplApp = async (app: CtplApplication) => {
+    if (!ctplConnected) {
+      setCtplApplications(prev => [app, ...prev]);
+      return;
+    }
+    const created = await ctplApi.create({
+      policyType: toApiCtplPolicyType(app.policyType),
+      mvType: app.mvType,
+      renewalType: toApiCtplRenewalType(app.renewalType),
+      clientType: toApiCtplClientType(app.clientType),
+      ownerFirstName: app.ownerFirstName,
+      ownerMiddleName: app.ownerMiddleName,
+      ownerSurname: app.ownerSurname,
+      ownerAddress: app.ownerAddress,
+      ownerRegion: app.ownerRegion,
+      ownerCity: app.ownerCity,
+      ownerBarangay: app.ownerBarangay,
+      sameAsOwner: app.sameAsOwner,
+      applicantFirstName: app.applicantFirstName,
+      applicantSurname: app.applicantSurname,
+      email: app.email,
+      mobileNumber: app.mobileNumber,
+      plateNumber: app.plateNumber,
+      mvFileNumber: app.mvFileNumber,
+      chassisNumber: app.chassisNumber,
+      requiresCOV: app.requiresCOV,
+      premium: app.premium,
+      dateReceived: new Date().toISOString(),
+      status: app.status,
+      screenedBy: app.screenedBy,
+      isPaid: app.isPaid,
+    });
+    setCtplApplications(prev => [mapApiToCtplApplication(created), ...prev]);
+  };
+
+  const handleUpdateCtplApp = (id: string, patch: Partial<CtplApplication>) => {
+    setCtplApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app));
+    if (!ctplConnected) return;
+    ctplApi.update(id, patch).catch((err) => {
+      setCtplLoadError(err instanceof Error ? err.message : 'Failed to update CTPL application.');
+    });
+  };
+
+  const handleCreateGtpApp = async (app: GtpApplication) => {
+    if (!gtpConnected) {
+      setGtpApplications(prev => [app, ...prev]);
+      return;
+    }
+    const created = await gtpApi.create({
+      travelType: app.travelType,
+      destinations: app.destinations,
+      departureDate: new Date(app.departureDate).toISOString(),
+      returnDate: new Date(app.returnDate).toISOString(),
+      daysOfTravel: app.daysOfTravel,
+      applicationType: app.applicationType,
+      travelerFirstName: app.travelerFirstName,
+      travelerSurname: app.travelerSurname,
+      birthdate: new Date(app.birthdate).toISOString(),
+      email: app.email,
+      mobileNumber: app.mobileNumber,
+      planVariant: toApiGtpPlanVariant(app.planVariant),
+      cruiseCoverage: app.cruiseCoverage,
+      hazardousSportsCoverage: app.hazardousSportsCoverage,
+      isSchengenDestination: app.isSchengenDestination,
+      premium: app.premium,
+      dateReceived: new Date().toISOString(),
+      status: app.status,
+      screenedBy: app.screenedBy,
+      isPaid: app.isPaid,
+    });
+    setGtpApplications(prev => [mapApiToGtpApplication(created), ...prev]);
+  };
+
+  const handleUpdateGtpApp = (id: string, patch: Partial<GtpApplication>) => {
+    setGtpApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app));
+    if (!gtpConnected) return;
+    gtpApi.update(id, patch).catch((err) => {
+      setGtpLoadError(err instanceof Error ? err.message : 'Failed to update GTP application.');
+    });
+  };
+
   const renderApplicationDetail = (readOnly: boolean = false) => {
     if (!selectedApp) return null;
 
@@ -668,6 +1011,7 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)}
         currentUserName={CURRENT_USER.name}
         currentUserEmail={CURRENT_USER.email}
+        currentUserRole={currentUserRole}
         activeProduct={activeProduct}
         setActiveProduct={setActiveProduct}
         darkMode={darkMode}
@@ -676,7 +1020,7 @@ export default function App() {
 
       {/* Primary Main Content View */}
       <main className="flex-1 overflow-y-auto">
-        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'dashboard' && <Dashboard data={screeningData} />}
 
         {/* Life Statistics */}
         {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" />}
@@ -688,7 +1032,7 @@ export default function App() {
         {activeTab === 'life-application-statuses' && <LifeApplicationStatuses />}
 
         {/* OFW Dashboard */}
-        {activeTab === 'ofw-dashboard' && <OfwDashboard />}
+        {activeTab === 'ofw-dashboard' && <OfwDashboard data={ofwApplications} />}
 
         {/* OFW Applications */}
         {activeTab === 'ofw-applications' && (
@@ -696,14 +1040,14 @@ export default function App() {
             <OfwCreateApplication
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingOfwApp(false)}
-              onCreate={(app) => setOfwApplications(prev => [app, ...prev])}
+              onCreate={handleCreateOfwApp}
               rates={premiumRates}
             />
           ) : (
             <OfwApplicationList
               data={ofwApplications}
               onCreateNew={() => setIsCreatingOfwApp(true)}
-              onUpdate={(id, patch) => setOfwApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app))}
+              onUpdate={handleUpdateOfwApp}
             />
           )
         )}
@@ -712,7 +1056,7 @@ export default function App() {
         {activeTab === 'ofw-payments' && <OfwPaymentTransactions data={ofwApplications} currentUserRole={currentUserRole} />}
 
         {/* CTPL Dashboard */}
-        {activeTab === 'ctpl-dashboard' && <CtplDashboard />}
+        {activeTab === 'ctpl-dashboard' && <CtplDashboard data={ctplApplications} />}
 
         {/* CTPL Applications */}
         {activeTab === 'ctpl-applications' && (
@@ -720,14 +1064,14 @@ export default function App() {
             <CtplCreateApplication
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingCtplApp(false)}
-              onCreate={(app) => setCtplApplications(prev => [app, ...prev])}
+              onCreate={handleCreateCtplApp}
               rates={premiumRates}
             />
           ) : (
             <CtplApplicationList
               data={ctplApplications}
               onCreateNew={() => setIsCreatingCtplApp(true)}
-              onUpdate={(id, patch) => setCtplApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app))}
+              onUpdate={handleUpdateCtplApp}
             />
           )
         )}
@@ -736,7 +1080,7 @@ export default function App() {
         {activeTab === 'ctpl-payments' && <CtplPaymentTransactions data={ctplApplications} currentUserRole={currentUserRole} />}
 
         {/* GTP Dashboard */}
-        {activeTab === 'gtp-dashboard' && <GtpDashboard />}
+        {activeTab === 'gtp-dashboard' && <GtpDashboard data={gtpApplications} />}
 
         {/* GTP Applications */}
         {activeTab === 'gtp-applications' && (
@@ -744,14 +1088,14 @@ export default function App() {
             <GtpCreateApplication
               currentUser={CURRENT_USER.name}
               onBack={() => setIsCreatingGtpApp(false)}
-              onCreate={(app) => setGtpApplications(prev => [app, ...prev])}
+              onCreate={handleCreateGtpApp}
               rates={premiumRates}
             />
           ) : (
             <GtpApplicationList
               data={gtpApplications}
               onCreateNew={() => setIsCreatingGtpApp(true)}
-              onUpdate={(id, patch) => setGtpApplications(prev => prev.map(app => app.id === id ? { ...app, ...patch } : app))}
+              onUpdate={handleUpdateGtpApp}
             />
           )
         )}
@@ -800,23 +1144,30 @@ export default function App() {
         {activeTab === 'billing' && <Billing />}
         {activeTab === 'audit' && <AuditLogs />}
 
+        {/* Users & Role Management - System Admin only; the sidebar entry is
+            hidden for everyone else, but a direct link still needs guarding. */}
+        {activeTab === 'users-roles' && (
+          currentUserRole === 'System Admin' ? (
+            <UserRoleManagement users={users} setUsers={setUsers} />
+          ) : (
+            <div className="p-12 text-center text-slate-400 font-bold max-w-[1600px] mx-auto dark:text-slate-500">
+              <p>Access restricted to System Admin.</p>
+            </div>
+          )
+        )}
+
         {/* Maintenance Sub-module Views */}
         {activeTab === 'maintenance' && (
-          activeSubTab === 'users' ? (
-            <UserManagement users={users} setUsers={setUsers} />
-          ) : activeSubTab === 'roles' ? (
-            <RoleAccessMaintenance />
           // Premium Maintenance removed from nav per request - see
           // sidebar.tsx's commented-out 'premiums' entry. Left here
           // commented rather than deleted in case it's needed again.
-          // ) : activeSubTab === 'premiums' ? (
+          // activeSubTab === 'premiums' ? (
           //   <PremiumMaintenance rates={premiumRates} onSave={setPremiumRates} />
-          ) : (
-            <Maintenance 
-              activeSubTab={activeSubTab} 
-              setActiveSubTab={setActiveSubTab} 
-            />
-          )
+          // ) : (
+          <Maintenance
+            activeSubTab={activeSubTab}
+            setActiveSubTab={setActiveSubTab}
+          />
         )}
 
         {/* Application Screening */}

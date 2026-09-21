@@ -53,6 +53,7 @@ const createApplicationSchema = z.object({
   dateReceived: z.coerce.date(),
   status: z.enum(['Received', 'Cancelled', 'Duplicate']).default('Received'),
   screenedBy: z.string().optional(),
+  isPaid: z.boolean().default(false),
 
   policyNumber: z.string().optional(),
   referenceNo: z.string().optional(),

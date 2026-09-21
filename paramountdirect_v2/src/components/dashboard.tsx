@@ -1,56 +1,32 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown, TrendingUp } from 'lucide-react';
+import type { ScreeningItem } from '../App';
+import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, countByField, parseDateParts } from '../lib/dashboardStats';
 
-// Monthly premium sales, PHP. 2025 is the prior year's actual full-year figures
-// (this system has no history of its own yet, so last year's numbers are the
-// only comparison baseline we have). 2026 is year-to-date — September is
-// still in progress, and Oct/Nov/Dec haven't happened, so they're left null
-// rather than faked.
-const MONTHLY_SALES: { month: string; y2025: number; y2026: number | null }[] = [
-  { month: 'Jan', y2025: 152340, y2026: 168900 },
-  { month: 'Feb', y2025: 148900, y2026: 159400 },
-  { month: 'Mar', y2025: 161200, y2026: 177800 },
-  { month: 'Apr', y2025: 158700, y2026: 181300 },
-  { month: 'May', y2025: 167300, y2026: 189600 },
-  { month: 'Jun', y2025: 172400, y2026: 198200 },
-  { month: 'Jul', y2025: 165900, y2026: 191500 },
-  { month: 'Aug', y2025: 178600, y2026: 205300 },
-  { month: 'Sep', y2025: 181200, y2026: 96400 }, // month-to-date
-  { month: 'Oct', y2025: 186500, y2026: null },
-  { month: 'Nov', y2025: 193800, y2026: null },
-  { month: 'Dec', y2025: 208900, y2026: null },
-];
-const CURRENT_MONTH_INDEX = 8; // September — the last index with a (partial) 2026 value
+interface DashboardProps {
+  data: ScreeningItem[];
+}
 
-// Where issued applications came from, by year. Same underlying numbers as
-// the Marketing Dashboard's source performance table (2026: Google 1,840,
-// Facebook 715, Email 588, ML 312, Non-Life 96, Direct 22 = 3,573 total),
-// so the two pages agree with each other.
-const ACQUISITION_BY_YEAR: Record<string, { label: string; applications: number; color: string }[]> = {
-  '2026': [
-    { label: 'Google', applications: 1840, color: '#d0112b' },
-    { label: 'Facebook', applications: 715, color: '#008cb4' },
-    { label: 'Email', applications: 588, color: '#f59e0b' },
-    { label: 'ML', applications: 312, color: '#8b5cf6' },
-    { label: 'Direct', applications: 22, color: '#64748b' },
-    { label: 'Non-Life', applications: 96, color: '#10b981' },
-  ],
-  '2025': [
-    { label: 'Google', applications: 1390, color: '#d0112b' },
-    { label: 'Facebook', applications: 570, color: '#008cb4' },
-    { label: 'Email', applications: 510, color: '#f59e0b' },
-    { label: 'ML', applications: 270, color: '#8b5cf6' },
-    { label: 'Direct', applications: 190, color: '#64748b' },
-    { label: 'Non-Life', applications: 90, color: '#10b981' },
-  ],
-};
-
-const YTD_APPLICATIONS = { y2025: 3020, y2026: 3573 };
-const YTD_ISSUED = { y2025: 1890, y2026: 2340 };
 const ANNUAL_TARGET = 2_200_000;
+
+// Fixed color per acquisition source, so the donut's palette stays stable
+// as real sources show up (falls back to slate for anything unlisted).
+const SOURCE_COLORS: Record<string, string> = {
+  Google: '#d0112b',
+  Facebook: '#008cb4',
+  Email: '#f59e0b',
+  ML: '#8b5cf6',
+  Direct: '#64748b',
+  'Non-Life': '#10b981',
+  'Paramount Website': '#d0112b',
+};
+const FALLBACK_SOURCE_COLORS = ['#0ea5e9', '#f97316', '#a855f7', '#14b8a6', '#eab308'];
 
 function buildConicGradient(sources: { applications: number; color: string }[]) {
   const total = sources.reduce((sum, s) => sum + s.applications, 0);
+  if (total === 0) {
+    return { gradient: '#e2e8f0', total };
+  }
   let cumulative = 0;
   const stops = sources.map((s) => {
     const start = (cumulative / total) * 360;
@@ -61,6 +37,8 @@ function buildConicGradient(sources: { applications: number; color: string }[]) 
   return { gradient: `conic-gradient(${stops.join(', ')})`, total };
 }
 
+const safePct = (numerator: number, denominator: number) => (denominator === 0 ? 0 : (numerator / denominator) * 100);
+
 const peso = (n: number) => `₱${n.toLocaleString('en-PH')}`;
 
 const FULL_MONTH_NAME: Record<string, string> = {
@@ -68,36 +46,70 @@ const FULL_MONTH_NAME: Record<string, string> = {
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function Dashboard() {
+export default function Dashboard({ data }: DashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
-  const completeMonths2025 = MONTHLY_SALES.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
-  const completeMonths2026 = MONTHLY_SALES.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYtd2026 = MONTHLY_SALES.reduce((s, m) => s + (m.y2026 ?? 0), 0);
-  const premiumYoyPct = ((completeMonths2026 - completeMonths2025) / completeMonths2025) * 100;
+  const monthlySales = useMemo(
+    () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premium),
+    [data]
+  );
 
-  const attainmentPct = Math.min(100, Math.round((premiumYtd2026 / ANNUAL_TARGET) * 100));
+  const acquisitionByYear = useMemo(() => {
+    const build = (year: number) => {
+      const records = data.filter((r) => parseDateParts(r.dateReceived)?.year === year);
+      const counts = countByField(records, (r) => r.source || 'Unknown');
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, applications], i) => ({
+          label,
+          applications,
+          color: SOURCE_COLORS[label] ?? FALLBACK_SOURCE_COLORS[i % FALLBACK_SOURCE_COLORS.length],
+        }));
+    };
+    return { '2026': build(CURRENT_YEAR), '2025': build(CURRENT_YEAR - 1) };
+  }, [data]);
 
-  const applicationsYoyPct = ((YTD_APPLICATIONS.y2026 - YTD_APPLICATIONS.y2025) / YTD_APPLICATIONS.y2025) * 100;
-  const issuedYoyPct = ((YTD_ISSUED.y2026 - YTD_ISSUED.y2025) / YTD_ISSUED.y2025) * 100;
-  const conversion2026 = (YTD_ISSUED.y2026 / YTD_APPLICATIONS.y2026) * 100;
-  const conversion2025 = (YTD_ISSUED.y2025 / YTD_APPLICATIONS.y2025) * 100;
+  const { applications: ytdApplications, issued: ytdIssued } = useMemo(() => {
+    const countYear = (year: number) => data.filter((r) => parseDateParts(r.dateReceived)?.year === year);
+    const curr = countYear(CURRENT_YEAR);
+    const prev = countYear(CURRENT_YEAR - 1);
+    return {
+      applications: { y2025: prev.length, y2026: curr.length },
+      issued: {
+        y2025: prev.filter((r) => r.status === 'Issued').length,
+        y2026: curr.filter((r) => r.status === 'Issued').length,
+      },
+    };
+  }, [data]);
+
+  const completeMonths2025 = monthlySales.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
+  const completeMonths2026 = monthlySales.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYtd2026 = monthlySales.reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
+
+  const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, ANNUAL_TARGET)));
+
+  const applicationsYoyPct = safePct(ytdApplications.y2026 - ytdApplications.y2025, ytdApplications.y2025);
+  const issuedYoyPct = safePct(ytdIssued.y2026 - ytdIssued.y2025, ytdIssued.y2025);
+  const conversion2026 = safePct(ytdIssued.y2026, ytdApplications.y2026);
+  const conversion2025 = safePct(ytdIssued.y2025, ytdApplications.y2025);
   const conversionDeltaPts = conversion2026 - conversion2025;
 
-  const acquisition = ACQUISITION_BY_YEAR[selectedYear];
+  const acquisition = acquisitionByYear[selectedYear];
   const { gradient, total: acquisitionTotal } = buildConicGradient(acquisition);
 
-  const maxMonthly = Math.max(...MONTHLY_SALES.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
+  const maxMonthly = Math.max(1, ...monthlySales.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
 
   // "Strongest month" = highest absolute sales, not highest growth rate —
   // those can be different months, so we compute the growth % for whichever
   // month actually had the peak sales, rather than pulling it from a
   // separately-chosen "best growth" month.
-  const peakMonth = MONTHLY_SALES.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
-    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best
+  const peakMonth = monthlySales.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
+    (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best,
+    monthlySales[0]
   );
-  const peakMonthGrowthPct = Math.round((((peakMonth.y2026 ?? 0) - peakMonth.y2025) / peakMonth.y2025) * 100);
+  const peakMonthGrowthPct = Math.round(safePct((peakMonth.y2026 ?? 0) - peakMonth.y2025, peakMonth.y2025));
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -138,17 +150,17 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">New Applications (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_APPLICATIONS.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdApplications.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{applicationsYoyPct.toFixed(1)}%</span>
-            <span className="text-slate-400 dark:text-slate-500">YoY vs {YTD_APPLICATIONS.y2025.toLocaleString()} last year</span>
+            <span className="text-slate-400 dark:text-slate-500">YoY vs {ytdApplications.y2025.toLocaleString()} last year</span>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Policies Issued (YTD)</h3>
-          <p className="text-xl font-black text-slate-900 dark:text-white">{YTD_ISSUED.y2026.toLocaleString()}</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">{ytdIssued.y2026.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{issuedYoyPct.toFixed(1)}%</span>
@@ -207,17 +219,21 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-8">
-            {acquisition.map((item) => (
-              <div key={item.label} className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{item.label}</span>
-                <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">
-                  {((item.applications / acquisitionTotal) * 100).toFixed(0)}%
-                </span>
-              </div>
-            ))}
-          </div>
+          {acquisition.length === 0 ? (
+            <p className="text-center text-xs font-semibold text-slate-400 mt-8 dark:text-slate-500">No applications yet</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 mt-8">
+              {acquisition.map((item) => (
+                <div key={item.label} className="flex items-center space-x-2">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{item.label}</span>
+                  <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">
+                    {safePct(item.applications, acquisitionTotal).toFixed(0)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: Year-over-Year Premium Chart */}
@@ -235,7 +251,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 flex items-end justify-between px-2 pb-2 mt-6 space-x-2 min-h-[180px]">
-            {MONTHLY_SALES.map((m, i) => (
+            {monthlySales.map((m, i) => (
               <div key={m.month} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
                 <div className="flex items-end space-x-1 w-full justify-center h-full">
                   <div
@@ -260,7 +276,7 @@ export default function Dashboard() {
             <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <p className="font-semibold">
               {FULL_MONTH_NAME[peakMonth.month]} was our strongest month this year — {peso(peakMonth.y2026 ?? 0)}, up {peakMonthGrowthPct}% from {FULL_MONTH_NAME[peakMonth.month]} last year.
-              {' '}{FULL_MONTH_NAME[MONTHLY_SALES[CURRENT_MONTH_INDEX].month]} is tracking at {peso(MONTHLY_SALES[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
+              {' '}{FULL_MONTH_NAME[monthlySales[CURRENT_MONTH_INDEX].month]} is tracking at {peso(monthlySales[CURRENT_MONTH_INDEX].y2026 ?? 0)} so far, month-to-date.
             </p>
           </div>
         </div>
