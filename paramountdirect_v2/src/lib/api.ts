@@ -321,6 +321,66 @@ const GTP_PLAN_VARIANT_TO_API: Record<string, string> = {
 };
 const GTP_PLAN_VARIANT_FROM_API: Record<string, string> = Object.fromEntries(Object.entries(GTP_PLAN_VARIANT_TO_API).map(([d, a]) => [a, d]));
 
+// ---------------------------------------------------------------------------
+// Roles / Users - matches server/src/routes/roles.ts and users.ts. Backs the
+// Users & Role Management page (user_role_management.tsx). assignedProducts/
+// role name are plain strings on the wire, same display form the frontend
+// already uses (no enum remapping needed, unlike the application types above).
+// ---------------------------------------------------------------------------
+
+export interface RolePermissionApi {
+  id: string;
+  moduleName: string;
+  canRead: boolean;
+  canWrite: boolean;
+  canDelete: boolean;
+}
+
+export interface RoleApi {
+  id: string;
+  name: string;
+  productScope: string;
+  isDirectMarketing: boolean;
+  permissions: RolePermissionApi[];
+}
+
+export const rolesApi = {
+  list: () => apiFetch<RoleApi[]>('/api/roles'),
+};
+
+export interface UserApi {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: 'Active' | 'Inactive';
+  assignedProducts: string[];
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  role: { id: string; name: string; productScope: string } | null;
+  branch: { id: string; city: string } | null;
+}
+
+export interface UserUpsertPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string;
+  roleId?: string;
+  branchId?: string;
+  assignedProducts: string[];
+  status: 'Active' | 'Inactive';
+}
+
+export const usersApi = {
+  list: () => apiFetch<UserApi[]>('/api/users'),
+  create: (payload: UserUpsertPayload & { password: string }) =>
+    apiFetch<UserApi>('/api/users', { method: 'POST', body: JSON.stringify(payload) }),
+  update: (id: string, payload: Partial<UserUpsertPayload>) =>
+    apiFetch<UserApi>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+};
+
 export const gtpApi = {
   list: () => apiFetch<GtpApplicationApi[]>('/api/applications/gtp'),
   create: (payload: Omit<GtpApplicationApi, 'id' | 'policyNumber' | 'referenceNo'>) =>

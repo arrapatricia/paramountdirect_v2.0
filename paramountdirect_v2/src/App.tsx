@@ -64,10 +64,14 @@ import {
   fromApiCtplClientType,
   toApiGtpPlanVariant,
   fromApiGtpPlanVariant,
+  usersApi,
+  rolesApi,
   type PdLifeApplicationApi,
   type OfwApplicationApi,
   type CtplApplicationApi,
   type GtpApplicationApi,
+  type UserApi,
+  type RoleApi,
 } from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
@@ -251,6 +255,23 @@ function mapApiToGtpApplication(api: GtpApplicationApi): GtpApplication {
     isPaid: api.isPaid,
     policyNumber: api.policyNumber ?? undefined,
     referenceNo: api.referenceNo ?? undefined,
+  };
+}
+
+// Real backend user -> the display shape User & Role Management already
+// expects. `role` falls back to the first Direct Marketing role for the rare
+// case of a user with no roleId set - matches how the rest of this file
+// treats "no real data yet" as distinct from a deliberately-blank field.
+function mapApiToUserAccount(api: UserApi): UserAccount {
+  return {
+    id: api.id,
+    firstName: api.firstName,
+    lastName: api.lastName,
+    email: api.email,
+    role: api.role?.name ?? 'DM Operations',
+    assignedProducts: api.assignedProducts as UserAccount['assignedProducts'],
+    status: api.status,
+    lastLogin: api.lastLoginAt ? toDisplayDate(api.lastLoginAt) : 'Never',
   };
 }
 
@@ -535,6 +556,36 @@ function resolveInitialNav(): StoredNav {
   return stored ?? { product: 'PD Life', tab: 'dashboard', subTab: 'branch' };
 }
 
+// Annual sales/premium targets shown on each product's dashboard, editable
+// from the Marketing Dashboard. Persisted to localStorage (unlike nav state
+// above) since these are business figures someone sets once and expects to
+// stick across sessions, not per-tab UI state.
+const ANNUAL_TARGETS_STORAGE_KEY = 'pd_annual_targets';
+
+export interface AnnualTargets {
+  pdLife: number;
+  ofw: number;
+  ctpl: number;
+  gtp: number;
+}
+
+const DEFAULT_ANNUAL_TARGETS: AnnualTargets = {
+  pdLife: 2_200_000,
+  ofw: 125_000,
+  ctpl: 6_200_000,
+  gtp: 2_950_000,
+};
+
+function readStoredAnnualTargets(): AnnualTargets {
+  try {
+    const raw = localStorage.getItem(ANNUAL_TARGETS_STORAGE_KEY);
+    if (!raw) return DEFAULT_ANNUAL_TARGETS;
+    return { ...DEFAULT_ANNUAL_TARGETS, ...(JSON.parse(raw) as Partial<AnnualTargets>) };
+  } catch {
+    return DEFAULT_ANNUAL_TARGETS;
+  }
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(readStoredRole);
@@ -576,9 +627,24 @@ export default function App() {
   const [gtpLoadError, setGtpLoadError] = useState<string | null>(null);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
   const [premiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
+  const [annualTargets, setAnnualTargets] = useState<AnnualTargets>(readStoredAnnualTargets);
+  const handleUpdateAnnualTargets = (targets: AnnualTargets) => {
+    setAnnualTargets(targets);
+    try {
+      localStorage.setItem(ANNUAL_TARGETS_STORAGE_KEY, JSON.stringify(targets));
+    } catch {
+      // Private-browsing/storage-disabled contexts can throw - the in-memory
+      // state still updates for the rest of this session either way.
+    }
+  };
   // Lifted out of UserRoleManagement so Login can validate against real
   // provisioned accounts, not just the hardcoded admin/noaccess demo logins.
   const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
+  // Same "connected vs mock" pattern as pdLifeConnected/ofwConnected/etc
+  // above - Users & Role Management starts on the local INITIAL_USERS mock
+  // and switches over once the real /api/users + /api/roles come back.
+  const [usersConnected, setUsersConnected] = useState(false);
+  const [backendRoles, setBackendRoles] = useState<RoleApi[]>([]);
 
   useEffect(() => {
     if (darkMode) {
@@ -658,6 +724,28 @@ export default function App() {
       .catch((err) => {
         if (cancelled) return;
         setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to load PD Life applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  // Same real-backend-session gate as PD Life above - loads real accounts
+  // (and the roles catalog, needed to resolve a role name back to a roleId
+  // on create/edit) for the System Admin-only Users & Role Management page.
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    Promise.all([usersApi.list(), rolesApi.list()])
+      .then(([apiUsers, apiRoles]) => {
+        if (cancelled) return;
+        setBackendRoles(apiRoles);
+        setUsers(apiUsers.map(mapApiToUserAccount));
+        setUsersConnected(true);
+      })
+      .catch(() => {
+        // Stay on the local INITIAL_USERS mock if the backend/users API
+        // isn't reachable - same fallback behavior as every other product.
       });
     return () => {
       cancelled = true;
@@ -1191,7 +1279,12 @@ export default function App() {
             hidden for everyone else, but a direct link still needs guarding. */}
         {activeTab === 'users-roles' && (
           currentUserRole === 'System Admin' ? (
-            <UserRoleManagement users={users} setUsers={setUsers} />
+            <UserRoleManagement
+              users={users}
+              setUsers={setUsers}
+              usersConnected={usersConnected}
+              backendRoles={backendRoles.map((r) => ({ id: r.id, name: r.name }))}
+            />
           ) : (
             <div className="p-12 text-center text-slate-400 font-bold max-w-[1600px] mx-auto dark:text-slate-500">
               <p>Access restricted to System Admin.</p>

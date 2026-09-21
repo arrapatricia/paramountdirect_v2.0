@@ -27,6 +27,7 @@ import {
   MODULES_NOT_YET_BUILT,
   type ProductScope,
 } from '../lib/roles';
+import { usersApi, ApiError } from '../lib/api';
 
 export interface UserAccount {
   id: string;
@@ -115,9 +116,17 @@ function RoleSelect({ value, onChange, className }: { value: string; onChange: (
 interface Props {
   users: UserAccount[];
   setUsers: React.Dispatch<React.SetStateAction<UserAccount[]>>;
+  // Whether `users` came from the real backend (vs. the local INITIAL_USERS
+  // mock) - same "connected" pattern App.tsx uses for every other product.
+  // When connected, create/edit/status-toggle also call the real API;
+  // otherwise they stay purely local, same as before this was wired up.
+  usersConnected?: boolean;
+  // Real Role rows (id + name only - enough to resolve a role name back to
+  // the roleId the backend's create/update expects).
+  backendRoles?: { id: string; name: string }[];
 }
 
-export default function UserRoleManagement({ users, setUsers }: Props) {
+export default function UserRoleManagement({ users, setUsers, usersConnected = false, backendRoles = [] }: Props) {
   const [view, setView] = useState<'users' | 'roles'>('users');
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -156,8 +165,16 @@ export default function UserRoleManagement({ users, setUsers }: Props) {
     setSelectedStatusFilter('All');
   };
 
-  const handleToggleStatus = (user: UserAccount) => {
+  const handleToggleStatus = async (user: UserAccount) => {
     const nextStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+    if (usersConnected) {
+      try {
+        await usersApi.update(user.id, { status: nextStatus });
+      } catch (err) {
+        triggerBanner(err instanceof ApiError ? err.message : 'Failed to update user status.');
+        return;
+      }
+    }
     setUsers(users.map((u) => u.id === user.id ? { ...u, status: nextStatus } : u));
     triggerBanner(`${user.firstName} ${user.lastName} is now ${nextStatus}.`);
   };
@@ -182,7 +199,7 @@ export default function UserRoleManagement({ users, setUsers }: Props) {
     setFormData({ ...formData, role, assignedProducts: productsForRole(role) });
   };
 
-  const handleSaveUser = (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.firstName || !formData.lastName || !formData.email) return;
 
@@ -197,7 +214,29 @@ export default function UserRoleManagement({ users, setUsers }: Props) {
       }
       setPasswordError(null);
 
-      const newUser = { ...formData, lastLogin: 'Never' } as UserAccount;
+      let newUser = { ...formData, lastLogin: 'Never' } as UserAccount;
+
+      if (usersConnected) {
+        try {
+          const created = await usersApi.create({
+            firstName: newUser.firstName,
+            lastName: newUser.lastName,
+            email: newUser.email,
+            password: newUser.password!,
+            roleId: backendRoles.find((r) => r.name === newUser.role)?.id,
+            assignedProducts: newUser.assignedProducts,
+            status: newUser.status,
+          });
+          // The backend generates the real id - swap in place of the
+          // locally-invented USR-#### placeholder so later edits/status
+          // toggles hit the real record.
+          newUser = { ...newUser, id: created.id };
+        } catch (err) {
+          triggerBanner(err instanceof ApiError ? err.message : 'Failed to create user.');
+          return;
+        }
+      }
+
       setUsers([newUser, ...users]);
       triggerBanner(`User ${newUser.firstName} ${newUser.lastName} created successfully.`);
     } else {
@@ -218,6 +257,23 @@ export default function UserRoleManagement({ users, setUsers }: Props) {
         delete patch.password;
       }
       setPasswordError(null);
+
+      if (usersConnected) {
+        try {
+          await usersApi.update(formData.id!, {
+            firstName: patch.firstName,
+            lastName: patch.lastName,
+            email: patch.email,
+            password: patch.password,
+            roleId: patch.role ? backendRoles.find((r) => r.name === patch.role)?.id : undefined,
+            assignedProducts: patch.assignedProducts,
+            status: patch.status,
+          });
+        } catch (err) {
+          triggerBanner(err instanceof ApiError ? err.message : 'Failed to update user.');
+          return;
+        }
+      }
 
       setUsers(users.map((u) => u.id === formData.id ? ({ ...u, ...patch } as UserAccount) : u));
       triggerBanner(`User account ${formData.id} updated.`);
