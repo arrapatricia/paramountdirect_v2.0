@@ -67,6 +67,7 @@ export const authApi = {
 // as ISO strings over JSON, not Date objects.
 export interface PdLifeApplicationApi {
   id: string;
+  applicationSeq: number;
   policyNumber: string | null;
   payor: string;
   planCategory: string;
@@ -109,9 +110,14 @@ const PLAN_CATEGORY_FROM_API: Record<string, string> = Object.fromEntries(
 export const toApiPlanCategory = (category: string): string => PLAN_CATEGORY_TO_API[category] ?? category;
 export const fromApiPlanCategory = (category: string): string => PLAN_CATEGORY_FROM_API[category] ?? category;
 
+// Zero-padded 7-digit display form of the sequential applicationSeq, e.g.
+// 1 -> "0000001". Used wherever a PD Life application needs a stable,
+// human-readable reference before a real iPeak policy number exists.
+export const formatApplicationId = (seq: number): string => String(seq).padStart(7, '0');
+
 export const pdLifeApi = {
   list: () => apiFetch<PdLifeApplicationApi[]>('/api/applications/pd-life'),
-  create: (payload: Omit<PdLifeApplicationApi, 'id' | 'policyNumber' | 'dateScreened'> & { dateScreened?: string }) =>
+  create: (payload: Omit<PdLifeApplicationApi, 'id' | 'applicationSeq' | 'policyNumber' | 'dateScreened'> & { dateScreened?: string }) =>
     apiFetch<PdLifeApplicationApi>('/api/applications/pd-life', { method: 'POST', body: JSON.stringify(payload) }),
   updateStatus: (id: string, status: string) =>
     apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}/status`, {

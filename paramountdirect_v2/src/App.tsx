@@ -48,6 +48,7 @@ import {
   fromApiPdLifeStatus,
   toApiPdLifeStatus,
   toApiPlanCategory,
+  formatApplicationId,
   type PdLifeApplicationApi,
 } from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
@@ -60,6 +61,10 @@ const CURRENT_USER = {
 
 export interface ScreeningItem {
   id: string;
+  // Sequential, human-readable reference (e.g. "0000001"), assigned at
+  // creation - always present once an application comes from the real
+  // backend. Falls back to `id` only for entirely local/mock rows.
+  applicationId?: string;
   // Real iPeak-format policy number (e.g. "GLP-000001-1"), assigned once
   // the application is first transmitted to iPeak - null/absent for
   // applications still at "Received". `id` (the internal database id) is
@@ -88,6 +93,7 @@ function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
   };
   return {
     id: api.id,
+    applicationId: formatApplicationId(api.applicationSeq),
     policyNumber: api.policyNumber,
     payor: api.payor,
     planCode: api.planCode,
@@ -521,7 +527,7 @@ export default function App() {
       // Show the real iPeak policy number once assigned, not the internal
       // database id - the id is only meaningful for API calls (see
       // handleUpdateStatus, which keys off selectedApp.id, unaffected by this).
-      applicationId: currentApp?.policyNumber || selectedApp.id,
+      applicationId: currentApp?.policyNumber || currentApp?.applicationId || selectedApp.id,
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,

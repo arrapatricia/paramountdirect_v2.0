@@ -38,10 +38,10 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
   };
 
   // The real iPeak policy number (PLANCODE-NNNNNN-D), assigned once the
-  // application first transmits to iPeak - falls back to the internal id
-  // only for applications still at "Received" that haven't been assigned
-  // one yet.
-  const formatPolicyNumber = (item: ScreeningItem) => item.policyNumber || item.id;
+  // application first transmits to iPeak; before that, the sequential
+  // Application ID (e.g. "0000001"); the internal id is a last-resort
+  // fallback only for entirely local/mock rows.
+  const formatPolicyNumber = (item: ScreeningItem) => item.policyNumber || item.applicationId || item.id;
 
   // 1. Filter Records
   const matchesFilterBar = (item: ScreeningItem) => {

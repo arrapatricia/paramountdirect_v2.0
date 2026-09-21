@@ -141,6 +141,11 @@ enum PdLifeStatus {
 
 model PdLifeApplication {
   id            String             @id @default(cuid())
+  // Human-readable sequential reference (1, 2, 3, ...), assigned at
+  // creation via a native Postgres sequence - display as a zero-padded
+  // 7-digit string (e.g. "0000001"). Distinct from `policyNumber`, which
+  // is only assigned once the application is actually transmitted to iPeak.
+  applicationSeq Int               @default(autoincrement())
   payor         String
   planCategory  PdLifePlanCategory
   planCode      String
