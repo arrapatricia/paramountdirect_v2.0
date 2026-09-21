@@ -73,11 +73,6 @@ import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
 import { buildPath, parsePath } from './lib/routes';
 
-const CURRENT_USER = {
-  name: 'Juan Dela Cruz',
-  email: 'juan.delacruz@paramount.com.ph'
-};
-
 export interface ScreeningItem {
   id: string;
   // Sequential, human-readable reference (e.g. "0000001"), assigned at
@@ -468,6 +463,12 @@ const AUTH_STORAGE_KEY = 'pd_authenticated';
 // Transactions, and the System Admin-only Users & Roles nav entry), so it
 // needs to survive a refresh the same way the auth flag does.
 const ROLE_STORAGE_KEY = 'pd_current_user_role';
+// Persisted the same way as ROLE_STORAGE_KEY - who's actually logged in
+// drives the sidebar's name/email display (and the "screened/created by"
+// field on every create-application wizard), so it needs to survive a
+// refresh too instead of always showing a hardcoded placeholder.
+const NAME_STORAGE_KEY = 'pd_current_user_name';
+const EMAIL_STORAGE_KEY = 'pd_current_user_email';
 
 function readStoredAuth(): boolean {
   try {
@@ -480,6 +481,22 @@ function readStoredAuth(): boolean {
 function readStoredRole(): string | null {
   try {
     return localStorage.getItem(ROLE_STORAGE_KEY) || sessionStorage.getItem(ROLE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredName(): string | null {
+  try {
+    return localStorage.getItem(NAME_STORAGE_KEY) || sessionStorage.getItem(NAME_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredEmail(): string | null {
+  try {
+    return localStorage.getItem(EMAIL_STORAGE_KEY) || sessionStorage.getItem(EMAIL_STORAGE_KEY);
   } catch {
     return null;
   }
@@ -521,6 +538,8 @@ function resolveInitialNav(): StoredNav {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(readStoredRole);
+  const [currentUserName, setCurrentUserName] = useState<string>(() => readStoredName() ?? 'Juan Dela Cruz');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>(() => readStoredEmail() ?? 'juan.delacruz@paramount.com.ph');
   const initialNav = resolveInitialNav();
   const [activeProduct, setActiveProduct] = useState<ProductLine>(initialNav.product);
   const [activeTab, setActiveTab] = useState(initialNav.tab);
@@ -709,15 +728,20 @@ export default function App() {
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
-  const handleLoginSuccess = (rememberMe: boolean, role: string) => {
+  const handleLoginSuccess = (rememberMe: boolean, role: string, name: string, email: string) => {
     try {
-      (rememberMe ? localStorage : sessionStorage).setItem(AUTH_STORAGE_KEY, '1');
-      (rememberMe ? localStorage : sessionStorage).setItem(ROLE_STORAGE_KEY, role);
+      const store = rememberMe ? localStorage : sessionStorage;
+      store.setItem(AUTH_STORAGE_KEY, '1');
+      store.setItem(ROLE_STORAGE_KEY, role);
+      store.setItem(NAME_STORAGE_KEY, name);
+      store.setItem(EMAIL_STORAGE_KEY, email);
     } catch {
       // Private-browsing/storage-disabled contexts can throw - login still
       // works for the current in-memory session, it just won't survive a refresh.
     }
     setCurrentUserRole(role);
+    setCurrentUserName(name);
+    setCurrentUserEmail(email);
     setIsAuthenticated(true);
   };
 
@@ -727,6 +751,10 @@ export default function App() {
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem(ROLE_STORAGE_KEY);
       sessionStorage.removeItem(ROLE_STORAGE_KEY);
+      localStorage.removeItem(NAME_STORAGE_KEY);
+      sessionStorage.removeItem(NAME_STORAGE_KEY);
+      localStorage.removeItem(EMAIL_STORAGE_KEY);
+      sessionStorage.removeItem(EMAIL_STORAGE_KEY);
       sessionStorage.removeItem(NAV_STORAGE_KEY);
     } catch {
       // See handleLoginSuccess.
@@ -1009,8 +1037,8 @@ export default function App() {
         onLogout={handleLogout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        currentUserName={CURRENT_USER.name}
-        currentUserEmail={CURRENT_USER.email}
+        currentUserName={currentUserName}
+        currentUserEmail={currentUserEmail}
         currentUserRole={currentUserRole}
         activeProduct={activeProduct}
         setActiveProduct={setActiveProduct}
@@ -1038,7 +1066,7 @@ export default function App() {
         {activeTab === 'ofw-applications' && (
           isCreatingOfwApp ? (
             <OfwCreateApplication
-              currentUser={CURRENT_USER.name}
+              currentUser={currentUserName}
               onBack={() => setIsCreatingOfwApp(false)}
               onCreate={handleCreateOfwApp}
               rates={premiumRates}
@@ -1062,7 +1090,7 @@ export default function App() {
         {activeTab === 'ctpl-applications' && (
           isCreatingCtplApp ? (
             <CtplCreateApplication
-              currentUser={CURRENT_USER.name}
+              currentUser={currentUserName}
               onBack={() => setIsCreatingCtplApp(false)}
               onCreate={handleCreateCtplApp}
               rates={premiumRates}
@@ -1086,7 +1114,7 @@ export default function App() {
         {activeTab === 'gtp-applications' && (
           isCreatingGtpApp ? (
             <GtpCreateApplication
-              currentUser={CURRENT_USER.name}
+              currentUser={currentUserName}
               onBack={() => setIsCreatingGtpApp(false)}
               onCreate={handleCreateGtpApp}
               rates={premiumRates}
@@ -1133,7 +1161,7 @@ export default function App() {
         {activeTab === 'inquiry' && (
           selectedApp ? renderApplicationDetail(true) : isCreatingPdLifeApp ? (
             <PdLifeCreateApplication
-              currentUser={CURRENT_USER.name}
+              currentUser={currentUserName}
               onBack={() => setIsCreatingPdLifeApp(false)}
               onCreate={handleCreatePdLifeApp}
               rates={premiumRates}
@@ -1189,7 +1217,7 @@ export default function App() {
         {activeTab === 'screening' && (
           selectedApp ? renderApplicationDetail() : isCreatingPdLifeApp ? (
             <PdLifeCreateApplication
-              currentUser={CURRENT_USER.name}
+              currentUser={currentUserName}
               onBack={() => setIsCreatingPdLifeApp(false)}
               onCreate={handleCreatePdLifeApp}
               rates={premiumRates}
@@ -1198,7 +1226,7 @@ export default function App() {
             <ApplicationScreening
               data={screeningData}
               onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })}
-              currentUser={CURRENT_USER.name}
+              currentUser={currentUserName}
               onCreateNew={() => setIsCreatingPdLifeApp(true)}
             />
           )

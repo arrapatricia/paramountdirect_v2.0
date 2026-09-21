@@ -12,7 +12,7 @@ import pdLogoWhite from '../assets/PD Logo_white.png';
 const APP_VERSION = 'v2.1.0-build.84';
 
 interface LoginProps {
-  onLoginSuccess: (rememberMe: boolean, role: string) => void;
+  onLoginSuccess: (rememberMe: boolean, role: string, name: string, email: string) => void;
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
   users: UserAccount[];
@@ -41,7 +41,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
     try {
       const { token, user } = await authApi.login(email, password);
       setAuthToken(token, rememberMe);
-      onLoginSuccess(rememberMe, user.role?.name ?? 'System Admin');
+      onLoginSuccess(rememberMe, user.role?.name ?? 'System Admin', `${user.firstName} ${user.lastName}`.trim(), user.email);
       return;
     } catch {
       // Not a real backend account (or backend unreachable) - fall through
@@ -73,7 +73,12 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
       return;
     }
 
-    onLoginSuccess(rememberMe, isDefaultAdmin ? 'System Admin' : matchedUser!.role);
+    onLoginSuccess(
+      rememberMe,
+      isDefaultAdmin ? 'System Admin' : matchedUser!.role,
+      isDefaultAdmin ? 'System Admin' : `${matchedUser!.firstName} ${matchedUser!.lastName}`,
+      isDefaultAdmin ? email : matchedUser!.email,
+    );
   };
 
   // Render Forgot Password component when triggered

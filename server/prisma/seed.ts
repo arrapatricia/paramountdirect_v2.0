@@ -9,18 +9,18 @@ const prisma = new PrismaClient();
 async function main() {
   // --- Role -----------------------------------------------------------
   const role = await prisma.role.upsert({
-    where: { name_productScope: { name: 'Operations', productScope: 'PD Life' } },
+    where: { name_productScope: { name: 'System Admin', productScope: 'PD Life' } },
     update: {},
     create: {
-      name: 'Operations',
+      name: 'System Admin',
       productScope: 'PD Life',
-      isDirectMarketing: true,
+      isDirectMarketing: false,
       permissions: {
         create: [
-          { moduleName: 'Application Screening', canRead: true, canWrite: true, canDelete: false },
-          { moduleName: 'Application Inquiry', canRead: true, canWrite: false, canDelete: false },
-          { moduleName: 'Payment Transactions', canRead: true, canWrite: true, canDelete: false },
-          { moduleName: 'Branch Directory', canRead: true, canWrite: false, canDelete: false },
+          { moduleName: 'Application Screening', canRead: true, canWrite: true, canDelete: true },
+          { moduleName: 'Application Inquiry', canRead: true, canWrite: true, canDelete: true },
+          { moduleName: 'Payment Transactions', canRead: true, canWrite: true, canDelete: true },
+          { moduleName: 'Branch Directory', canRead: true, canWrite: true, canDelete: true },
         ],
       },
     },
@@ -53,8 +53,8 @@ async function main() {
   const admin = await prisma.user.upsert({
     where: { email: 'admin@paramount.com.ph' },
     update: {
-      firstName: 'Juan',
-      lastName: 'Dela Cruz',
+      firstName: 'System',
+      lastName: 'Admin',
       passwordHash,
       assignedProducts: ['PD Life', 'OFW', 'CTPL', 'GTP'],
       roleId: role.id,
@@ -63,8 +63,8 @@ async function main() {
     },
     create: {
       email: 'admin@paramount.com.ph',
-      firstName: 'Juan',
-      lastName: 'Dela Cruz',
+      firstName: 'System',
+      lastName: 'Admin',
       passwordHash,
       assignedProducts: ['PD Life', 'OFW', 'CTPL', 'GTP'],
       roleId: role.id,
@@ -72,6 +72,63 @@ async function main() {
       status: 'Active',
     },
   });
+
+  // --- Demo accounts, one per non-admin role in the frontend's role catalog
+  // (see paramountdirect_v2/src/lib/roles.ts's ROLE_DEFINITIONS) - lets a
+  // presenter log in as any role to show exactly what that role sees,
+  // without having to provision accounts live during a demo. All share the
+  // admin's 'admin123' password. Kept in sync manually with lib/roles.ts's
+  // product lists since this seed script can't import frontend code. -------
+  const DEMO_ACCOUNTS: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    roleName: string;
+    products: string[];
+  }[] = [
+    { email: 'dm.operations@paramount.com.ph', firstName: 'DM', lastName: 'Operations', roleName: 'DM Operations', products: ['PD Life'] },
+    { email: 'dm.pos@paramount.com.ph', firstName: 'DM', lastName: 'POS', roleName: 'DM POS', products: ['PD Life'] },
+    { email: 'dm.marketing@paramount.com.ph', firstName: 'DM', lastName: 'Marketing', roleName: 'DM Marketing', products: ['PD Life'] },
+    { email: 'life.cashier@paramount.com.ph', firstName: 'Life', lastName: 'Cashier', roleName: 'Life Cashier', products: ['PD Life'] },
+    { email: 'nonlife.cashier@paramount.com.ph', firstName: 'Non-Life', lastName: 'Cashier', roleName: 'Non-Life Cashier', products: ['OFW', 'CTPL', 'GTP'] },
+    { email: 'cashier.admin@paramount.com.ph', firstName: 'Cashier', lastName: 'Admin', roleName: 'Cashier Admin', products: ['PD Life', 'OFW', 'CTPL', 'GTP'] },
+    { email: 'ctpl.admin@paramount.com.ph', firstName: 'CTPL', lastName: 'Admin', roleName: 'CTPL Admin', products: ['CTPL'] },
+    { email: 'gtp.admin@paramount.com.ph', firstName: 'GTP', lastName: 'Admin', roleName: 'GTP Admin', products: ['GTP'] },
+    { email: 'ofw.admin@paramount.com.ph', firstName: 'OFW', lastName: 'Admin', roleName: 'OFW Admin', products: ['OFW'] },
+    { email: 'nonlife.admin@paramount.com.ph', firstName: 'Non-Life', lastName: 'Admin', roleName: 'Non-Life Admin', products: ['OFW', 'CTPL', 'GTP'] },
+    { email: 'nonlife.issuer@paramount.com.ph', firstName: 'Non-Life', lastName: 'Issuer', roleName: 'Non-Life Issuer', products: ['OFW', 'CTPL', 'GTP'] },
+  ];
+
+  for (const demo of DEMO_ACCOUNTS) {
+    const demoRole = await prisma.role.upsert({
+      where: { name_productScope: { name: demo.roleName, productScope: demo.products[0] } },
+      update: {},
+      create: { name: demo.roleName, productScope: demo.products[0], isDirectMarketing: demo.products[0] === 'PD Life' },
+    });
+
+    await prisma.user.upsert({
+      where: { email: demo.email },
+      update: {
+        firstName: demo.firstName,
+        lastName: demo.lastName,
+        passwordHash,
+        assignedProducts: demo.products,
+        roleId: demoRole.id,
+        branchId: branch.id,
+        status: 'Active',
+      },
+      create: {
+        email: demo.email,
+        firstName: demo.firstName,
+        lastName: demo.lastName,
+        passwordHash,
+        assignedProducts: demo.products,
+        roleId: demoRole.id,
+        branchId: branch.id,
+        status: 'Active',
+      },
+    });
+  }
 
   // --- Sample data: safe to re-run, so clear each table first -----------
   await prisma.pdLifeApplication.deleteMany();
@@ -452,7 +509,7 @@ async function main() {
     ],
   });
 
-  console.log(`Seeded role "${role.name}", branch "${branch.city}", and admin user ${admin.email}.`);
+  console.log(`Seeded role "${role.name}", branch "${branch.city}", admin user ${admin.email}, and ${DEMO_ACCOUNTS.length} demo role accounts (password: admin123 for all).`);
   console.log('Seed complete');
 }
 
