@@ -218,14 +218,42 @@ function PdLifeCategoryForm({
   const [submittedApp, setSubmittedApp] = useState<PdLifeApplication | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Set on the first failed submit attempt so the missing-field note appears;
+  // once shown, it re-evaluates live against requiredFieldChecks/canSubmit
+  // above as the user fixes fields, rather than needing another click.
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
-  const canSubmit =
-    planCode &&
-    owner.firstName && owner.lastName && owner.birthdate && owner.placeOfBirth &&
-    !ageEligibilityError &&
-    contact.houseNumber && contact.street && contact.zipcode && contact.mobileNumber && contact.email &&
-    (payorInfo.sameAsInsured || (payorInfo.name && payorInfo.contactNumber && payorInfo.email)) &&
-    (category !== 'Comprehensive' || (occupation && weightKg && heightCm));
+  // Itemized so a failed submit attempt can tell the user exactly which
+  // fields to fill in, instead of just leaving the button disabled with no
+  // explanation.
+  const requiredFieldChecks: { label: string; ok: boolean }[] = [
+    { label: 'Plan', ok: !!planCode },
+    { label: 'First Name', ok: !!owner.firstName },
+    { label: 'Last Name', ok: !!owner.lastName },
+    { label: 'Birthdate', ok: !!owner.birthdate },
+    { label: 'Place of Birth', ok: !!owner.placeOfBirth },
+    { label: 'House Number', ok: !!contact.houseNumber },
+    { label: 'Street Name', ok: !!contact.street },
+    { label: 'Zip Code', ok: !!contact.zipcode },
+    { label: 'Mobile Number', ok: !!contact.mobileNumber },
+    { label: 'Email Address', ok: !!contact.email },
+    ...(payorInfo.sameAsInsured
+      ? []
+      : [
+          { label: 'Payor Name', ok: !!payorInfo.name },
+          { label: 'Payor Contact Number', ok: !!payorInfo.contactNumber },
+          { label: 'Payor Email Address', ok: !!payorInfo.email },
+        ]),
+    ...(category === 'Comprehensive'
+      ? [
+          { label: 'Occupation', ok: !!occupation },
+          { label: 'Weight (kg)', ok: !!weightKg },
+          { label: 'Height (cm)', ok: !!heightCm },
+        ]
+      : []),
+  ];
+  const missingFieldLabels = requiredFieldChecks.filter((f) => !f.ok).map((f) => f.label);
+  const canSubmit = missingFieldLabels.length === 0 && !ageEligibilityError;
 
   const addChild = () => setChildren((prev) => [...prev, { fullName: '', birthdate: '', relationship: 'Child' }]);
   const removeChild = (idx: number) => setChildren((prev) => prev.filter((_, i) => i !== idx));
@@ -280,7 +308,11 @@ function PdLifeCategoryForm({
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    setHasAttemptedSubmit(true);
+    if (!canSubmit) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setStep('review');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -366,6 +398,13 @@ function PdLifeCategoryForm({
         />
       ) : (
       <form onSubmit={handleReview} className="space-y-6 pb-10">
+        {hasAttemptedSubmit && !canSubmit && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+            {ageEligibilityError ??
+              `Please fill in the following required field${missingFieldLabels.length > 1 ? 's' : ''} before submitting: ${missingFieldLabels.join(', ')}.`}
+          </div>
+        )}
+
         {/* Campaign Source */}
         <div className={cardClass}>
           <h2 className={sectionHeadingClass}>How did you learn about Paramount Life &amp; General Insurance Corp.?</h2>
@@ -689,8 +728,7 @@ function PdLifeCategoryForm({
           </button>
           <button
             type="submit"
-            disabled={!canSubmit}
-            className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md transition-all"
           >
             Review Application
           </button>
