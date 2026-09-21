@@ -196,7 +196,18 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
   };
 
   const handleFormRoleChange = (role: string) => {
+    // Auto-fills the products that role normally gets, but stays editable
+    // below - an admin can still add/remove a product line by hand for a
+    // user who needs a non-standard mix.
     setFormData({ ...formData, role, assignedProducts: productsForRole(role) });
+  };
+
+  const handleToggleProductForm = (prod: ProductScope) => {
+    const current = formData.assignedProducts || [];
+    const assignedProducts = current.includes(prod)
+      ? current.filter((p) => p !== prod)
+      : [...current, prod];
+    setFormData({ ...formData, assignedProducts });
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -669,14 +680,21 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                     )}
                   </div>
 
-                  {/* Derived Product Access (read-only) */}
+                  {/* Product Line Access - pre-filled from the selected role, but
+                      still editable for a user who needs a non-standard mix. */}
                   <div>
                     <label className="font-bold text-slate-700 block mb-2 dark:text-slate-300">Product Line Access</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(formData.assignedProducts || []).map((p) => (
-                        <span key={p} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${PRODUCT_BADGE_STYLES[p]}`}>
-                          {p}
-                        </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['PD Life', 'OFW', 'CTPL', 'GTP'] as ProductScope[]).map((prod) => (
+                        <label key={prod} className="flex items-center space-x-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={(formData.assignedProducts || []).includes(prod)}
+                            onChange={() => handleToggleProductForm(prod)}
+                            className="rounded text-[#d0112b] focus:ring-[#d0112b]"
+                          />
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{prod}</span>
+                        </label>
                       ))}
                     </div>
                   </div>
