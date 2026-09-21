@@ -2,7 +2,16 @@
 // API surface. Nothing else in this app calls a real API yet; this is the
 // first wiring, starting with PD Life only (App.tsx).
 
-const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://localhost:4000';
+// VITE_API_URL is never set by the deploy pipeline, so the fallback has to be
+// right on its own: relative (same-origin) in a built bundle, since nginx
+// proxies /api on the same domain the frontend is served from, and
+// localhost:4000 only under `vite dev`, where frontend and backend run on
+// separate ports. Getting this wrong silently breaks every real API call on
+// the live site (requests go to the visiting browser's own localhost) while
+// still rendering an unauthenticated-looking-successful, empty-data UI.
+const API_BASE =
+  (import.meta as { env?: { VITE_API_URL?: string; DEV?: boolean } }).env?.VITE_API_URL ??
+  (import.meta.env.DEV ? 'http://localhost:4000' : '');
 
 const TOKEN_KEY = 'pd_auth_token';
 
