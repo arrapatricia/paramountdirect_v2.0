@@ -1139,13 +1139,13 @@ export default function App() {
         {activeTab === 'dashboard' && <Dashboard data={screeningData} annualTarget={annualTargets.pdLife} />}
 
         {/* Life Statistics */}
-        {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" />}
-        {activeTab === 'life-daily' && <LifeApplicationsOverview period="Daily" />}
+        {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" data={screeningData} />}
+        {activeTab === 'life-daily' && <LifeApplicationsOverview period="Daily" data={screeningData} />}
         {activeTab === 'life-followup-calls' && <LifeFollowupCalls />}
         {activeTab === 'life-signed' && <LifeSignedApplications data={screeningData} signedIds={signedFollowUpIds} onMarkSigned={handleMarkSigned} />}
         {activeTab === 'life-screened' && <LifeScreenedApplications data={screeningData} />}
         {activeTab === 'life-followup-signature' && <LifeFollowupSignature data={screeningData} signedIds={signedFollowUpIds} onMarkSigned={handleMarkSigned} />}
-        {activeTab === 'life-application-statuses' && <LifeApplicationStatuses />}
+        {activeTab === 'life-application-statuses' && <LifeApplicationStatuses data={screeningData} />}
 
         {/* OFW Dashboard */}
         {activeTab === 'ofw-dashboard' && <OfwDashboard data={ofwApplications} annualTarget={annualTargets.ofw} />}

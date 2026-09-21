@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import type { ScreeningItem } from '../App';
+import { CURRENT_YEAR, MONTH_LABELS, bucketByDay, bucketByMonth, parseDateParts } from '../lib/dashboardStats';
 
 interface PeriodPoint {
   label: string;
@@ -11,68 +13,98 @@ interface PeriodPoint {
   issued: number;
 }
 
-// Monthly, Jan-Sep 2026 (Sep in progress).
-const MONTHLY_DATA: PeriodPoint[] = [
-  { label: 'Jan', total: 310, received: 47, forVerification: 62, forEvaluation: 53, paid: 34, issued: 114 },
-  { label: 'Feb', total: 295, received: 44, forVerification: 59, forEvaluation: 50, paid: 32, issued: 110 },
-  { label: 'Mar', total: 345, received: 52, forVerification: 69, forEvaluation: 59, paid: 38, issued: 127 },
-  { label: 'Apr', total: 355, received: 53, forVerification: 71, forEvaluation: 60, paid: 39, issued: 132 },
-  { label: 'May', total: 370, received: 56, forVerification: 74, forEvaluation: 63, paid: 41, issued: 136 },
-  { label: 'Jun', total: 390, received: 59, forVerification: 78, forEvaluation: 66, paid: 43, issued: 144 },
-  { label: 'Jul', total: 375, received: 56, forVerification: 75, forEvaluation: 64, paid: 41, issued: 139 },
-  { label: 'Aug', total: 405, received: 61, forVerification: 81, forEvaluation: 69, paid: 45, issued: 149 },
-  { label: 'Sep', total: 210, received: 44, forVerification: 42, forEvaluation: 30, paid: 20, issued: 74 }, // month-to-date
-];
-
-// Daily, last 9 days (today = Sep 14, 2026; today's count is still partial).
-const DAILY_DATA: PeriodPoint[] = [
-  { label: 'Sep 6', total: 15, received: 3, forVerification: 3, forEvaluation: 3, paid: 2, issued: 4 },
-  { label: 'Sep 7', total: 12, received: 2, forVerification: 3, forEvaluation: 2, paid: 1, issued: 4 },
-  { label: 'Sep 8', total: 17, received: 3, forVerification: 4, forEvaluation: 3, paid: 2, issued: 5 },
-  { label: 'Sep 9', total: 14, received: 3, forVerification: 3, forEvaluation: 2, paid: 2, issued: 4 },
-  { label: 'Sep 10', total: 18, received: 4, forVerification: 4, forEvaluation: 3, paid: 2, issued: 5 },
-  { label: 'Sep 11', total: 16, received: 3, forVerification: 3, forEvaluation: 3, paid: 2, issued: 5 },
-  { label: 'Sep 12', total: 19, received: 4, forVerification: 4, forEvaluation: 3, paid: 2, issued: 6 },
-  { label: 'Sep 13', total: 13, received: 2, forVerification: 3, forEvaluation: 2, paid: 2, issued: 4 },
-  { label: 'Sep 14', total: 8, received: 3, forVerification: 2, forEvaluation: 1, paid: 1, issued: 1 }, // today, partial
-];
-
-const SOURCE_TODAY = [
-  { source: 'Google', count: 4 },
-  { source: 'Facebook', count: 2 },
-  { source: 'Email Newsletter', count: 1 },
-  { source: 'Pd Site', count: 1 },
-];
-
 const SERIES = [
-  { key: 'received', label: 'Received', color: '#64748b' },
-  { key: 'forVerification', label: 'For Verification', color: '#f59e0b' },
-  { key: 'forEvaluation', label: 'For Evaluation', color: '#a855f7' },
-  { key: 'paid', label: 'Paid', color: '#6366f1' },
-  { key: 'issued', label: 'Issued', color: '#10b981' },
+  { key: 'received', label: 'Received', color: '#64748b', status: 'Received' },
+  { key: 'forVerification', label: 'For Verification', color: '#f59e0b', status: 'For Verification' },
+  { key: 'forEvaluation', label: 'For Evaluation', color: '#a855f7', status: 'For Evaluation' },
+  { key: 'paid', label: 'Paid', color: '#6366f1', status: 'Paid' },
+  { key: 'issued', label: 'Issued', color: '#10b981', status: 'Issued' },
 ] as const;
+
+function summarize(label: string, records: ScreeningItem[]): PeriodPoint {
+  const point: PeriodPoint = { label, total: records.length, received: 0, forVerification: 0, forEvaluation: 0, paid: 0, issued: 0 };
+  for (const item of records) {
+    const series = SERIES.find((s) => s.status === item.status);
+    if (series) point[series.key]++;
+  }
+  return point;
+}
+
+// No real target/prior-year source exists yet on this fresh system - these
+// stay as configured goals rather than derived figures, same rationale as
+// the product dashboards' Annual Target before it became editable.
+const MONTHLY_TARGET = 450;
+const DAILY_TARGET = 20;
 
 interface Props {
   period: 'Monthly' | 'Daily';
+  data: ScreeningItem[];
 }
 
-export default function LifeApplicationsOverview({ period }: Props) {
+export default function LifeApplicationsOverview({ period, data }: Props) {
   const [sourceFilter, setSourceFilter] = useState('All');
   const [productFilter, setProductFilter] = useState('All');
 
   const isMonthly = period === 'Monthly';
-  const data = isMonthly ? MONTHLY_DATA : DAILY_DATA;
-  const target = isMonthly ? 450 : 20;
+  const target = isMonthly ? MONTHLY_TARGET : DAILY_TARGET;
 
-  const current = data[data.length - 1];
-  const previous = data[data.length - 2];
-  const average = Math.round(data.slice(0, -1).reduce((s, d) => s + d.total, 0) / (data.length - 1));
-  const lastYearSamePeriod = isMonthly ? 268 : 11;
-  const totalPaid = data.reduce((s, d) => s + d.paid, 0);
+  const filtered = useMemo(
+    () =>
+      data.filter(
+        (item) =>
+          (sourceFilter === 'All' || item.source === sourceFilter) &&
+          (productFilter === 'All' || item.planCode === productFilter)
+      ),
+    [data, sourceFilter, productFilter]
+  );
+
+  const periodData: PeriodPoint[] = useMemo(() => {
+    if (isMonthly) {
+      return bucketByMonth(filtered, (item) => item.dateReceived).map((records, i) => summarize(MONTH_LABELS[i], records));
+    }
+    return bucketByDay(filtered, (item) => item.dateReceived).map(({ date, records }) => summarize(date, records));
+  }, [filtered, isMonthly]);
+
+  const current = periodData[periodData.length - 1] ?? { label: '-', total: 0, received: 0, forVerification: 0, forEvaluation: 0, paid: 0, issued: 0 };
+  const previous = periodData[periodData.length - 2] ?? { label: '-', total: 0, received: 0, forVerification: 0, forEvaluation: 0, paid: 0, issued: 0 };
+  const priorPoints = periodData.slice(0, -1);
+  const average = priorPoints.length > 0 ? Math.round(priorPoints.reduce((s, d) => s + d.total, 0) / priorPoints.length) : 0;
+
+  // "Same period last year" - real count, not a placeholder; reads 0 until
+  // this system actually has a prior year's applications in it.
+  const lastYearSamePeriod = useMemo(() => {
+    if (isMonthly) {
+      const currentMonthIndex = periodData.length - 1;
+      return filtered.filter((item) => {
+        const parts = parseDateParts(item.dateReceived);
+        return parts && parts.year === CURRENT_YEAR - 1 && parts.monthIndex === currentMonthIndex;
+      }).length;
+    }
+    return filtered.filter((item) => {
+      const parts = parseDateParts(item.dateReceived);
+      return parts && parts.year === CURRENT_YEAR - 1 && item.dateReceived.split(' at ')[0] === current.label.replace(String(CURRENT_YEAR), String(CURRENT_YEAR - 1));
+    }).length;
+  }, [filtered, isMonthly, periodData.length, current.label]);
+
+  const totalPaid = periodData.reduce((s, d) => s + d.paid, 0);
   const attainmentPct = Math.min(100, Math.round((current.total / target) * 100));
   const delta = current.total - previous.total;
 
-  const maxValue = Math.max(...data.map((d) => d.total));
+  const maxValue = Math.max(1, ...periodData.map((d) => d.total));
+
+  const sourceToday = useMemo(() => {
+    if (isMonthly || periodData.length === 0) return [];
+    const todayLabel = current.label;
+    const todaysRecords = filtered.filter((item) => item.dateReceived.split(' at ')[0] === todayLabel);
+    const counts = new Map<string, number>();
+    for (const item of todaysRecords) counts.set(item.source, (counts.get(item.source) ?? 0) + 1);
+    return Array.from(counts.entries())
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [filtered, isMonthly, periodData.length, current.label]);
+
+  const availableSources = useMemo(() => Array.from(new Set(data.map((item) => item.source))).sort(), [data]);
+  const availableProducts = useMemo(() => Array.from(new Set(data.map((item) => item.planCode))).sort(), [data]);
 
   return (
     <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -124,14 +156,18 @@ export default function LifeApplicationsOverview({ period }: Props) {
           {!isMonthly && (
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
               <h2 className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-3 dark:text-slate-500">Per Source Today</h2>
-              <div className="space-y-2">
-                {SOURCE_TODAY.map((s) => (
-                  <div key={s.source} className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-600 dark:text-slate-400">{s.source}</span>
-                    <span className="font-black text-slate-900 dark:text-white">{s.count}</span>
-                  </div>
-                ))}
-              </div>
+              {sourceToday.length === 0 ? (
+                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">No applications today</p>
+              ) : (
+                <div className="space-y-2">
+                  {sourceToday.map((s) => (
+                    <div key={s.source} className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-600 dark:text-slate-400">{s.source}</span>
+                      <span className="font-black text-slate-900 dark:text-white">{s.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -147,10 +183,9 @@ export default function LifeApplicationsOverview({ period }: Props) {
                 className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="All">Sales Source</option>
-                <option value="Google">Google</option>
-                <option value="Email Newsletter">Email</option>
-                <option value="Pd Site">PD Site</option>
-                <option value="Facebook">Facebook</option>
+                {availableSources.map((source) => (
+                  <option key={source} value={source}>{source}</option>
+                ))}
               </select>
             </div>
             <div className="flex items-center space-x-2">
@@ -161,38 +196,41 @@ export default function LifeApplicationsOverview({ period }: Props) {
                 className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="All">Product</option>
-                <option value="HIP">HIP</option>
-                <option value="GLA">GLA</option>
-                <option value="SSP">SSP</option>
-                <option value="PHC">PHC</option>
-                <option value="GPR">GPR</option>
-                <option value="MPR">MPR</option>
+                {availableProducts.map((planCode) => (
+                  <option key={planCode} value={planCode}>{planCode}</option>
+                ))}
               </select>
             </div>
           </div>
 
-          <div className="flex-1 flex items-end justify-between px-2 pb-2 space-x-1 min-h-[220px]">
-            {data.map((d) => (
-              <div key={d.label} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
-                <div className="flex items-end space-x-0.5 w-full justify-center h-full">
-                  <div
-                    className="w-full max-w-[8px] rounded-t bg-[#d0112b]"
-                    style={{ height: `${(d.total / maxValue) * 100}%` }}
-                    title={`Total: ${d.total}`}
-                  />
-                  {SERIES.map((s) => (
+          {periodData.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center min-h-[220px]">
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">No applications yet</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-end justify-between px-2 pb-2 space-x-1 min-h-[220px]">
+              {periodData.map((d) => (
+                <div key={d.label} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
+                  <div className="flex items-end space-x-0.5 w-full justify-center h-full">
                     <div
-                      key={s.key}
-                      className="w-full max-w-[6px] rounded-t"
-                      style={{ height: `${(d[s.key as keyof PeriodPoint] as number / maxValue) * 100}%`, backgroundColor: s.color }}
-                      title={`${s.label}: ${d[s.key as keyof PeriodPoint]}`}
+                      className="w-full max-w-[8px] rounded-t bg-[#d0112b]"
+                      style={{ height: `${(d.total / maxValue) * 100}%` }}
+                      title={`Total: ${d.total}`}
                     />
-                  ))}
+                    {SERIES.map((s) => (
+                      <div
+                        key={s.key}
+                        className="w-full max-w-[6px] rounded-t"
+                        style={{ height: `${(d[s.key] / maxValue) * 100}%`, backgroundColor: s.color }}
+                        title={`${s.label}: ${d[s.key]}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap dark:text-slate-500">{d.label}</span>
                 </div>
-                <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap dark:text-slate-500">{d.label}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <span className="flex items-center space-x-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-500">

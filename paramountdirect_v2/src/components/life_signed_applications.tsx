@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown, FileSignature } from 'lucide-react';
 import type { ScreeningItem } from '../App';
-import { buildFollowUpRows } from './followup_signature_data';
+import { buildFollowUpRows, type FollowUpRow } from './followup_signature_data';
+import { MONTH_LABELS, bucketByMonth } from '../lib/dashboardStats';
 
 interface Props {
   data: ScreeningItem[];
@@ -11,36 +12,37 @@ interface Props {
   onMarkSigned: (id: string) => void;
 }
 
-// Paid figures match the "paid" column on the Monthly Applications page so
-// the two views agree with each other.
-const MONTHLY_TREND = [
-  { month: 'Jan', paid: 34, signed: 27 },
-  { month: 'Feb', paid: 32, signed: 25 },
-  { month: 'Mar', paid: 38, signed: 30 },
-  { month: 'Apr', paid: 39, signed: 30 },
-  { month: 'May', paid: 41, signed: 32 },
-  { month: 'Jun', paid: 43, signed: 34 },
-  { month: 'Jul', paid: 41, signed: 32 },
-  { month: 'Aug', paid: 45, signed: 35 },
-  { month: 'Sep', paid: 20, signed: 16 }, // month-to-date
-];
-
-const totalPaid = MONTHLY_TREND.reduce((s, m) => s + m.paid, 0);
-const totalSigned = MONTHLY_TREND.reduce((s, m) => s + m.signed, 0);
-const totalUnsigned = totalPaid - totalSigned;
-
-const current = MONTHLY_TREND[MONTHLY_TREND.length - 1];
-const previous = MONTHLY_TREND[MONTHLY_TREND.length - 2];
-const average = Math.round(MONTHLY_TREND.slice(0, -1).reduce((s, m) => s + m.paid, 0) / (MONTHLY_TREND.length - 1));
-const delta = current.paid - previous.paid;
-const maxTrendValue = Math.max(...MONTHLY_TREND.map((m) => m.paid));
-
 export default function LifeSignedApplications({ data, signedIds, onMarkSigned }: Props) {
   // Same derivation Follow-up Signature uses - this is the identical queue
   // of issued-but-unsigned policies, not a separate fabricated list, so
   // marking one signed here is instantly reflected there too.
   const rows = useMemo(() => buildFollowUpRows(data, signedIds), [data, signedIds]);
   const unsigned = rows.filter((row) => !row.signed);
+
+  // "Paid" is bucketed by dateReceived (matches Monthly Applications' own
+  // "paid" column), "signed" by dateIssued (only issued policies can be
+  // signed) - both real counts, not a separate fabricated trend.
+  const monthlyTrend = useMemo(() => {
+    const paidByMonth = bucketByMonth(data.filter((item) => item.status === 'Paid'), (item) => item.dateReceived);
+    const signedByMonth = bucketByMonth(rows.filter((row): row is FollowUpRow => row.signed), (row) => row.dateIssued);
+    const monthCount = Math.max(paidByMonth.length, signedByMonth.length);
+    return Array.from({ length: monthCount }, (_, i) => ({
+      month: MONTH_LABELS[i],
+      paid: paidByMonth[i]?.length ?? 0,
+      signed: signedByMonth[i]?.length ?? 0,
+    }));
+  }, [data, rows]);
+
+  const totalPaid = monthlyTrend.reduce((s, m) => s + m.paid, 0);
+  const totalSigned = monthlyTrend.reduce((s, m) => s + m.signed, 0);
+  const totalUnsigned = Math.max(0, totalPaid - totalSigned);
+
+  const current = monthlyTrend[monthlyTrend.length - 1] ?? { month: '-', paid: 0, signed: 0 };
+  const previous = monthlyTrend[monthlyTrend.length - 2] ?? { month: '-', paid: 0, signed: 0 };
+  const priorMonths = monthlyTrend.slice(0, -1);
+  const average = priorMonths.length > 0 ? Math.round(priorMonths.reduce((s, m) => s + m.paid, 0) / priorMonths.length) : 0;
+  const delta = current.paid - previous.paid;
+  const maxTrendValue = Math.max(1, ...monthlyTrend.map((m) => m.paid));
 
   return (
     <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
@@ -82,7 +84,7 @@ export default function LifeSignedApplications({ data, signedIds, onMarkSigned }
         <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-6 dark:text-slate-100">Paid vs Signed</h2>
           <div className="flex-1 flex items-end justify-between px-2 pb-2 space-x-1 min-h-[200px]">
-            {MONTHLY_TREND.map((m) => (
+            {monthlyTrend.map((m) => (
               <div key={m.month} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
                 <div className="flex items-end space-x-1 w-full justify-center h-full">
                   <div className="w-full max-w-[10px] rounded-t bg-[#d0112b]" style={{ height: `${(m.paid / maxTrendValue) * 100}%` }} title={`Paid: ${m.paid}`} />

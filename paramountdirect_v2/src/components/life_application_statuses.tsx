@@ -1,35 +1,38 @@
+import type { ScreeningItem } from '../App';
+import { MONTH_LABELS, bucketByMonth } from '../lib/dashboardStats';
 
-
-// Same monthly breakdown as the Monthly Applications page, so both views
-// agree with each other.
-const MONTHLY_DATA = [
-  { label: 'Jan', received: 47, forVerification: 62, forEvaluation: 53, paid: 34, issued: 114 },
-  { label: 'Feb', received: 44, forVerification: 59, forEvaluation: 50, paid: 32, issued: 110 },
-  { label: 'Mar', received: 52, forVerification: 69, forEvaluation: 59, paid: 38, issued: 127 },
-  { label: 'Apr', received: 53, forVerification: 71, forEvaluation: 60, paid: 39, issued: 132 },
-  { label: 'May', received: 56, forVerification: 74, forEvaluation: 63, paid: 41, issued: 136 },
-  { label: 'Jun', received: 59, forVerification: 78, forEvaluation: 66, paid: 43, issued: 144 },
-  { label: 'Jul', received: 56, forVerification: 75, forEvaluation: 64, paid: 41, issued: 139 },
-  { label: 'Aug', received: 61, forVerification: 81, forEvaluation: 69, paid: 45, issued: 149 },
-  { label: 'Sep', received: 44, forVerification: 42, forEvaluation: 30, paid: 20, issued: 74 }, // month-to-date
-];
+interface Props {
+  data: ScreeningItem[];
+}
 
 const SERIES = [
-  { key: 'received', label: 'Received', color: '#64748b' },
-  { key: 'forVerification', label: 'For Verification', color: '#f59e0b' },
-  { key: 'forEvaluation', label: 'For Evaluation', color: '#a855f7' },
-  { key: 'paid', label: 'Paid', color: '#6366f1' },
-  { key: 'issued', label: 'Issued', color: '#10b981' },
+  { key: 'received', label: 'Received', color: '#64748b', status: 'Received' },
+  { key: 'forVerification', label: 'For Verification', color: '#f59e0b', status: 'For Verification' },
+  { key: 'forEvaluation', label: 'For Evaluation', color: '#a855f7', status: 'For Evaluation' },
+  { key: 'paid', label: 'Paid', color: '#6366f1', status: 'Paid' },
+  { key: 'issued', label: 'Issued', color: '#10b981', status: 'Issued' },
 ] as const;
 
-const ytdTotals = SERIES.map((s) => ({
-  ...s,
-  total: MONTHLY_DATA.reduce((sum, m) => sum + (m[s.key as keyof typeof m] as number), 0),
-}));
-const grandTotal = ytdTotals.reduce((s, x) => s + x.total, 0);
-const maxMonthlyValue = Math.max(...MONTHLY_DATA.flatMap((m) => SERIES.map((s) => m[s.key as keyof typeof m] as number)));
+export default function LifeApplicationStatuses({ data }: Props) {
+  const monthlyBuckets = bucketByMonth(data, (item) => item.dateReceived);
+  const monthlyData = monthlyBuckets.map((records, i) => {
+    const counts: Record<(typeof SERIES)[number]['key'], number> = {
+      received: 0, forVerification: 0, forEvaluation: 0, paid: 0, issued: 0,
+    };
+    for (const item of records) {
+      const series = SERIES.find((s) => s.status === item.status);
+      if (series) counts[series.key]++;
+    }
+    return { label: MONTH_LABELS[i], ...counts };
+  });
 
-export default function LifeApplicationStatuses() {
+  const ytdTotals = SERIES.map((s) => ({
+    ...s,
+    total: monthlyData.reduce((sum, m) => sum + m[s.key], 0),
+  }));
+  const grandTotal = Math.max(1, ytdTotals.reduce((s, x) => s + x.total, 0));
+  const maxMonthlyValue = Math.max(1, ...monthlyData.flatMap((m) => SERIES.map((s) => m[s.key])));
+
   return (
     <div className="p-4 md:p-8 max-w-[1400px] mx-auto font-sans text-slate-900 dark:text-slate-100 space-y-6">
       <h1 className="text-xl font-black uppercase tracking-widest text-slate-900 dark:text-white font-['Montserrat']">APPLICATION STATUSES</h1>
@@ -38,18 +41,18 @@ export default function LifeApplicationStatuses() {
         {/* Chart */}
         <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-slate-100">Monthly Breakdown by Status</h2>
-          <p className="text-xs text-slate-500 font-medium mb-6 dark:text-slate-500">Grouped bars per status, 2026</p>
+          <p className="text-xs text-slate-500 font-medium mb-6 dark:text-slate-500">Grouped bars per status, {new Date().getFullYear()}</p>
 
           <div className="flex-1 flex items-end justify-between px-2 pb-2 space-x-1 min-h-[240px]">
-            {MONTHLY_DATA.map((d) => (
+            {monthlyData.map((d) => (
               <div key={d.label} className="flex flex-col items-center flex-1 h-full justify-end space-y-2">
                 <div className="flex items-end space-x-0.5 w-full justify-center h-full">
                   {SERIES.map((s) => (
                     <div
                       key={s.key}
                       className="w-full max-w-[9px] rounded-t"
-                      style={{ height: `${((d[s.key as keyof typeof d] as number) / maxMonthlyValue) * 100}%`, backgroundColor: s.color }}
-                      title={`${s.label}: ${d[s.key as keyof typeof d]}`}
+                      style={{ height: `${(d[s.key] / maxMonthlyValue) * 100}%`, backgroundColor: s.color }}
+                      title={`${s.label}: ${d[s.key]}`}
                     />
                   ))}
                 </div>
@@ -70,7 +73,7 @@ export default function LifeApplicationStatuses() {
         {/* YTD breakdown */}
         <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-slate-100">YTD Breakdown</h2>
-          <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">{grandTotal.toLocaleString()} applications, Jan&ndash;Sep 2026</p>
+          <p className="text-xs text-slate-500 font-medium mb-5 dark:text-slate-500">{grandTotal.toLocaleString()} applications, Jan&ndash;{MONTH_LABELS[monthlyData.length - 1]} {new Date().getFullYear()}</p>
 
           <div className="space-y-4">
             {ytdTotals.map((s) => (
