@@ -259,8 +259,21 @@ The browser demo login is not evidence of API/database integration.
 
 ## 9. Updates, troubleshooting, and rollback
 
-For future updates, push your changes to `origin/pdv2_dev`, then run on the server
-as `ubuntu` (without sudo):
+`deploy.sh` (repo root) and `.github/workflows/deploy-pd2-dev.yml` implement the
+update flow below. The GitHub Actions workflow SSHes into the server and runs
+`deploy.sh` automatically on every push to `pdv2_dev` - it is **not active** until
+these repo secrets are set (GitHub -> Settings -> Secrets and variables -> Actions):
+
+- `DEPLOY_SSH_HOST` - server hostname or IP
+- `DEPLOY_SSH_USER` - the `ubuntu` deploy account (not root)
+- `DEPLOY_SSH_KEY` - private key for a deploy-only SSH keypair (add the matching
+  public key to that account's `~/.ssh/authorized_keys` on the server)
+- `DEPLOY_SSH_PORT` - optional, defaults to 22
+- `DEPLOY_PROJECT_DIR` - optional, defaults to `/home/ubuntu/paramountdirect_v2.0`
+
+Until those secrets exist, every run of that workflow fails at its SSH step -
+that's expected, not a bug - and updates stay manual: push your changes to
+`origin/pdv2_dev`, then run on the server as `ubuntu` (without sudo):
 
 ```bash
 cd /home/ubuntu/paramountdirect_v2.0

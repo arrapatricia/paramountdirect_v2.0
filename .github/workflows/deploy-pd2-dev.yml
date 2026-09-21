@@ -1,0 +1,52 @@
+name: Deploy pd2-dev
+
+# Auto-deploys pd2-dev.paramount.com.ph by SSHing into the server and
+# running deploy.sh there (see DEPLOYMENT.md). Requires these repo secrets
+# to be configured before this can run (Settings -> Secrets and variables
+# -> Actions):
+#   DEPLOY_SSH_HOST         server hostname or IP
+#   DEPLOY_SSH_USER         SSH user (the "ubuntu" deploy account, not root)
+#   DEPLOY_SSH_KEY          private key for a deploy-only SSH keypair
+#   DEPLOY_SSH_PORT         optional, defaults to 22
+#   DEPLOY_PROJECT_DIR      optional, defaults to /home/ubuntu/paramountdirect_v2.0
+#
+# Until those secrets exist, this workflow will fail at the "Set up SSH"
+# step - that's expected; deploy.sh must still be run manually until then.
+
+on:
+  push:
+    branches: [pdv2_dev]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_KEY" ]; then
+            echo "DEPLOY_SSH_HOST / DEPLOY_SSH_KEY secrets are not set yet - see this file's header comment." >&2
+            exit 1
+          fi
+          port="${SSH_PORT:-22}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$port" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Run deploy.sh on server
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          PROJECT_DIR: ${{ secrets.DEPLOY_PROJECT_DIR }}
+        run: |
+          port="${SSH_PORT:-22}"
+          project_dir="${PROJECT_DIR:-/home/ubuntu/paramountdirect_v2.0}"
+          ssh -i ~/.ssh/deploy_key -p "$port" -o BatchMode=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "cd '$project_dir' && bash deploy.sh"
