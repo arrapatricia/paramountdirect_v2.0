@@ -12,6 +12,7 @@ import paymentRoutes from './routes/payments';
 import nonLifePaymentRoutes from './routes/payments.nonlife';
 import auditLogRoutes from './routes/auditLogs';
 import documentRoutes from './routes/documents';
+import ingestPdLifeRoutes from './routes/ingest.pdlife';
 import { errorHandler } from './middleware/errorHandler';
 
 export function createApp() {
@@ -35,6 +36,7 @@ export function createApp() {
   app.use('/api/payments-nonlife', nonLifePaymentRoutes);
   app.use('/api/audit-logs', auditLogRoutes);
   app.use('/api/documents', documentRoutes);
+  app.use('/api/ingest/pd-life', ingestPdLifeRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
   app.use(errorHandler);

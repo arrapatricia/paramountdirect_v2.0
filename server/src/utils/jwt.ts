@@ -1,7 +1,11 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 
 export interface AuthTokenPayload {
-  sub: string; // user id
+  // Real User.id for a logged-in admin (requireAuth). Absent for a
+  // service-to-service identity (requireServiceApiKey) - there's no User
+  // row for those, and AuditLog.userId is a nullable FK precisely so
+  // recordAudit() can store NULL instead of a value that would violate it.
+  sub?: string;
   email: string;
   role: string | null;
   assignedProducts: string[];
