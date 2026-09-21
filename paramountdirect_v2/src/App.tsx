@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Menu, Sun, Moon } from 'lucide-react';
 import Login from './components/login';
 import Sidebar, { type ProductLine } from './components/sidebar';
@@ -37,6 +37,7 @@ import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
 import UserManagement, { INITIAL_USERS, type UserAccount } from './components/user_management';
 import RoleAccessMaintenance from './components/role_access_maintenance';
+import AuditLogs from './components/audit_logs';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
 // import PremiumMaintenance from './components/premium_maintenance';
@@ -53,6 +54,7 @@ import {
 } from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
+import { buildPath, parsePath } from './lib/routes';
 
 const CURRENT_USER = {
   name: 'Juan Dela Cruz',
@@ -96,9 +98,19 @@ function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-US');
   };
+  // Applications ingested from paramountdirect.com already have a real
+  // application id assigned on that site (see PdRevampSyncService's
+  // build_payload -> details.sourceApplicationId) - screeners need that id,
+  // not our own unrelated internal sequence, to look the submission up on
+  // the source site. Only ingested rows carry it; everything else (staff-
+  // created applications) keeps the internal sequential reference.
+  const sourceApplicationId =
+    api.details && typeof api.details === 'object' && 'sourceApplicationId' in api.details
+      ? String((api.details as Record<string, unknown>).sourceApplicationId)
+      : undefined;
   return {
     id: api.id,
-    applicationId: formatApplicationId(api.applicationSeq),
+    applicationId: sourceApplicationId ?? formatApplicationId(api.applicationSeq),
     policyNumber: api.policyNumber,
     payor: api.payor,
     planCode: api.planCode,
@@ -359,13 +371,26 @@ function readStoredNav(): StoredNav | null {
   }
 }
 
+// The URL wins over sessionStorage on load - it's what makes a direct link
+// or a page refresh on e.g. /application-inquiry land on that page instead
+// of always falling back to the dashboard. sessionStorage only fills in
+// when the current URL isn't one of ours (bare '/' on first login, etc.).
+function resolveInitialNav(): StoredNav {
+  const stored = readStoredNav();
+  const parsed = parsePath(window.location.pathname);
+  if (parsed) {
+    return { product: parsed.product, tab: parsed.tab, subTab: parsed.subTab ?? stored?.subTab ?? 'users' };
+  }
+  return stored ?? { product: 'PD Life', tab: 'dashboard', subTab: 'users' };
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(readStoredAuth);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(readStoredRole);
-  const storedNav = readStoredNav();
-  const [activeProduct, setActiveProduct] = useState<ProductLine>(storedNav?.product ?? 'PD Life');
-  const [activeTab, setActiveTab] = useState(storedNav?.tab ?? 'dashboard');
-  const [activeSubTab, setActiveSubTab] = useState(storedNav?.subTab ?? 'users');
+  const initialNav = resolveInitialNav();
+  const [activeProduct, setActiveProduct] = useState<ProductLine>(initialNav.product);
+  const [activeTab, setActiveTab] = useState(initialNav.tab);
+  const [activeSubTab, setActiveSubTab] = useState(initialNav.subTab);
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -411,6 +436,51 @@ export default function App() {
       // ignore - worst case a reload just falls back to the dashboard
     }
   }, [activeProduct, activeTab, activeSubTab]);
+
+  // Keeps the browser URL in sync with nav state, so every page (sidebar
+  // clicks included) has a real, bookmarkable/shareable address - e.g.
+  // /application-inquiry - instead of everything living at '/'.
+  const isPoppingRef = useRef(false);
+  const hasSyncedUrlRef = useRef(false);
+  useEffect(() => {
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false;
+      hasSyncedUrlRef.current = true;
+      return;
+    }
+    const path = buildPath(activeTab, activeSubTab);
+    if (window.location.pathname !== path) {
+      if (hasSyncedUrlRef.current) {
+        window.history.pushState(null, '', path);
+      } else {
+        window.history.replaceState(null, '', path);
+      }
+    }
+    hasSyncedUrlRef.current = true;
+  }, [activeTab, activeSubTab]);
+
+  // Supports the browser's Back/Forward buttons for the URLs above.
+  useEffect(() => {
+    const onPopState = () => {
+      isPoppingRef.current = true;
+      setSelectedApp(null);
+      setIsCreatingOfwApp(false);
+      setIsCreatingCtplApp(false);
+      setIsCreatingGtpApp(false);
+      setIsCreatingPdLifeApp(false);
+      const parsed = parsePath(window.location.pathname);
+      if (parsed) {
+        setActiveProduct(parsed.product);
+        setActiveTab(parsed.tab);
+        if (parsed.tab === 'maintenance') setActiveSubTab(parsed.subTab ?? 'users');
+      } else {
+        setActiveProduct('PD Life');
+        setActiveTab('dashboard');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Loads real PD Life applications once there's a real backend session
   // (i.e. login actually went through the backend, not the mock fallback -
@@ -537,6 +607,12 @@ export default function App() {
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,
+      // Only the "Signed" branch needs to do anything - signedFollowUpIds
+      // already treats absence as unsigned, which is the default for a
+      // freshly issued application.
+      onIssueDecision: (signed: boolean) => {
+        if (signed) handleMarkSigned(selectedApp.id);
+      },
       onBack: () => setSelectedApp(null),
       readOnly,
       // The actual submitted data - everything these pages used to hardcode
@@ -722,6 +798,7 @@ export default function App() {
           />
         )}
         {activeTab === 'billing' && <Billing />}
+        {activeTab === 'audit' && <AuditLogs />}
 
         {/* Maintenance Sub-module Views */}
         {activeTab === 'maintenance' && (
