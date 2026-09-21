@@ -512,7 +512,6 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                         <div>
                           <div className="font-extrabold text-slate-800 dark:text-white">{user.firstName} {user.lastName}</div>
                           <span className="text-[10px] text-slate-400 block font-normal dark:text-slate-500">{user.email}</span>
-                          <span className="text-[9px] text-slate-300 font-mono block dark:text-slate-600">{user.id}</span>
                         </div>
                       </div>
                     </td>
@@ -577,7 +576,7 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                     </div>
                     <div>
                       <h2 className="text-base font-bold uppercase text-slate-800 dark:text-white">{isCreating ? 'Provision User' : 'Edit User'}</h2>
-                      {!isCreating && <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{formData.id}</p>}
+                      {!isCreating && <p className="text-[10px] text-slate-400 dark:text-slate-500">{formData.email}</p>}
                     </div>
                   </div>
                   <button onClick={closeUserModal} className="cursor-pointer"><X className="w-5 h-5 text-slate-400 dark:text-slate-500" /></button>
