@@ -1108,6 +1108,21 @@ export default function App() {
             {pdLifeLoadError}
           </div>
         )}
+        {ofwLoadError && activeTab === 'ofw-applications' && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+            {ofwLoadError}
+          </div>
+        )}
+        {ctplLoadError && activeTab === 'ctpl-applications' && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+            {ctplLoadError}
+          </div>
+        )}
+        {gtpLoadError && activeTab === 'gtp-applications' && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+            {gtpLoadError}
+          </div>
+        )}
 
         {/* Applications hub */}
         {activeTab === 'applications' && (
