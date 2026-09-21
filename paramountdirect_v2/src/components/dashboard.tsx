@@ -1,11 +1,20 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, TrendingUp } from 'lucide-react';
+import { ChevronDown, ShieldAlert, ShieldOff, TrendingUp } from 'lucide-react';
 import type { ScreeningItem } from '../App';
+import type { LifePaymentTransactionApi } from '../lib/api';
 import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, countByField, parseDateParts } from '../lib/dashboardStats';
 
 interface DashboardProps {
   data: ScreeningItem[];
   annualTarget: number;
+  // Real payment/billing snapshot per policy (policyStatus, dueDate) - a
+  // different data source than `data` (applications), used only for the
+  // Lapsed / For Lapse cards below. Renewal-payment tracking (how many
+  // policies paid past their Initial Payment, and how much) isn't shown
+  // here yet - it needs iPeak's per-installment PayHistory, which this
+  // system doesn't fetch or persist yet (see server/src/services/ipeak's
+  // distributePolicyInquiry.ts).
+  paymentTransactions: LifePaymentTransactionApi[];
 }
 
 // Fixed color per acquisition source, so the donut's palette stays stable
@@ -45,9 +54,29 @@ const FULL_MONTH_NAME: Record<string, string> = {
   Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
 };
 
-export default function Dashboard({ data, annualTarget }: DashboardProps) {
+export default function Dashboard({ data, annualTarget, paymentTransactions }: DashboardProps) {
   const [selectedYear, setSelectedYear] = useState<'2026' | '2025'>('2026');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+
+  // "For Lapse" = still Inforced per iPeak, but its due date has already
+  // passed - i.e. in the grace period, at risk of lapsing on iPeak's next
+  // update, not yet lapsed. "Lapsed" itself is never computed here - it's
+  // exactly what iPeak's own STATUS field says (policyStatus === 'Lapsed').
+  const { lapsedCount, forLapseCount, inforcedCount } = useMemo(() => {
+    const now = new Date();
+    let lapsed = 0;
+    let forLapse = 0;
+    let inforced = 0;
+    for (const p of paymentTransactions) {
+      if (p.policyStatus === 'Lapsed') {
+        lapsed++;
+      } else if (p.policyStatus === 'Inforced') {
+        inforced++;
+        if (new Date(p.dueDate) < now) forLapse++;
+      }
+    }
+    return { lapsedCount: lapsed, forLapseCount: forLapse, inforcedCount: inforced };
+  }, [paymentTransactions]);
 
   const monthlySales = useMemo(
     () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premium),
@@ -169,6 +198,35 @@ export default function Dashboard({ data, annualTarget }: DashboardProps) {
             {conversion2026.toFixed(1)}% of applications convert
             <span className="text-emerald-500 font-bold"> (+{conversionDeltaPts.toFixed(1)} pts YoY)</span>
           </p>
+        </div>
+      </div>
+
+      {/* Policy Lifecycle (real payment/billing snapshot, not application data) */}
+      <div>
+        <h2 className="text-sm font-extrabold text-slate-800 uppercase dark:text-slate-100">Policy Lifecycle</h2>
+        <p className="text-xs text-slate-500 font-medium dark:text-slate-400 mb-3">
+          From the payment ledger's own policy status, not the applications above. Renewal-payment tracking (paid past the Initial Payment) isn't available yet &mdash; it needs iPeak's per-installment payment history, which this system doesn't fetch yet.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Inforced Policies</h3>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{inforcedCount.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest dark:text-slate-500">For Lapse (Grace Period)</h3>
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <p className="text-xl font-black text-amber-600 dark:text-amber-400">{forLapseCount.toLocaleString()}</p>
+            <p className="text-[10px] font-semibold text-slate-400 mt-1.5 dark:text-slate-500">Still Inforced, but past due date</p>
+          </div>
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest dark:text-slate-500">Total Lapsed</h3>
+              <ShieldOff className="w-3.5 h-3.5 text-[#d0112b]" />
+            </div>
+            <p className="text-xl font-black text-[#d0112b]">{lapsedCount.toLocaleString()}</p>
+          </div>
         </div>
       </div>
 

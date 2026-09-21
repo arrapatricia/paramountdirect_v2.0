@@ -66,12 +66,14 @@ import {
   fromApiGtpPlanVariant,
   usersApi,
   rolesApi,
+  paymentsApi,
   type PdLifeApplicationApi,
   type OfwApplicationApi,
   type CtplApplicationApi,
   type GtpApplicationApi,
   type UserApi,
   type RoleApi,
+  type LifePaymentTransactionApi,
 } from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
@@ -625,6 +627,12 @@ export default function App() {
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
   const [gtpConnected, setGtpConnected] = useState(false);
   const [gtpLoadError, setGtpLoadError] = useState<string | null>(null);
+  // PD Life's payment/billing snapshot per policy (policyStatus, dueDate,
+  // etc.) - a different real data source than screeningData (applications),
+  // used for the Lapsed / For Lapse dashboard stats. One row per policy, not
+  // per installment - see LifePaymentTransactionApi's comment in lib/api.ts.
+  const [lifePaymentTransactions, setLifePaymentTransactions] = useState<LifePaymentTransactionApi[]>([]);
+  const [lifePaymentsLoadError, setLifePaymentsLoadError] = useState<string | null>(null);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
   const [premiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
   const [annualTargets, setAnnualTargets] = useState<AnnualTargets>(readStoredAnnualTargets);
@@ -808,6 +816,25 @@ export default function App() {
       .catch((err) => {
         if (cancelled) return;
         setGtpLoadError(err instanceof Error ? err.message : 'Failed to load GTP applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    paymentsApi
+      .list()
+      .then((payments) => {
+        if (cancelled) return;
+        setLifePaymentTransactions(payments);
+        setLifePaymentsLoadError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLifePaymentsLoadError(err instanceof Error ? err.message : 'Failed to load payment transactions.');
       });
     return () => {
       cancelled = true;
@@ -1136,7 +1163,18 @@ export default function App() {
 
       {/* Primary Main Content View */}
       <main className="flex-1 overflow-y-auto">
-        {activeTab === 'dashboard' && <Dashboard data={screeningData} annualTarget={annualTargets.pdLife} />}
+        {activeTab === 'dashboard' && (
+          <>
+            {lifePaymentsLoadError && (
+              <div className="max-w-[1600px] mx-auto px-4 md:px-8 pt-4 md:pt-8">
+                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">
+                  {lifePaymentsLoadError}
+                </div>
+              </div>
+            )}
+            <Dashboard data={screeningData} annualTarget={annualTargets.pdLife} paymentTransactions={lifePaymentTransactions} />
+          </>
+        )}
 
         {/* Life Statistics */}
         {activeTab === 'life-monthly' && <LifeApplicationsOverview period="Monthly" data={screeningData} />}

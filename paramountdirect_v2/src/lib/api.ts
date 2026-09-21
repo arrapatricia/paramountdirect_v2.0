@@ -390,3 +390,54 @@ export const gtpApi = {
 };
 export const toApiGtpPlanVariant = (v: string) => GTP_PLAN_VARIANT_TO_API[v] ?? v;
 export const fromApiGtpPlanVariant = (v: string) => GTP_PLAN_VARIANT_FROM_API[v] ?? v;
+
+// ---------------------------------------------------------------------------
+// PD Life payment transactions - matches server/prisma/schema.prisma's
+// LifePaymentTransaction. One row per policy (its current billing snapshot),
+// not one row per installment - the per-payment ledger history (iPeak's
+// PayHistory) isn't persisted anywhere in this system yet, so it can't be
+// reconstructed from this endpoint. policyStatus (including 'Lapsed') comes
+// straight from iPeak's own STATUS field via distributePolicyInquiry.ts.
+// ---------------------------------------------------------------------------
+
+export interface LifePaymentTransactionApi {
+  id: string;
+  policyNo: string;
+  title: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  birthdate: string;
+  gender: string;
+  currentAge: number;
+  issueAge: number;
+  address: string;
+  mobileNumber: string;
+  telephoneNumber: string;
+  emailAddress: string;
+  policyStatus: 'Inforced' | 'Lapsed' | 'Terminated' | 'Matured' | 'Involuntary' | 'Voluntary' | 'Surrender';
+  hcrStatus: string;
+  hcrUnit: string;
+  premium: number;
+  hcrPremium: number;
+  deposit: number;
+  underpay: number;
+  dueDate: string;
+  payType: string;
+  cashValue: number;
+  lifeBenefits: number;
+  accidentalBenefits: number;
+  mode: string;
+  issueDate: string;
+  effectivityDate: string;
+  policyDate: string;
+  expiryDate: string;
+  planCode: string;
+  planDesc: string;
+  orDate: string | null;
+  orNumber: string | null;
+}
+
+export const paymentsApi = {
+  list: () => apiFetch<LifePaymentTransactionApi[]>('/api/payments'),
+};
