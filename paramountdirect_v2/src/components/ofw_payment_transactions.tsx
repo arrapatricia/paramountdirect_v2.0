@@ -1,4 +1,4 @@
-import React from 'react';
+
 import ProductPaymentTransactions from './product_payment_transactions';
 import type { OfwApplication } from './ofw_types';
 

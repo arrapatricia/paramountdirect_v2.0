@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Wallet, CheckCircle2, X, RotateCcw } from 'lucide-react';
 import type { PremiumRate, PremiumProduct } from './premium_rates';
 

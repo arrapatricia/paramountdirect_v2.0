@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Wallet, Printer, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PrintableDocumentModal, DocRow } from './policy_documents';
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, TrendingUp, ShieldAlert } from 'lucide-react';
 
 // OFW premium is collected in USD, unlike PD Life's PHP - the live application

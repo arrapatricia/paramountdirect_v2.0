@@ -1,4 +1,4 @@
-import React from 'react';
+
 import ProductPaymentTransactions from './product_payment_transactions';
 import type { CtplApplication } from './ctpl_types';
 

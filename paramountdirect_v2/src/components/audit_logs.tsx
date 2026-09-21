@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, ShieldCheck, Download, Filter, UserCheck, Clock, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { Search, ShieldCheck, Download, Clock } from 'lucide-react';
 
 interface AuditLogEntry {
   id: string;

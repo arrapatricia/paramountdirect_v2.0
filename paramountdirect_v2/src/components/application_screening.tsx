@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, CheckSquare, Square, X, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck, UserPlus } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 import ApplicationStatusBar from './application_status_bar';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Sun, Moon } from 'lucide-react';
 import Login from './components/login';
 import Sidebar, { type ProductLine } from './components/sidebar';
@@ -391,7 +391,7 @@ export default function App() {
   const [gtpApplications, setGtpApplications] = useState<GtpApplication[]>(initialGtpMockData);
   const [isCreatingGtpApp, setIsCreatingGtpApp] = useState(false);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
-  const [premiumRates, setPremiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
+  const [premiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
   // Lifted out of UserManagement so Login can validate against real
   // provisioned accounts, not just the hardcoded admin/noaccess demo logins.
   const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);

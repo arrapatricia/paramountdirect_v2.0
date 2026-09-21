@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { TrendingUp, TrendingDown, ShieldAlert, Phone } from 'lucide-react';
 
 const MONTHLY_TREND = [

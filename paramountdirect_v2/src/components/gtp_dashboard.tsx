@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, TrendingUp, ShieldAlert } from 'lucide-react';
 
 const MONTHLY_PREMIUM: { month: string; y2025: number; y2026: number | null }[] = [
