@@ -92,11 +92,11 @@ export default function Sidebar({
     .join('')
     .toUpperCase();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
-  const [isStatisticsOpen, setIsStatisticsOpen] = useState(true);
-  // Only Applications starts collapsed on login - Statistics and Maintenance
-  // stay expanded (see the two useState calls above).
-  const [isApplicationsOpen, setIsApplicationsOpen] = useState(false);
+  // On login, only Applications starts expanded - Statistics and Maintenance
+  // start collapsed.
+  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+  const [isStatisticsOpen, setIsStatisticsOpen] = useState(false);
+  const [isApplicationsOpen, setIsApplicationsOpen] = useState(true);
 
   const navItemsByProduct: Record<ProductLine, { id: string; label: string; icon: typeof LayoutDashboard }[]> = {
     'PD Life': [
