@@ -189,6 +189,9 @@ function mapApiToOfwApplication(api: OfwApplicationApi): OfwApplication {
     },
     premium: api.premium,
     dateReceived: toDisplayDate(api.dateReceived),
+    dateVerified: api.dateVerified ? toDisplayDate(api.dateVerified) : undefined,
+    dateProcessed: api.dateProcessed ? toDisplayDate(api.dateProcessed) : undefined,
+    dateIssued: api.dateIssued ? toDisplayDate(api.dateIssued) : undefined,
     status: api.status as OfwApplication['status'],
     screenedBy: api.screenedBy ?? '-',
     employmentVerified: api.employmentVerified as OfwApplication['employmentVerified'],
@@ -222,6 +225,7 @@ function mapApiToCtplApplication(api: CtplApplicationApi): CtplApplication {
     mvFileNumber: api.mvFileNumber,
     chassisNumber: api.chassisNumber,
     requiresCOV: api.requiresCOV,
+    forPublicUse: api.forPublicUse,
     premium: api.premium,
     dateReceived: toDisplayDate(api.dateReceived),
     status: api.status as CtplApplication['status'],
@@ -325,19 +329,29 @@ const OFW_MOCK_APPLICANTS = [
   { firstName: 'Ramil', lastName: 'Torres', occupation: 'Factory Worker', coverage: 'Land-based' as const, country: 'Israel' },
 ];
 
+// Fresh-environment reset: no seed applications, real data comes from the
+// backend (see ofwConnected below) - set the length back above 0 only for
+// local demoing without a backend, since it briefly flashes before the
+// real fetch resolves and overwrites it otherwise.
 const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
   // Weighted so most applications sit in 'Received' (the common case), with
-  // the terminal outcomes appearing occasionally.
+  // the terminal outcomes appearing occasionally - mirrors the CTPL cycle.
   const statusCycle: typeof OFW_STATUSES[number][] = [
-    'Received', 'Received', 'Received', 'Cancelled', 'Received', 'Duplicate', 'Received', 'Reversed',
+    'Received', 'Received', 'Received', 'Cancelled', 'Received', 'Spoiled', 'Received', 'Duplicate', 'Received', 'Reversed',
   ];
   const status = statusCycle[i % statusCycle.length];
+  // Only 'Received' (goes on to be issued) or 'Reversed' (paid, then
+  // refunded) rows are ever paid - Cancelled/Duplicate/Spoiled never reach payment.
+  const isPaid = status === 'Reversed' || (status === 'Received' && i % 3 === 0);
   const isConflictZone = ['Ukraine', 'Israel', 'Yemen', 'Syria'].includes(applicant.country);
   const day = 27 - (i % 5);
 
   return {
-    id: `800${(10000 + i).toString()}`,
+    id: `ofw-mock-${i}`,
+    // Reference No. is always assigned (3000 + 6 digits); COI No. only once paid (800 + 5 digits).
+    referenceNo: `3000${(44000 + i).toString().padStart(6, '0')}`,
+    policyNumber: isPaid ? `800${(35000 + i).toString().padStart(5, '0')}` : undefined,
     lastName: applicant.lastName,
     firstName: applicant.firstName,
     middleName: 'Santos',
@@ -373,23 +387,26 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i
     },
     premium: '$42.00',
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
+    dateProcessed: isPaid ? `09/${Math.min(day + 1, 27).toString().padStart(2, '0')}/2026` : undefined,
+    dateIssued: isPaid ? `09/${Math.min(day + 2, 27).toString().padStart(2, '0')}/2026` : undefined,
     status,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
-    // A few rows carry the full verify -> instruction -> paid flow through to
-    // completion so the Documents section has something to demo unlocked.
-    employmentVerified: (i % 4 === 0 ? 'Yes' : i % 7 === 0 ? 'No' : 'Pending') as 'Pending' | 'Yes' | 'No',
-    paymentInstructionSent: i % 4 === 0,
-    isPaid: i % 8 === 0,
+    // Rows that end up paid always carry the full verify -> instruction ->
+    // paid flow through to completion; a few others sit mid-flow so the
+    // Documents section has something to demo unlocked/pending.
+    employmentVerified: (isPaid ? 'Yes' : i % 7 === 0 ? 'No' : 'Pending') as 'Pending' | 'Yes' | 'No',
+    paymentInstructionSent: isPaid || i % 4 === 0,
+    isPaid,
   };
 });
 
 const CTPL_MOCK_OWNERS = [
-  { firstName: 'Ricardo', surname: 'Santos', policyType: 'Private Car' as const, mvType: 'Car', premium: 606 },
-  { firstName: 'Ligaya', surname: 'Fernandez', policyType: 'Private Car' as const, mvType: 'Sports Utility Vehicle', premium: 730 },
-  { firstName: 'Bayani', surname: 'Cruz', policyType: 'Motorcycle' as const, mvType: 'Motorcycle', premium: 260 },
-  { firstName: 'Corazon', surname: 'Aquino', policyType: 'Commercial Vehicle' as const, mvType: 'Utility Vehicle', premium: 850 },
-  { firstName: 'Emmanuel', surname: 'Bautista', policyType: 'Private Car' as const, mvType: 'Car', premium: 606 },
-  { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Truck', premium: 1200 },
+  { firstName: 'Ricardo', surname: 'Santos', policyType: 'Private Car' as const, mvType: 'Car', premium: 666 },
+  { firstName: 'Ligaya', surname: 'Fernandez', policyType: 'Private Car' as const, mvType: 'Sports Utility Vehicle', premium: 666 },
+  { firstName: 'Bayani', surname: 'Cruz', policyType: 'Motorcycle' as const, mvType: 'Motorcycle', premium: 296 },
+  { firstName: 'Corazon', surname: 'Aquino', policyType: 'Commercial Vehicle' as const, mvType: 'Light/Medium Truck (Own Goods, ≤ 3,930kg)', premium: 656 },
+  { firstName: 'Emmanuel', surname: 'Bautista', policyType: 'Private Car' as const, mvType: 'Car', premium: 666 },
+  { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Heavy Truck (Own Goods) / Private Bus (> 3,930kg)', premium: 1246.01 },
 ];
 
 const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_, i) => {
@@ -422,6 +439,7 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_,
     mvFileNumber: `1301-0000${(1000000 + i).toString().slice(-7)}`,
     chassisNumber: `JT4BR38J2R${(100000 + i).toString().padStart(6, '0')}`,
     requiresCOV: i % 5 === 0,
+    forPublicUse: false,
     premium: `₱${owner.premium.toFixed(2)}`,
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
     status,
@@ -1020,6 +1038,7 @@ export default function App() {
       mvFileNumber: app.mvFileNumber,
       chassisNumber: app.chassisNumber,
       requiresCOV: app.requiresCOV,
+      forPublicUse: app.forPublicUse,
       premium: app.premium,
       dateReceived: new Date().toISOString(),
       status: app.status,
@@ -1226,6 +1245,7 @@ export default function App() {
               data={ctplApplications}
               onCreateNew={() => setIsCreatingCtplApp(true)}
               onUpdate={handleUpdateCtplApp}
+              rates={premiumRates}
             />
           )
         )}

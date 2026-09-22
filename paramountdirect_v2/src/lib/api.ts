@@ -201,6 +201,9 @@ export interface OfwApplicationApi {
   medicalCertificateDoc: string;
   premium: string;
   dateReceived: string;
+  dateVerified: string | null;
+  dateProcessed: string | null;
+  dateIssued: string | null;
   status: string;
   screenedBy: string | null;
   employmentVerified: string;
@@ -218,7 +221,7 @@ const OFW_COVERAGE_FROM_API: Record<string, string> = Object.fromEntries(Object.
 
 export const ofwApi = {
   list: () => apiFetch<OfwApplicationApi[]>('/api/applications/ofw'),
-  create: (payload: Omit<OfwApplicationApi, 'id' | 'policyNumber' | 'referenceNo'>) =>
+  create: (payload: Omit<OfwApplicationApi, 'id' | 'policyNumber' | 'referenceNo' | 'dateVerified' | 'dateProcessed' | 'dateIssued'>) =>
     apiFetch<OfwApplicationApi>('/api/applications/ofw', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id: string, payload: Partial<Omit<OfwApplicationApi, 'id'>>) =>
     apiFetch<OfwApplicationApi>(`/api/applications/ofw/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
@@ -250,6 +253,7 @@ export interface CtplApplicationApi {
   mvFileNumber: string;
   chassisNumber: string;
   requiresCOV: boolean;
+  forPublicUse: boolean;
   premium: string;
   dateReceived: string;
   status: string;

@@ -88,9 +88,15 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
       {/* Header */}
       <div className="flex items-center justify-between gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
         <div className="flex items-center space-x-2.5">
-          <Wallet className="h-6 w-6" style={{ color: accentColor }} />
+          <Wallet
+            className="h-6 w-6 text-[var(--accent)] dark:text-[#49b1ea]"
+            style={{ '--accent': accentColor } as React.CSSProperties}
+          />
           <div>
-            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider font-['Montserrat']" style={{ color: accentColor }}>
+            <h1
+              className="text-lg md:text-xl font-bold uppercase tracking-wider font-['Montserrat'] text-[var(--accent)] dark:text-[#49b1ea]"
+              style={{ '--accent': accentColor } as React.CSSProperties}
+            >
               {productLabel} PAYMENT TRANSACTIONS
             </h1>
             <p className="text-xs text-slate-500 font-semibold dark:text-slate-500">
@@ -163,7 +169,12 @@ export default function ProductPaymentTransactions({ productLabel, accentColor, 
                     <td className="py-3.5 px-2 font-bold text-slate-700 dark:text-slate-300">{row.referenceNo}</td>
                     <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-100">{row.payorName}</td>
                     <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{row.planLabel}</td>
-                    <td className="py-3.5 px-2 font-black" style={{ color: accentColor }}>{row.premium}</td>
+                    <td
+                      className="py-3.5 px-2 font-black text-[var(--accent)] dark:text-[#49b1ea]"
+                      style={{ '--accent': accentColor } as React.CSSProperties}
+                    >
+                      {row.premium}
+                    </td>
                     <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{row.dateReceived}</td>
                     <td className="py-3.5 px-2 text-center">
                       <button

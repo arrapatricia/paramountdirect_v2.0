@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, TrendingUp, Info } from 'lucide-react';
+import { ChevronDown, TrendingUp, Info, FileCheck2 } from 'lucide-react';
 import { PLATE_ENDING_SCHEDULE, type CtplApplication } from './ctpl_types';
 import { CURRENT_MONTH_INDEX, CURRENT_YEAR, buildMonthlyPremiumSeries, parseDateParts } from '../lib/dashboardStats';
 
@@ -84,6 +84,11 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
   }, [recordsByYear]);
   const maxMvApplications = Math.max(1, ...topMvTypes.map((c) => c.applications));
 
+  const recentlyIssued = useMemo(
+    () => data.filter((r) => r.isPaid && r.policyNumber).slice(0, 8),
+    [data]
+  );
+
   const maxMonthly = Math.max(1, ...monthlyPremium.flatMap((m) => [m.y2025, m.y2026 ?? 0]));
   const peakMonth = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((best, m) =>
     (m.y2026 ?? 0) > (best.y2026 ?? 0) ? m : best,
@@ -108,7 +113,7 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Total Premium Collected (YTD)</h3>
-          <p className="text-xl font-black text-[#002f6c]">{peso(premiumYtd2026)}</p>
+          <p className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">{peso(premiumYtd2026)}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{premiumYoyPct.toFixed(1)}%</span>
@@ -123,7 +128,7 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {peso(annualTarget)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-3 dark:bg-slate-800">
-            <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${attainmentPct}%` }} />
+            <div className="h-full rounded-full bg-[#002f6c] dark:bg-[#49b1ea]" style={{ width: `${attainmentPct}%` }} />
           </div>
           <p className="text-[10px] font-bold text-slate-400 mt-2 dark:text-slate-500">{attainmentPct}% of target attained &middot; 8.5 of 12 months in</p>
         </div>
@@ -178,7 +183,7 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
                     <button
                       key={year}
                       onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#002f6c] dark:text-slate-300 dark:hover:bg-slate-700"
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#002f6c] dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-[#49b1ea]"
                     >
                       {year}
                     </button>
@@ -221,8 +226,8 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
             </div>
             <div className="flex items-center space-x-4 text-[10px] font-bold text-slate-500 flex-wrap gap-y-1 dark:text-slate-500">
               <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-slate-300" /><span>2025</span></span>
-              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c]" /><span>2026</span></span>
-              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] opacity-40" /><span>2026 (MTD)</span></span>
+              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] dark:bg-[#49b1ea]" /><span>2026</span></span>
+              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] dark:bg-[#49b1ea] opacity-40" /><span>2026 (MTD)</span></span>
             </div>
           </div>
 
@@ -237,7 +242,7 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
                   />
                   {m.y2026 !== null && (
                     <div
-                      className={`w-full max-w-[10px] rounded-t bg-[#002f6c] ${i === CURRENT_MONTH_INDEX ? 'opacity-40' : ''}`}
+                      className={`w-full max-w-[10px] rounded-t bg-[#002f6c] dark:bg-[#49b1ea] ${i === CURRENT_MONTH_INDEX ? 'opacity-40' : ''}`}
                       style={{ height: `${(m.y2026 / maxMonthly) * 100}%` }}
                       title={`2026: ${peso(m.y2026)}${i === CURRENT_MONTH_INDEX ? ' (month-to-date)' : ''}`}
                     />
@@ -277,7 +282,7 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
                     <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
                   </div>
                   <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                    <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxMvApplications) * 100}%` }} />
+                    <div className="h-full rounded-full bg-[#002f6c] dark:bg-[#49b1ea]" style={{ width: `${(c.applications / maxMvApplications) * 100}%` }} />
                   </div>
                 </div>
               ))}
@@ -304,6 +309,53 @@ export default function CtplDashboard({ data, annualTarget }: CtplDashboardProps
           </div>
         </div>
 
+      </div>
+
+      {/* Recently Issued Policies */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex items-start space-x-2 mb-4">
+          <FileCheck2 className="w-4 h-4 text-[#49b1ea] flex-shrink-0 mt-0.5" />
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-800 uppercase dark:text-white">Recently Issued Policies</h2>
+            <p className="text-xs text-slate-500 font-medium dark:text-slate-500">Latest Certificates of Cover (COC) issued, by policy number</p>
+          </div>
+        </div>
+
+        {recentlyIssued.length === 0 ? (
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">No policies issued yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-300 text-slate-800 font-extrabold uppercase tracking-wider dark:border-slate-700 dark:text-slate-300">
+                  <th className="py-3 px-2">Policy Number</th>
+                  <th className="py-3 px-2">Reference No.</th>
+                  <th className="py-3 px-2">Registered Owner</th>
+                  <th className="py-3 px-2">Policy / MV Type</th>
+                  <th className="py-3 px-2">Plate No.</th>
+                  <th className="py-3 px-2">Premium</th>
+                  <th className="py-3 px-2">Date Received</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {recentlyIssued.map((row) => (
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td className="py-3.5 px-2 font-mono font-black text-[#002f6c] dark:text-[#49b1ea]">{row.policyNumber}</td>
+                    <td className="py-3.5 px-2 font-mono font-semibold text-slate-600 dark:text-slate-300">{row.referenceNo ?? '—'}</td>
+                    <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.ownerFirstName} {row.ownerSurname}</td>
+                    <td className="py-3.5 px-2">
+                      <span className="font-extrabold text-slate-900 dark:text-white">{row.policyType}</span>
+                      <span className="text-[10px] font-semibold text-slate-600 ml-1.5 dark:text-slate-300">{row.mvType}</span>
+                    </td>
+                    <td className="py-3.5 px-2 font-mono font-bold text-slate-800 dark:text-slate-200">{row.plateNumber}</td>
+                    <td className="py-3.5 px-2 font-black text-[#002f6c] dark:text-[#49b1ea]">{row.premium}</td>
+                    <td className="py-3.5 px-2 font-semibold text-slate-500 dark:text-slate-400">{row.dateReceived}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

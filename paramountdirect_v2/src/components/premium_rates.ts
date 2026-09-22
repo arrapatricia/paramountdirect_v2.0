@@ -78,20 +78,30 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   // coverage type.
   { id: 'ofw-monthly-rate', product: 'OFW', key: 'monthlyRate', label: 'Premium rate per month of the employment contract', amount: 2.90, currency: 'USD', unit: 'per month' },
 
-  // CTPL - flat premium by policy type + vehicle type
-  { id: 'ctpl-car', product: 'CTPL', key: 'Private Car|Car', label: 'Private Car - Car', amount: 606, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-nonconv', product: 'CTPL', key: 'Private Car|Non-Conventional MV', label: 'Private Car - Non-Conventional MV', amount: 650, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-suv', product: 'CTPL', key: 'Private Car|Sports Utility Vehicle', label: 'Private Car - Sports Utility Vehicle', amount: 730, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-mc', product: 'CTPL', key: 'Motorcycle|Motorcycle', label: 'Motorcycle - Motorcycle', amount: 260, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-mc-side', product: 'CTPL', key: 'Motorcycle|Motorcycle with Side Car', label: 'Motorcycle - with Side Car', amount: 300, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-truck', product: 'CTPL', key: 'Commercial Vehicle|Truck', label: 'Commercial Vehicle - Truck', amount: 1200, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-trailer', product: 'CTPL', key: 'Commercial Vehicle|Trailer', label: 'Commercial Vehicle - Trailer', amount: 1500, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-tourist-bus', product: 'CTPL', key: 'Commercial Vehicle|Tourist Bus', label: 'Commercial Vehicle - Tourist Bus', amount: 2200, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-school-bus', product: 'CTPL', key: 'Commercial Vehicle|School Bus', label: 'Commercial Vehicle - School Bus', amount: 1800, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-utility', product: 'CTPL', key: 'Commercial Vehicle|Utility Vehicle', label: 'Commercial Vehicle - Utility Vehicle', amount: 850, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-tricycle', product: 'CTPL', key: 'Commercial Vehicle|Tricycle', label: 'Commercial Vehicle - Tricycle', amount: 400, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-shuttle', product: 'CTPL', key: 'Commercial Vehicle|Shuttle Bus', label: 'Commercial Vehicle - Shuttle Bus', amount: 1600, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-default', product: 'CTPL', key: 'default', label: 'Default (any combination not listed above)', amount: 606, currency: 'PHP', unit: 'flat' },
+  // CTPL - 1-year (Renewal) flat premium by policy type + vehicle type.
+  // Each amount is Base + DST(ceil(Base/4)*0.50) + LGT(0.75% of Base) +
+  // VAT(12% of Base) + Other Fees (₱46 flat) - reconciled to the peso
+  // against real Service Invoices for the Private Car/Jeep/UV (₱447.01
+  // base) and Motorcycle/Tricycle/Trailer (₱199.55 base) classes; the
+  // other bases come from Paramount's official 1-year rate card and use
+  // the same verified formula.
+  { id: 'ctpl-car', product: 'CTPL', key: 'Private Car|Car', label: 'Private Car - Car', amount: 666, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-jeep', product: 'CTPL', key: 'Private Car|Jeep', label: 'Private Car - Jeep', amount: 666, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-suv', product: 'CTPL', key: 'Private Car|Sports Utility Vehicle', label: 'Private Car - Sports Utility Vehicle', amount: 666, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-utility', product: 'CTPL', key: 'Private Car|Utility Vehicle', label: 'Private Car - Utility Vehicle', amount: 666, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-ac-tourist', product: 'CTPL', key: 'Private Car|AC / Tourist Car', label: 'Private Car - AC / Tourist Car', amount: 785.96, currency: 'PHP', unit: 'flat' },
+
+  { id: 'ctpl-light-truck', product: 'CTPL', key: 'Commercial Vehicle|Light/Medium Truck (Own Goods, ≤ 3,930kg)', label: 'Commercial Vehicle - Light/Medium Truck (≤ 3,930kg)', amount: 656, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-heavy-truck', product: 'CTPL', key: 'Commercial Vehicle|Heavy Truck (Own Goods) / Private Bus (> 3,930kg)', label: 'Commercial Vehicle - Heavy Truck / Private Bus (> 3,930kg)', amount: 1246.01, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-taxi-puj', product: 'CTPL', key: 'Commercial Vehicle|Taxi / PUJ / Mini Bus', label: 'Commercial Vehicle - Taxi / PUJ / Mini Bus', amount: 1146.01, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-pub-tourist-bus', product: 'CTPL', key: 'Commercial Vehicle|PUB / Tourist Bus', label: 'Commercial Vehicle - PUB / Tourist Bus', amount: 1496, currency: 'PHP', unit: 'flat' },
+
+  { id: 'ctpl-mc', product: 'CTPL', key: 'Motorcycle|Motorcycle', label: 'Motorcycle - Motorcycle', amount: 296, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-mc-side', product: 'CTPL', key: 'Motorcycle|Motorcycle with Side Car', label: 'Motorcycle - with Side Car', amount: 296, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-tricycle', product: 'CTPL', key: 'Motorcycle|Tricycle', label: 'Motorcycle - Tricycle', amount: 296, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-mc-trailer', product: 'CTPL', key: 'Motorcycle|Trailer', label: 'Motorcycle - Trailer', amount: 296, currency: 'PHP', unit: 'flat' },
+
+  { id: 'ctpl-default', product: 'CTPL', key: 'default', label: 'Default (any combination not listed above)', amount: 666, currency: 'PHP', unit: 'flat' },
 
   // GTP - Single Trip prices off two factors: destination category
   // (Including USA/Canada/HK vs Excluding vs Domestic, auto-detected from

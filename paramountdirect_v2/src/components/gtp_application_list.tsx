@@ -21,7 +21,7 @@ const STATUS_TABS = ['All', ...GTP_STATUSES] as const;
 
 const getStatusBadgeStyle = (status: string) => {
   switch (status) {
-    case 'Received': return 'bg-[#002f6c]/10 text-[#002f6c] border-[#002f6c]/30';
+    case 'Received': return 'bg-[#002f6c]/10 text-[#002f6c] border-[#002f6c]/30 dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30';
     case 'Cancelled': return 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
     case 'Duplicate': return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
     default: return 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
@@ -30,7 +30,7 @@ const getStatusBadgeStyle = (status: string) => {
 
 const getRowTintStyle = (status: string) => {
   switch (status) {
-    case 'Received': return 'bg-[#002f6c]/[0.03] hover:bg-[#002f6c]/[0.06]';
+    case 'Received': return 'bg-[#002f6c]/[0.03] hover:bg-[#002f6c]/[0.06] dark:bg-[#49b1ea]/[0.04] dark:hover:bg-[#49b1ea]/[0.08]';
     case 'Cancelled': return 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800';
     case 'Duplicate': return 'bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30';
     default: return 'hover:bg-slate-50 dark:hover:bg-slate-800/60';
@@ -89,9 +89,9 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
         <div className="flex items-center space-x-2.5">
-          <Plane className="h-6 w-6 text-[#002f6c]" />
+          <Plane className="h-6 w-6 text-[#002f6c] dark:text-[#49b1ea]" />
           <div>
-            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#002f6c] font-['Montserrat']">
+            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">
               GTP APPLICATIONS
             </h1>
             <p className="text-xs text-slate-500 font-semibold dark:text-slate-500">Global Travel Protect Premium — application registry</p>
@@ -190,7 +190,7 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
                     </td>
                     <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{row.departureDate} to {row.returnDate}</td>
                     <td className="py-3.5 px-2 font-semibold text-slate-700 dark:text-slate-300">{row.planVariant}</td>
-                    <td className="py-3.5 px-2 font-black text-[#002f6c]">{row.premium}</td>
+                    <td className="py-3.5 px-2 font-black text-[#002f6c] dark:text-[#49b1ea]">{row.premium}</td>
                     <td className="py-3.5 px-2 text-center">
                       <span
                         title={GTP_STATUS_DESCRIPTIONS[row.status]}

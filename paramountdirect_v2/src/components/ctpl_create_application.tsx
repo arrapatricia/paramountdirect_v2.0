@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
-import { CTPL_MV_TYPES, CTPL_POLICY_TYPES, COV_FEE, type CtplApplication } from './ctpl_types';
+import { CTPL_MV_TYPES_BY_POLICY, CTPL_POLICY_TYPES, COV_FEE, type CtplApplication } from './ctpl_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
@@ -42,6 +42,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [mvFileNumber, setMvFileNumber] = useState('');
   const [chassisNumber, setChassisNumber] = useState('');
   const [requiresCOV, setRequiresCOV] = useState(false);
+  const [forPublicUse, setForPublicUse] = useState(false);
 
   const premiumValue = getPremium(rates, policyType, mvType);
   const totalDue = premiumValue + (requiresCOV ? COV_FEE : 0);
@@ -67,6 +68,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     plateNumber: plateNumber.toUpperCase(),
     mvFileNumber, chassisNumber: chassisNumber.toUpperCase(),
     requiresCOV,
+    forPublicUse: policyType === 'Motorcycle' && forPublicUse,
     premium: `₱${totalDue.toFixed(2)}`,
     dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
     status: 'Completed',
@@ -102,7 +104,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
             <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
             <span>Policy <span className="font-black text-slate-900 dark:text-white">{submittedApp.policyType} ({submittedApp.mvType})</span></span>
-            <span>Premium <span className="font-black text-[#002f6c]">{submittedApp.premium}</span></span>
+            <span>Premium <span className="font-black text-[#002f6c] dark:text-[#49b1ea]">{submittedApp.premium}</span></span>
           </div>
           <div className="mt-8">
             <button onClick={onBack} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
@@ -123,7 +125,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] font-['Montserrat']">
+          <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">
             {step === 'review' ? 'Review Application' : 'NEW CTPL APPLICATION'}
           </h1>
           <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-400">
@@ -132,7 +134,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">{requiresCOV ? 'Total Amount Due' : 'Estimated Premium'}</p>
-          <p className="text-xl font-black text-[#002f6c]">₱{totalDue.toFixed(2)}</p>
+          <p className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">₱{totalDue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -158,6 +160,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           mvFileNumber={mvFileNumber}
           chassisNumber={chassisNumber}
           requiresCOV={requiresCOV}
+          forPublicUse={forPublicUse}
           premiumValue={premiumValue}
           totalDue={totalDue}
           onEdit={() => setStep('form')}
@@ -179,22 +182,29 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             </div>
             <div>
               <label className={labelClass}>Policy Type</label>
-              <select required value={policyType} onChange={(e) => { setPolicyType(e.target.value as typeof policyType); setMvType(''); }} className={inputClass}>
+              <select required value={policyType} onChange={(e) => { const v = e.target.value as typeof policyType; setPolicyType(v); setMvType(''); if (v !== 'Motorcycle') setForPublicUse(false); }} className={inputClass}>
                 <option value="">-- Select --</option>
                 {CTPL_POLICY_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>LTO MV Type</label>
-              <select required value={mvType} onChange={(e) => setMvType(e.target.value)} className={inputClass}>
+              <select required value={mvType} onChange={(e) => setMvType(e.target.value)} className={inputClass} disabled={!policyType}>
                 <option value="">-- Select --</option>
-                {CTPL_MV_TYPES.map((t) => <option key={t}>{t}</option>)}
+                {(policyType ? CTPL_MV_TYPES_BY_POLICY[policyType] : []).map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
           </div>
+          {policyType === 'Motorcycle' && (
+            <label className="flex items-center space-x-2 mt-4 cursor-pointer">
+              <input type="checkbox" checked={forPublicUse} onChange={(e) => setForPublicUse(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">For Public Use (e.g. habal-habal / public utility motorcycle) &mdash; issued under its own LCOC policy series</span>
+            </label>
+          )}
+
           <div className="mt-4 p-4 rounded-xl bg-[#ebf3fc] flex items-center justify-between dark:bg-[#49b1ea]/10">
             <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Base Premium</span>
-            <span className="text-xl font-black text-[#002f6c]">₱ {premiumValue.toFixed(2)}</span>
+            <span className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">₱ {premiumValue.toFixed(2)}</span>
           </div>
         </div>
 
@@ -247,7 +257,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
               <div className="flex space-x-3 pt-1">
                 {[true, false].map((val) => (
                   <label key={String(val)} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    <input type="radio" checked={sameAsOwner === val} onChange={() => setSameAsOwner(val)} className="accent-[#002f6c]" />
+                    <input type="radio" checked={sameAsOwner === val} onChange={() => setSameAsOwner(val)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
                     <span>{val ? 'Yes' : 'No'}</span>
                   </label>
                 ))}
@@ -289,7 +299,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           </div>
 
           <label className="flex items-center space-x-2 mt-4 cursor-pointer">
-            <input type="checkbox" checked={requiresCOV} onChange={(e) => setRequiresCOV(e.target.checked)} className="accent-[#002f6c]" />
+            <input type="checkbox" checked={requiresCOV} onChange={(e) => setRequiresCOV(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI</span>
           </label>
         </div>
@@ -322,7 +332,7 @@ function CtplReviewSummary({
   renewalType, policyType, mvType, clientType, ownerFirstName, ownerMiddleName, ownerSurname,
   ownerAddress, ownerRegion, ownerCity, ownerBarangay,
   sameAsOwner, applicantFirstName, applicantSurname, email, mobileNumber,
-  plateNumber, mvFileNumber, chassisNumber, requiresCOV, premiumValue, totalDue, onEdit, onConfirm,
+  plateNumber, mvFileNumber, chassisNumber, requiresCOV, forPublicUse, premiumValue, totalDue, onEdit, onConfirm,
 }: {
   renewalType: 'New (1 Year)' | 'Renewal';
   policyType: typeof CTPL_POLICY_TYPES[number] | '';
@@ -344,6 +354,7 @@ function CtplReviewSummary({
   mvFileNumber: string;
   chassisNumber: string;
   requiresCOV: boolean;
+  forPublicUse: boolean;
   premiumValue: number;
   totalDue: number;
   onEdit: () => void;
@@ -364,9 +375,10 @@ function CtplReviewSummary({
           {row('Renewal', renewalType)}
           {row('Policy Type', policyType)}
           {row('LTO MV Type', mvType)}
-          {row('Base Premium', <span className="text-[#002f6c]">₱{premiumValue.toFixed(2)}</span>)}
-          {requiresCOV && row('COV Fee', <span className="text-[#002f6c]">₱{COV_FEE.toFixed(2)}</span>)}
-          {row('Total Amount Due', <span className="text-[#002f6c]">₱{totalDue.toFixed(2)}</span>)}
+          {policyType === 'Motorcycle' && row('For Public Use', forPublicUse ? 'Yes (LCOC series)' : 'No')}
+          {row('Base Premium', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{premiumValue.toFixed(2)}</span>)}
+          {requiresCOV && row('COV Fee', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{COV_FEE.toFixed(2)}</span>)}
+          {row('Total Amount Due', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{totalDue.toFixed(2)}</span>)}
         </div>
       </div>
 

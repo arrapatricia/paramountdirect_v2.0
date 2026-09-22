@@ -227,7 +227,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
           <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
             <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
             <span>Coverage <span className="font-black text-slate-900 dark:text-white">{submittedApp.coverageType}</span></span>
-            <span>Premium <span className="font-black text-[#002f6c]">{submittedApp.premium}</span></span>
+            <span>Premium <span className="font-black text-[#002f6c] dark:text-[#49b1ea]">{submittedApp.premium}</span></span>
           </div>
           <div className="mt-8">
             <button onClick={onBack} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
@@ -248,7 +248,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] font-['Montserrat']">
+          <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">
             {step === 'review' ? 'Review Application' : 'NEW OFW APPLICATION'}
           </h1>
           <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-500">
@@ -257,7 +257,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">Estimated Premium</p>
-          <p className="text-xl font-black text-[#002f6c]">${premiumValue.toFixed(2)}</p>
+          <p className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">${premiumValue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -333,7 +333,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
               <div className="flex space-x-3 pt-2">
                 {(['Male', 'Female'] as const).map((g) => (
                   <label key={g} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    <input type="radio" checked={gender === g} onChange={() => setGender(g)} className="accent-[#002f6c]" /><span>{g}</span>
+                    <input type="radio" checked={gender === g} onChange={() => setGender(g)} className="accent-[#002f6c] dark:accent-[#49b1ea]" /><span>{g}</span>
                   </label>
                 ))}
               </div>
@@ -345,7 +345,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
               </select>
             </div>
             <div>
-              <label className={labelClass}>Birthdate {age !== null && <span className="text-[#002f6c]">&middot; {age} yrs old</span>}</label>
+              <label className={labelClass}>Birthdate {age !== null && <span className="text-[#002f6c] dark:text-[#49b1ea]">&middot; {age} yrs old</span>}</label>
               <input required type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={inputClass} />
             </div>
 
@@ -364,7 +364,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
               <div className="flex flex-col space-y-1.5 pt-1">
                 {(['Direct-hired', 'Balik-Manggagawa'] as const).map((n) => (
                   <label key={n} className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    <input type="radio" checked={natureOfEmployment === n} onChange={() => setNatureOfEmployment(n)} className="accent-[#002f6c]" /><span>{n}</span>
+                    <input type="radio" checked={natureOfEmployment === n} onChange={() => setNatureOfEmployment(n)} className="accent-[#002f6c] dark:accent-[#49b1ea]" /><span>{n}</span>
                   </label>
                 ))}
               </div>
@@ -432,7 +432,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
                 </p>
               </div>
               <label className="flex items-center space-x-2 pl-6 cursor-pointer">
-                <input type="checkbox" checked={conflictAcknowledged} onChange={(e) => setConflictAcknowledged(e.target.checked)} className="accent-[#002f6c]" />
+                <input type="checkbox" checked={conflictAcknowledged} onChange={(e) => setConflictAcknowledged(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
                 <span className="font-bold text-amber-800 dark:text-amber-300">I understand and would like to proceed.</span>
               </label>
             </div>
@@ -589,7 +589,7 @@ function OfwReviewSummary({
           {row('Foreign Employer', employerName ? `${employerName} (${employerCountry})` : '-')}
           {row('Contract Period', contractStart && contractEnd ? `${contractStart} to ${contractEnd} (${contractMonths} months)` : '-')}
           {row('Insurance Start Date', insuranceStart || '-')}
-          {row('Estimated Premium', <span className="text-[#002f6c]">${premiumValue.toFixed(2)}</span>)}
+          {row('Estimated Premium', <span className="text-[#002f6c] dark:text-[#49b1ea]">${premiumValue.toFixed(2)}</span>)}
         </div>
       </div>
 

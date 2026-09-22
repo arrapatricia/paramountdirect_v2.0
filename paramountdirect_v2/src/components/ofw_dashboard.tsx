@@ -102,7 +102,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Total Premium Collected (YTD)</h3>
-          <p className="text-xl font-black text-[#002f6c]">{usd(premiumYtd2026)}</p>
+          <p className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">{usd(premiumYtd2026)}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{premiumYoyPct.toFixed(1)}%</span>
@@ -117,7 +117,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {usd(annualTarget)}</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-3 dark:bg-slate-800">
-            <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${attainmentPct}%` }} />
+            <div className="h-full rounded-full bg-[#002f6c] dark:bg-[#49b1ea]" style={{ width: `${attainmentPct}%` }} />
           </div>
           <p className="text-[10px] font-bold text-slate-400 mt-2 dark:text-slate-500">{attainmentPct}% of target attained &middot; 8.5 of 12 months in</p>
         </div>
@@ -172,7 +172,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
                     <button
                       key={year}
                       onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#002f6c] dark:text-slate-300 dark:hover:bg-slate-700"
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#002f6c] dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-[#49b1ea]"
                     >
                       {year}
                     </button>
@@ -183,7 +183,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="relative w-48 h-48 rounded-full bg-[#002f6c] flex items-center justify-center">
+            <div className="relative w-48 h-48 rounded-full bg-[#002f6c] dark:bg-[#49b1ea] flex items-center justify-center">
               <div className="absolute inset-[16px] rounded-full bg-white flex items-center justify-center dark:bg-slate-900">
                 <div className="text-center">
                   <span className="block text-2xl font-black text-slate-900 dark:text-white">{applicationsForYear.toLocaleString()}</span>
@@ -195,7 +195,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
 
           <div className="grid grid-cols-1 gap-3 mt-8">
             <div className="flex items-center space-x-2">
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-[#002f6c]" />
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-[#002f6c] dark:bg-[#49b1ea]" />
               <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Land-based</span>
               <span className="text-xs font-black text-slate-400 ml-auto dark:text-slate-500">100%</span>
             </div>
@@ -211,8 +211,8 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
             </div>
             <div className="flex items-center space-x-4 text-[10px] font-bold text-slate-500 flex-wrap gap-y-1 dark:text-slate-500">
               <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-slate-300" /><span>2025</span></span>
-              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c]" /><span>2026</span></span>
-              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] opacity-40" /><span>2026 (MTD)</span></span>
+              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] dark:bg-[#49b1ea]" /><span>2026</span></span>
+              <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#002f6c] dark:bg-[#49b1ea] opacity-40" /><span>2026 (MTD)</span></span>
             </div>
           </div>
 
@@ -227,7 +227,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
                   />
                   {m.y2026 !== null && (
                     <div
-                      className={`w-full max-w-[10px] rounded-t bg-[#002f6c] ${i === CURRENT_MONTH_INDEX ? 'opacity-40' : ''}`}
+                      className={`w-full max-w-[10px] rounded-t bg-[#002f6c] dark:bg-[#49b1ea] ${i === CURRENT_MONTH_INDEX ? 'opacity-40' : ''}`}
                       style={{ height: `${(m.y2026 / maxMonthly) * 100}%` }}
                       title={`2026: ${usd(m.y2026)}${i === CURRENT_MONTH_INDEX ? ' (month-to-date)' : ''}`}
                     />
@@ -294,7 +294,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
                     <span className="font-black text-slate-900 dark:text-white">{c.applications.toLocaleString()}</span>
                   </div>
                   <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
-                    <div className="h-full rounded-full bg-[#002f6c]" style={{ width: `${(c.applications / maxCountryApplications) * 100}%` }} />
+                    <div className="h-full rounded-full bg-[#002f6c] dark:bg-[#49b1ea]" style={{ width: `${(c.applications / maxCountryApplications) * 100}%` }} />
                   </div>
                 </div>
               ))}

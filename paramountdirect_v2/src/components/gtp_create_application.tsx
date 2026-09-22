@@ -128,7 +128,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
           <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
             <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
             <span>Plan <span className="font-black text-slate-900 dark:text-white">{submittedApp.planVariant}</span></span>
-            <span>Premium <span className="font-black text-[#002f6c]">{submittedApp.premium}</span></span>
+            <span>Premium <span className="font-black text-[#002f6c] dark:text-[#49b1ea]">{submittedApp.premium}</span></span>
           </div>
           <div className="mt-8">
             <button onClick={onBack} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
@@ -149,7 +149,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] font-['Montserrat']">
+          <h1 className="text-xl font-black uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">
             {step === 'review' ? 'Review Application' : 'NEW GTP APPLICATION'}
           </h1>
           <p className="text-xs font-bold text-slate-500 mt-1 dark:text-slate-400">
@@ -158,7 +158,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-wide">Estimated Premium</p>
-          <p className="text-xl font-black text-[#002f6c]">₱{premiumValue.toFixed(2)}</p>
+          <p className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">₱{premiumValue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -194,7 +194,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
             <div className="flex flex-wrap gap-2">
               {(['International', 'Domestic'] as const).map((t) => (
                 <label key={t} className={`flex items-center space-x-2 px-3 py-2 rounded-lg border cursor-pointer ${travelType === t ? 'border-[#49b1ea] bg-[#ebf3fc] dark:bg-[#49b1ea]/10' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'}`}>
-                  <input type="radio" checked={travelType === t} onChange={() => setTravelType(t)} className="accent-[#002f6c]" />
+                  <input type="radio" checked={travelType === t} onChange={() => setTravelType(t)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{t}</span>
                 </label>
               ))}
@@ -294,7 +294,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
             <div><label className={labelClass}>First Name</label><input required value={travelerFirstName} onChange={(e) => setTravelerFirstName(e.target.value)} className={inputClass} /></div>
             <div><label className={labelClass}>Surname</label><input required value={travelerSurname} onChange={(e) => setTravelerSurname(e.target.value)} className={inputClass} /></div>
             <div>
-              <label className={labelClass}>Birthdate {age !== null && <span className={isSeniorApplicant ? 'text-rose-600' : 'text-[#002f6c]'}>&middot; {age} yrs old</span>}</label>
+              <label className={labelClass}>Birthdate {age !== null && <span className={isSeniorApplicant ? 'text-rose-600' : 'text-[#002f6c] dark:text-[#49b1ea]'}>&middot; {age} yrs old</span>}</label>
               <input required type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} className={inputClass} />
             </div>
             <div><label className={labelClass}>Email Address</label><input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} /></div>
@@ -315,11 +315,11 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
           <h2 className={sectionHeadingClass}>Extra Protection</h2>
           <div className="space-y-3">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={cruiseCoverage} onChange={(e) => setCruiseCoverage(e.target.checked)} className="accent-[#002f6c]" />
+              <input type="checkbox" checked={cruiseCoverage} onChange={(e) => setCruiseCoverage(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Cruise Coverage &mdash; for International Cruise Programs</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" checked={hazardousSportsCoverage} onChange={(e) => setHazardousSportsCoverage(e.target.checked)} className="accent-[#002f6c]" />
+              <input type="checkbox" checked={hazardousSportsCoverage} onChange={(e) => setHazardousSportsCoverage(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Hazardous Non-Professional &amp; Non-Competition Sports Coverage &mdash; winter sports, gymnastics, scuba diving, etc.</span>
             </label>
           </div>
@@ -328,7 +328,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
         {/* Premium Summary */}
         <div className="p-4 rounded-xl bg-[#ebf3fc] flex items-center justify-between dark:bg-[#49b1ea]/10">
           <span className="text-xs font-bold text-slate-600 uppercase dark:text-slate-300">Premium</span>
-          <span className="text-xl font-black text-[#002f6c]">₱ {premiumValue.toFixed(2)}</span>
+          <span className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">₱ {premiumValue.toFixed(2)}</span>
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 pt-2">
@@ -417,7 +417,7 @@ function GtpReviewSummary({
         <h2 className={sectionHeadingClass}>Coverage &amp; Premium</h2>
         <div className="text-xs">
           {row('Extra Protection', addOns)}
-          {row('Estimated Premium', <span className="text-[#002f6c]">₱{premiumValue.toFixed(2)}</span>)}
+          {row('Estimated Premium', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{premiumValue.toFixed(2)}</span>)}
         </div>
       </div>
 
