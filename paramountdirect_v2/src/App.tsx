@@ -9,6 +9,7 @@ import OfwCreateApplication from './components/ofw_create_application';
 import { OFW_STATUSES, type OfwApplication } from './components/ofw_types';
 import CtplDashboard from './components/ctpl_dashboard';
 import CtplApplicationList from './components/ctpl_application_list';
+import CtplApplicationDetail from './components/ctpl_application_detail';
 import CtplCreateApplication from './components/ctpl_create_application';
 import { CTPL_STATUSES, type CtplApplication } from './components/ctpl_types';
 import GtpDashboard from './components/gtp_dashboard';
@@ -145,6 +146,13 @@ function toDisplayDate(iso: string | null): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-US');
 }
+// Same as toDisplayDate but with a time-of-day - used for OFW's
+// verify/process/issue timestamps, since all three can happen the same day.
+function toDisplayDateTime(iso: string | null): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '-' : `${d.toLocaleDateString('en-US')} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+}
 // For fields the UI edits as a plain <input type="date">, e.g. birthdate.
 function toDisplayDateOnly(iso: string): string {
   const d = new Date(iso);
@@ -188,10 +196,12 @@ function mapApiToOfwApplication(api: OfwApplicationApi): OfwApplication {
       medicalCertificate: api.medicalCertificateDoc as OfwApplication['documents']['medicalCertificate'],
     },
     premium: api.premium,
-    dateReceived: toDisplayDate(api.dateReceived),
-    dateVerified: api.dateVerified ? toDisplayDate(api.dateVerified) : undefined,
-    dateProcessed: api.dateProcessed ? toDisplayDate(api.dateProcessed) : undefined,
-    dateIssued: api.dateIssued ? toDisplayDate(api.dateIssued) : undefined,
+    // OFW's milestone dates carry a time-of-day (unlike most other display
+    // dates in this file) since verify/process/issue can all happen the same day.
+    dateReceived: toDisplayDateTime(api.dateReceived),
+    dateVerified: api.dateVerified ? toDisplayDateTime(api.dateVerified) : undefined,
+    dateProcessed: api.dateProcessed ? toDisplayDateTime(api.dateProcessed) : undefined,
+    dateIssued: api.dateIssued ? toDisplayDateTime(api.dateIssued) : undefined,
     status: api.status as OfwApplication['status'],
     screenedBy: api.screenedBy ?? '-',
     employmentVerified: api.employmentVerified as OfwApplication['employmentVerified'],
@@ -635,10 +645,30 @@ export default function App() {
   };
   const [ofwApplications, setOfwApplications] = useState<OfwApplication[]>(initialOfwMockData);
   const [isCreatingOfwApp, setIsCreatingOfwApp] = useState(false);
+  // The OFW application currently open (see ofw_application_list.tsx) - kept
+  // in the URL (/ofw/applications/:id) rather than that component's own
+  // state, so it's a real bookmarkable/shareable/back-button-able address.
+  const [viewingOfwId, setViewingOfwId] = useState<string | null>(() => {
+    const parsed = parsePath(window.location.pathname);
+    return parsed?.tab === 'ofw-applications' ? parsed.recordId ?? null : null;
+  });
   const [ofwConnected, setOfwConnected] = useState(false);
   const [ofwLoadError, setOfwLoadError] = useState<string | null>(null);
   const [ctplApplications, setCtplApplications] = useState<CtplApplication[]>(initialCtplMockData);
   const [isCreatingCtplApp, setIsCreatingCtplApp] = useState(false);
+  // The CTPL application currently open - kept in the URL
+  // (/ctpl/applications/:referenceNo) rather than local component state,
+  // same pattern as viewingOfwId above. Keyed by referenceNo rather than the
+  // internal cuid `id` so the URL is human-readable (referenceNo is always
+  // assigned, paid or not - see server/src/lib/ctplNumbering.ts). Unlike
+  // OFW, a Paid CTPL application opens as a quick-preview modal (see
+  // ctpl_application_list.tsx) while an unpaid one - still editable - opens
+  // as its own full page instead (ctpl_application_detail.tsx); see the
+  // render branch below.
+  const [viewingCtplId, setViewingCtplId] = useState<string | null>(() => {
+    const parsed = parsePath(window.location.pathname);
+    return parsed?.tab === 'ctpl-applications' ? parsed.recordId ?? null : null;
+  });
   const [ctplConnected, setCtplConnected] = useState(false);
   const [ctplLoadError, setCtplLoadError] = useState<string | null>(null);
   const [gtpApplications, setGtpApplications] = useState<GtpApplication[]>(initialGtpMockData);
@@ -699,7 +729,11 @@ export default function App() {
       hasSyncedUrlRef.current = true;
       return;
     }
-    const path = buildPath(activeTab, activeSubTab);
+    const recordId =
+      activeTab === 'ofw-applications' ? viewingOfwId ?? undefined :
+      activeTab === 'ctpl-applications' ? viewingCtplId ?? undefined :
+      undefined;
+    const path = buildPath(activeTab, activeSubTab, recordId);
     if (window.location.pathname !== path) {
       if (hasSyncedUrlRef.current) {
         window.history.pushState(null, '', path);
@@ -708,7 +742,7 @@ export default function App() {
       }
     }
     hasSyncedUrlRef.current = true;
-  }, [activeTab, activeSubTab]);
+  }, [activeTab, activeSubTab, viewingOfwId, viewingCtplId]);
 
   // Supports the browser's Back/Forward buttons for the URLs above.
   useEffect(() => {
@@ -724,9 +758,13 @@ export default function App() {
         setActiveProduct(parsed.product);
         setActiveTab(parsed.tab);
         if (parsed.tab === 'maintenance') setActiveSubTab(parsed.subTab ?? 'branch');
+        setViewingOfwId(parsed.tab === 'ofw-applications' ? parsed.recordId ?? null : null);
+        setViewingCtplId(parsed.tab === 'ctpl-applications' ? parsed.recordId ?? null : null);
       } else {
         setActiveProduct('PD Life');
         setActiveTab('dashboard');
+        setViewingOfwId(null);
+        setViewingCtplId(null);
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -1221,6 +1259,9 @@ export default function App() {
               data={ofwApplications}
               onCreateNew={() => setIsCreatingOfwApp(true)}
               onUpdate={handleUpdateOfwApp}
+              viewingId={viewingOfwId}
+              onView={setViewingOfwId}
+              onCloseView={() => setViewingOfwId(null)}
             />
           )
         )}
@@ -1240,12 +1281,20 @@ export default function App() {
               onCreate={handleCreateCtplApp}
               rates={premiumRates}
             />
+          ) : viewingCtplId && ctplApplications.find((a) => a.referenceNo === viewingCtplId && !a.isPaid) ? (
+            <CtplApplicationDetail
+              app={ctplApplications.find((a) => a.referenceNo === viewingCtplId)!}
+              onBack={() => setViewingCtplId(null)}
+              onUpdate={handleUpdateCtplApp}
+              rates={premiumRates}
+            />
           ) : (
             <CtplApplicationList
               data={ctplApplications}
               onCreateNew={() => setIsCreatingCtplApp(true)}
-              onUpdate={handleUpdateCtplApp}
-              rates={premiumRates}
+              viewingId={viewingCtplId}
+              onView={setViewingCtplId}
+              onCloseView={() => setViewingCtplId(null)}
             />
           )
         )}

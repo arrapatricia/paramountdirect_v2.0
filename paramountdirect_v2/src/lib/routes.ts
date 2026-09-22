@@ -55,14 +55,24 @@ export interface ParsedRoute {
   product: ProductLine;
   tab: string;
   subTab?: string;
+  // Only set for 'ctpl-applications' / 'ofw-applications' - the application
+  // being viewed, e.g. /ctpl/applications/cm123... (see App.tsx's
+  // viewingCtplId / viewingOfwId).
+  recordId?: string;
 }
 
+// Tabs whose URL can carry a record id as an extra path segment - see
+// buildPath/parsePath below.
+const TABS_WITH_RECORD_ID = ['ctpl-applications', 'ofw-applications'] as const;
+
 // Builds the URL for a given nav state. Only 'maintenance' has a
-// browser-visible sub-page per subTab; every other tab ignores subTab.
-export function buildPath(tab: string, subTab?: string): string {
+// browser-visible sub-page per subTab; the tabs above can carry a record id
+// instead; every other tab ignores both.
+export function buildPath(tab: string, subTab?: string, recordId?: string): string {
   const base = TAB_PATHS[tab];
   if (base === undefined) return '/';
   if (tab === 'maintenance' && subTab) return `${base}/${subTab}`;
+  if (recordId && (TABS_WITH_RECORD_ID as readonly string[]).includes(tab)) return `${base}/${recordId}`;
   return base;
 }
 
@@ -75,6 +85,14 @@ export function parsePath(pathname: string): ParsedRoute | null {
   if (normalized.startsWith('/maintenance/')) {
     const subTab = normalized.slice('/maintenance/'.length);
     return { product: 'PD Life', tab: 'maintenance', subTab };
+  }
+
+  for (const tab of TABS_WITH_RECORD_ID) {
+    const base = TAB_PATHS[tab];
+    if (normalized.startsWith(`${base}/`)) {
+      const recordId = normalized.slice(`${base}/`.length);
+      return { product: productForTab(tab), tab, recordId };
+    }
   }
 
   const tab = PATH_TO_TAB[normalized];

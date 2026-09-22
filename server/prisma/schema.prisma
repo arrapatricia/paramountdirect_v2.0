@@ -293,9 +293,10 @@ enum DocumentStatus {
 
 enum OfwStatus {
   Received
-  Cancelled
+  Spoiled
   Duplicate
   Reversed
+  Cancelled
 }
 
 // OFW-only caveat: unlike CTPL/GTP's straight-through website payment, an
@@ -344,6 +345,12 @@ model OfwApplication {
 
   premium       String
   dateReceived  DateTime
+  // Set once employment is verified 'Yes', once the payment instruction is
+  // sent to the client (dateProcessed), and once the policy is issued
+  // (isPaid), respectively - null until then.
+  dateVerified  DateTime?
+  dateProcessed DateTime?
+  dateIssued    DateTime?
   status        OfwStatus  @default(Received)
   screenedBy    String?
   createdAt     DateTime   @default(now())
@@ -358,10 +365,12 @@ model OfwApplication {
   // At least one required, up to three - see OfwBeneficiary.
   beneficiaries OfwBeneficiary[]
 
-  // Assigned once the policy is issued / once payment is confirmed - also
-  // exposed on NonLifePaymentTransaction rows for display/search even when
+  // OFW calls its policy identifier the "COI Number" (Certificate of
+  // Insurance); assigned once payment is confirmed - also exposed on
+  // NonLifePaymentTransaction rows for display/search even when
   // ofwApplicationId is set, since that's the natural lookup key for a payment.
   policyNumber  String?    @unique
+  // Assigned to every application as soon as it exists, paid or not.
   referenceNo   String?    @unique
 
   // Real FK back-relation - see NonLifePaymentTransaction.ofwApplicationId.
@@ -436,6 +445,10 @@ model CtplApplication {
   chassisNumber  String
 
   requiresCOV    Boolean  @default(false)
+
+  // Motorcycle-only: for-hire/public utility motorcycle (e.g. habal-habal) -
+  // gets its own policy number series (LCOC-) instead of the regular MCOC-.
+  forPublicUse   Boolean  @default(false)
 
   premium       String
   dateReceived  DateTime

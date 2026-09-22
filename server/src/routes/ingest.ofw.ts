@@ -10,6 +10,7 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireServiceApiKey } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
+import { generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
 
 const router = Router();
 router.use(requireServiceApiKey);
@@ -65,7 +66,12 @@ router.post(
     const { beneficiaries, ...data } = ingestSchema.parse(req.body);
 
     const application = await prisma.ofwApplication.create({
-      data: { ...data, status: 'Received', beneficiaries: { create: beneficiaries } },
+      data: {
+        ...data,
+        status: 'Received',
+        referenceNo: await generateUniqueOfwReferenceNo(),
+        beneficiaries: { create: beneficiaries },
+      },
     });
 
     try {

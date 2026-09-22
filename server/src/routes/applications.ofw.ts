@@ -5,6 +5,7 @@ import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import type { OfwStatus } from '@prisma/client';
+import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
 
 const router = Router();
 router.use(requireAuth);
@@ -70,7 +71,7 @@ const createApplicationSchema = z.object({
 
   premium: z.string().min(1),
   dateReceived: z.coerce.date(),
-  status: z.enum(['Received', 'Cancelled', 'Duplicate', 'Reversed']).default('Received'),
+  status: z.enum(['Received', 'Spoiled', 'Duplicate', 'Reversed', 'Cancelled']).default('Received'),
   screenedBy: z.string().optional(),
 
   // OFW-only caveat: unlike CTPL/GTP's straight-through website payment, an
@@ -88,12 +89,27 @@ const createApplicationSchema = z.object({
 
   policyNumber: z.string().optional(),
   referenceNo: z.string().optional(),
+  dateVerified: z.coerce.date().optional(),
+  dateProcessed: z.coerce.date().optional(),
+  dateIssued: z.coerce.date().optional(),
 });
 
 router.post(
   '/',
   asyncHandler(async (req, res) => {
     const { beneficiaries, ...data } = createApplicationSchema.parse(req.body);
+
+    // Reference No. identifies the application from the moment it exists,
+    // paid or not. COI Number is only assigned once the policy is actually
+    // issued (isPaid).
+    if (!data.referenceNo) data.referenceNo = await generateUniqueOfwReferenceNo();
+    if (data.isPaid && !data.policyNumber) data.policyNumber = await generateUniqueOfwCoiNumber();
+    // Date Verified is stamped when employment gets verified 'Yes'; Date
+    // Processed when the payment instruction is sent to the client; Date
+    // Issued when the policy gets paid.
+    if (data.employmentVerified === 'Yes' && !data.dateVerified) data.dateVerified = new Date();
+    if (data.paymentInstructionSent && !data.dateProcessed) data.dateProcessed = new Date();
+    if (data.isPaid && !data.dateIssued) data.dateIssued = new Date();
 
     const application = await prisma.ofwApplication.create({
       data: { ...data, beneficiaries: { create: beneficiaries } },
@@ -111,6 +127,26 @@ router.put(
   '/:id',
   asyncHandler(async (req, res) => {
     const { beneficiaries, ...data } = updateApplicationSchema.parse(req.body);
+    const current = await prisma.ofwApplication.findUnique({ where: { id: req.params.id } });
+    if (!current) throw new HttpError(404, 'Application not found');
+
+    // Backfills a Reference No. for any pre-existing row that predates this
+    // always-assigned rule (see POST above).
+    if (!current.referenceNo && !data.referenceNo) {
+      data.referenceNo = await generateUniqueOfwReferenceNo();
+    }
+    if (data.isPaid && !current.policyNumber && !data.policyNumber) {
+      data.policyNumber = await generateUniqueOfwCoiNumber();
+    }
+    if (data.employmentVerified === 'Yes' && !current.dateVerified && !data.dateVerified) {
+      data.dateVerified = new Date();
+    }
+    if (data.paymentInstructionSent && !current.dateProcessed && !data.dateProcessed) {
+      data.dateProcessed = new Date();
+    }
+    if (data.isPaid && !current.dateIssued && !data.dateIssued) {
+      data.dateIssued = new Date();
+    }
 
     // Beneficiaries are a small, wholesale-replaced child collection (at
     // most three) - simplest to delete and recreate rather than diff, same

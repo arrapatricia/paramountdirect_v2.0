@@ -5,6 +5,7 @@ import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import type { CtplStatus } from '@prisma/client';
+import { generateUniqueCtplPolicyNumber, generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
 
 const router = Router();
 router.use(requireAuth);
@@ -54,6 +55,7 @@ const createApplicationSchema = z.object({
   chassisNumber: z.string().min(1),
 
   requiresCOV: z.boolean().default(false),
+  forPublicUse: z.boolean().default(false),
 
   premium: z.string().min(1),
   dateReceived: z.coerce.date(),
@@ -70,6 +72,14 @@ router.post(
   asyncHandler(async (req, res) => {
     const data = createApplicationSchema.parse(req.body);
 
+    // Reference No. identifies the application from the moment it exists,
+    // paid or not. Policy Number is only assigned once the policy is
+    // actually issued (isPaid).
+    if (!data.referenceNo) data.referenceNo = await generateUniqueCtplReferenceNo();
+    if (data.isPaid && !data.policyNumber) {
+      data.policyNumber = await generateUniqueCtplPolicyNumber(data.policyType, data.forPublicUse);
+    }
+
     const application = await prisma.ctplApplication.create({ data });
 
     await recordAudit(req, { action: 'CREATE', module: 'CTPL Applications', details: `Created CTPL application ${application.id} (${application.plateNumber})` });
@@ -83,6 +93,20 @@ router.put(
   '/:id',
   asyncHandler(async (req, res) => {
     const data = updateApplicationSchema.parse(req.body);
+    const current = await prisma.ctplApplication.findUnique({ where: { id: req.params.id } });
+    if (!current) throw new HttpError(404, 'Application not found');
+
+    // Backfills a Reference No. for any pre-existing row that predates this
+    // always-assigned rule (see POST above).
+    if (!current.referenceNo && !data.referenceNo) {
+      data.referenceNo = await generateUniqueCtplReferenceNo();
+    }
+    if (data.isPaid && !current.policyNumber && !data.policyNumber) {
+      data.policyNumber = await generateUniqueCtplPolicyNumber(
+        data.policyType ?? current.policyType,
+        data.forPublicUse ?? current.forPublicUse
+      );
+    }
 
     const application = await prisma.ctplApplication.update({ where: { id: req.params.id }, data });
 

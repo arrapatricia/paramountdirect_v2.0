@@ -10,6 +10,7 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../middleware/errorHandler';
 import { requireServiceApiKey } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
+import { generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
 
 const router = Router();
 router.use(requireServiceApiKey);
@@ -38,6 +39,7 @@ const ingestSchema = z.object({
   chassisNumber: z.string().min(1),
 
   requiresCOV: z.boolean().default(false),
+  forPublicUse: z.boolean().default(false),
 
   // Plain numeric string (no currency sign), same convention as every other
   // application's premium field in this system.
@@ -50,11 +52,12 @@ router.post(
   asyncHandler(async (req, res) => {
     const data = ingestSchema.parse(req.body);
 
-    // Straight-through payment, no verification gate - matches
-    // applications.ctpl.ts's own default, so an ingested application starts
-    // exactly where a staff-created one would.
+    // Reference No. is assigned to every CTPL application as soon as it
+    // exists, paid or not - matches applications.ctpl.ts's own POST route.
+    const referenceNo = await generateUniqueCtplReferenceNo();
+
     const application = await prisma.ctplApplication.create({
-      data: { ...data, status: 'Completed' },
+      data: { ...data, status: 'Completed', referenceNo },
     });
 
     try {
