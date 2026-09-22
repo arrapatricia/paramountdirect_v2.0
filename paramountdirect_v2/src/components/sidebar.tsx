@@ -125,6 +125,16 @@ export default function Sidebar({
   };
   const navItems = navItemsByProduct[activeProduct];
 
+  // PD Life's dashboard is its primary landing page - the other product
+  // lines don't have anything as developed there yet, so switching to them
+  // should land straight on their Applications list instead, per request.
+  const PRODUCT_LANDING_TAB: Record<ProductLine, string> = {
+    'PD Life': 'dashboard',
+    'OFW': 'ofw-applications',
+    'CTPL': 'ctpl-applications',
+    'GTP': 'gtp-applications',
+  };
+
   // Statistics sub-pages, PD Life only - mirrors the equivalent section in
   // the legacy admin (Monthly/Daily/Follow-up Calls/Signed/Screened/
   // Application Statuses), narrowed down to just these six per request.
@@ -224,7 +234,7 @@ export default function Sidebar({
                       onClick={() => {
                         if (!isBuilt || !setActiveProduct) return;
                         setActiveProduct(product);
-                        setActiveTab(navItemsByProduct[product][0]?.id || 'dashboard');
+                        setActiveTab(PRODUCT_LANDING_TAB[product] ?? navItemsByProduct[product][0]?.id ?? 'dashboard');
                         if (onClose) onClose();
                       }}
                       className={`px-2.5 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 ${
