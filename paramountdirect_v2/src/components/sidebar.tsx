@@ -94,7 +94,9 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
   const [isStatisticsOpen, setIsStatisticsOpen] = useState(true);
-  const [isApplicationsOpen, setIsApplicationsOpen] = useState(true);
+  // Only Applications starts collapsed on login - Statistics and Maintenance
+  // stay expanded (see the two useState calls above).
+  const [isApplicationsOpen, setIsApplicationsOpen] = useState(false);
 
   const navItemsByProduct: Record<ProductLine, { id: string; label: string; icon: typeof LayoutDashboard }[]> = {
     'PD Life': [
@@ -104,17 +106,17 @@ export default function Sidebar({
       { id: 'billing', label: 'Billing', icon: Mail },
     ],
     'OFW': [
-      { id: 'ofw-dashboard', label: 'OFW Dashboard', icon: LayoutDashboard },
+      { id: 'ofw-dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'ofw-applications', label: 'OFW Applications', icon: ClipboardCheck },
       { id: 'ofw-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
     'CTPL': [
-      { id: 'ctpl-dashboard', label: 'CTPL Dashboard', icon: LayoutDashboard },
+      { id: 'ctpl-dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'ctpl-applications', label: 'CTPL Applications', icon: ClipboardCheck },
       { id: 'ctpl-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
     'GTP': [
-      { id: 'gtp-dashboard', label: 'GTP Dashboard', icon: LayoutDashboard },
+      { id: 'gtp-dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'gtp-applications', label: 'GTP Applications', icon: ClipboardCheck },
       { id: 'gtp-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
@@ -253,9 +255,64 @@ export default function Sidebar({
 
           {/* Navigation Links */}
           <nav className="space-y-1">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
+
+              // Statistics (PD Life only) sits right after Dashboard, ahead
+              // of Applications/Payments/Billing - rendered here as index 0
+              // is always Dashboard for every product line.
+              const statisticsAccordion = index === 0 && activeProduct === 'PD Life' ? (
+                <div key="statistics">
+                  <button
+                    onClick={() => {
+                      if (isCollapsed) setIsCollapsed(false);
+                      setIsStatisticsOpen(!isStatisticsOpen);
+                    }}
+                    title={isCollapsed ? 'Statistics' : undefined}
+                    className={`
+                      w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800
+                      ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-3'}
+                      ${statisticsSubItems.some((s) => s.id === activeTab) ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white' : ''}
+                    `}
+                  >
+                    <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+                      <ListChecks className="w-5 h-5 text-slate-500 flex-shrink-0 dark:text-slate-400" />
+                      {!isCollapsed && <span className="truncate">Statistics</span>}
+                    </div>
+                    {!isCollapsed && (
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isStatisticsOpen ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+
+                  {isStatisticsOpen && !isCollapsed && (
+                    <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3 dark:border-slate-800">
+                      {statisticsSubItems.map((sub) => {
+                        const SubIcon = sub.icon;
+                        const isSubActive = activeTab === sub.id;
+
+                        return (
+                          <button
+                            key={sub.id}
+                            onClick={() => {
+                              setActiveTab(sub.id);
+                              if (onClose) onClose();
+                            }}
+                            className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
+                              isSubActive
+                                ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
+                                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
+                            <span className="truncate">{sub.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null;
 
               // Applications (PD Life only) is an accordion grouping the
               // application hub page with its three sub-areas - the header
@@ -326,81 +383,30 @@ export default function Sidebar({
               }
 
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    if (onClose) onClose();
-                  }}
-                  title={isCollapsed ? item.label : undefined}
-                  className={`
-                    w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
-                    ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
-                    ${isActive
-                      ? 'text-white shadow-md'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
-                    }
-                  `}
-                  style={isActive ? { backgroundColor: activeProduct === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
-                >
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
-                  {!isCollapsed && <span className="truncate">{item.label}</span>}
-                </button>
+                <div key={item.id}>
+                  <button
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (onClose) onClose();
+                    }}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`
+                      w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold
+                      ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-3 space-x-3'}
+                      ${isActive
+                        ? 'text-white shadow-md'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                      }
+                    `}
+                    style={isActive ? { backgroundColor: activeProduct === 'PD Life' ? '#d0112b' : '#002f6c' } : undefined}
+                  >
+                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  </button>
+                  {statisticsAccordion}
+                </div>
               );
             })}
-
-            {/* Statistics Accordion - PD Life only */}
-            {activeProduct === 'PD Life' && (
-              <div>
-                <button
-                  onClick={() => {
-                    if (isCollapsed) setIsCollapsed(false);
-                    setIsStatisticsOpen(!isStatisticsOpen);
-                  }}
-                  title={isCollapsed ? 'Statistics' : undefined}
-                  className={`
-                    w-full flex items-center rounded-2xl transition-all cursor-pointer text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800
-                    ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-3'}
-                    ${statisticsSubItems.some((s) => s.id === activeTab) ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white' : ''}
-                  `}
-                >
-                  <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
-                    <ListChecks className="w-5 h-5 text-slate-500 flex-shrink-0 dark:text-slate-400" />
-                    {!isCollapsed && <span className="truncate">Statistics</span>}
-                  </div>
-                  {!isCollapsed && (
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isStatisticsOpen ? 'rotate-180' : ''}`} />
-                  )}
-                </button>
-
-                {isStatisticsOpen && !isCollapsed && (
-                  <div className="ml-8 mt-1 space-y-1 border-l-2 border-slate-100 pl-3 dark:border-slate-800">
-                    {statisticsSubItems.map((sub) => {
-                      const SubIcon = sub.icon;
-                      const isSubActive = activeTab === sub.id;
-
-                      return (
-                        <button
-                          key={sub.id}
-                          onClick={() => {
-                            setActiveTab(sub.id);
-                            if (onClose) onClose();
-                          }}
-                          className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
-                            isSubActive
-                              ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
-                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-                          }`}
-                        >
-                          <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
-                          <span className="truncate">{sub.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Maintenance Accordion */}
             <div>
