@@ -39,6 +39,7 @@ erDiagram
         string applicationId
         string docKey
         string s3Key UK
+        string invoiceNumber UK
     }
 ```
 
@@ -185,12 +186,14 @@ Relations: has many `NonLifePaymentTransaction` (`product = OFW`); has many `Ofw
 | `id` PK | String (cuid) | |
 | `policyType` | enum | `Private_Car` \| `Commercial_Vehicle` \| `Motorcycle` |
 | `mvType` | String | |
-| `renewalType` | enum | `New_1_Year` \| `Renewal` |
+| `renewalType` | enum | `One_Year` \| `Three_Years` |
 | `clientType` | enum | `Individual` \| `Corporate_without_assignee` \| `Corporate_with_assignee` |
 | `ownerFirstName` … `mobileNumber` (8 cols) | String / Boolean | owner vs. applicant identity; `sameAsOwner` toggle |
 | `ownerAddress` / `ownerRegion` / `ownerCity` / `ownerBarangay` | String | registered owner's address breakdown |
 | `plateNumber` / `mvFileNumber` / `chassisNumber` | String | |
+| `vehicleYear` / `vehicleMake` / `vehicleSeries` / `vehicleColor` / `vehicleBodyType` / `motorNumber` / `authorizedCapacity` / `unladenWeight` | String | vehicle description needed to fill the COC/Service Invoice PDFs; Year/Make mirror ctpl.ph's own picker (`ctpl_vehicle_reference.ts`), Series is free-text |
 | `requiresCOV` | Boolean | |
+| `effectiveDate` / `expiryDate` | DateTime? | policy term, defaulted from `renewalType` once issued |
 | `status` | enum | `Completed` \| `Spoiled` \| `Duplicate` \| `Reversed` \| `Cancelled` |
 | `isPaid` | Boolean | |
 | `policyNumber` UK / `referenceNo` UK | String? | assigned once paid/issued |
@@ -262,8 +265,10 @@ row can also have none set, for a payment logged manually with no matching appli
 
 ## Generated Documents
 
-Backs the Policy Schedule / COC / OR / Service Invoice download-and-store flow — see Change
-Log (20) in `DEVELOPER_HANDOVER.md`.
+Backs the Policy Schedule / COC / OR / Service Invoice download-and-store flow — see §1 in
+`DEVELOPER_HANDOVER.md`. CTPL is the only product line with a document-fill service built so
+far (`ctplDocumentFill.ts`, COC + Service Invoice only); OFW/GTP will write to this same table
+once their own fill services exist.
 
 ### `GeneratedDocument`
 
@@ -274,9 +279,10 @@ One immutable row per generated file.
 | `id` PK | String (cuid) | |
 | `applicationType` | enum | `PdLife` \| `OFW` \| `CTPL` \| `GTP` |
 | `applicationId` | String | **not a DB-level FK** — polymorphic like `NonLifePaymentTransaction`, but resolved against whichever table `applicationType` names, in application code only |
-| `docKey` | String | matches the frontend's `PolicyDocumentSpec.key`, e.g. `"policy-schedule"`, `"or"` |
+| `docKey` | String | matches the frontend's `PolicyDocumentSpec.key`, e.g. `"ctpl-coc"`, `"ctpl-service-invoice"` |
 | `s3Key` UK | String | `documents/{applicationType}/{applicationId}/{docKey}-{timestamp}.pdf` |
 | `contentType` | String | default `application/pdf` |
+| `invoiceNumber` UK | String? | only set for docKeys with their own invoice numbering (e.g. Service Invoice) — shared `6000000XXXXXX` series across OFW/CTPL/GTP by design (see `invoiceNumbering.ts`), not per-product |
 | `generatedAt` / `generatedBy?` | DateTime / String? | |
 
 ## Audit Logs

@@ -455,3 +455,24 @@ export interface LifePaymentTransactionApi {
 export const paymentsApi = {
   list: () => apiFetch<LifePaymentTransactionApi[]>('/api/payments'),
 };
+
+// Generated policy documents (Policy Schedule/COC/OR/Service Invoice, etc.) -
+// see server/src/routes/documents.ts. The bucket is private, so viewing one
+// is always a two-step list-then-presign, never a direct S3 URL.
+export interface GeneratedDocumentApi {
+  id: string;
+  applicationType: string;
+  applicationId: string;
+  docKey: string;
+  s3Key: string;
+  contentType: string;
+  invoiceNumber: string | null;
+  generatedAt: string;
+  generatedBy: string | null;
+}
+
+export const documentsApi = {
+  list: (applicationType: string, applicationId: string) =>
+    apiFetch<GeneratedDocumentApi[]>(`/api/documents?applicationType=${encodeURIComponent(applicationType)}&applicationId=${encodeURIComponent(applicationId)}`),
+  getUrl: (id: string) => apiFetch<{ url: string }>(`/api/documents/${id}/url`),
+};

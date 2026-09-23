@@ -353,7 +353,7 @@ const OFW_MOCK_APPLICANTS = [
 // backend (see ofwConnected below) - set the length back above 0 only for
 // local demoing without a backend, since it briefly flashes before the
 // real fetch resolves and overwrites it otherwise.
-const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i) => {
+const initialOfwMockData: OfwApplication[] = Array.from({ length: 10 }).map((_, i) => {
   const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
   // Weighted so most applications sit in 'Received' (the common case), with
   // the terminal outcomes appearing occasionally - mirrors the CTPL cycle.
@@ -429,16 +429,29 @@ const CTPL_MOCK_OWNERS = [
   { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Heavy Truck (Own Goods) / Private Bus (> 3,930kg)', premium: 1246.01 },
 ];
 
-const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_, i) => {
+const CTPL_POLICY_PREFIX: Record<CtplApplication['policyType'], string> = {
+  'Private Car': 'P',
+  'Commercial Vehicle': 'C',
+  'Motorcycle': 'M',
+};
+
+const initialCtplMockData: CtplApplication[] = Array.from({ length: 10 }).map((_, i) => {
   const owner = CTPL_MOCK_OWNERS[i % CTPL_MOCK_OWNERS.length];
   const statusCycle: typeof CTPL_STATUSES[number][] = [
     'Completed', 'Completed', 'Completed', 'Cancelled', 'Completed', 'Spoiled', 'Completed', 'Duplicate', 'Completed', 'Reversed',
   ];
   const status = statusCycle[i % statusCycle.length];
+  // Only 'Completed' (goes on to be issued) or 'Reversed' (paid, then
+  // refunded) rows are ever paid - Cancelled/Duplicate/Spoiled never reach payment.
+  const isPaid = status === 'Reversed' || (status === 'Completed' && i % 3 !== 0);
   const day = 27 - (i % 5);
 
   return {
     id: `MCOC${(1000000 + i).toString()}`,
+    // Reference No. is always assigned (2600 + 6 digits); Policy No. only
+    // once paid ({prefix}COC-{10 digits}, matching ctplNumbering.ts).
+    referenceNo: `2600${(50000 + i).toString().padStart(6, '0')}`,
+    policyNumber: isPaid ? `${CTPL_POLICY_PREFIX[owner.policyType]}COC-${(1000000000 + i).toString().padStart(10, '0')}` : undefined,
     policyType: owner.policyType,
     mvType: owner.mvType,
     renewalType: (i % 4 === 0 ? '3 Years' : '1 Year') as '1 Year' | '3 Years',
@@ -474,7 +487,7 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
     // Straight-through website payment - some mock rows are left unpaid so
     // the Documents section has both locked and unlocked rows to demo.
-    isPaid: i % 3 !== 0,
+    isPaid,
   };
 });
 
@@ -487,16 +500,23 @@ const GTP_MOCK_TRAVELERS = [
   { firstName: 'Diego', surname: 'Ramos', destinations: ['Thailand'], type: 'Individual' as const, plan: 'Single Trip' as const },
 ];
 
-const initialGtpMockData: GtpApplication[] = Array.from({ length: 0 }).map((_, i) => {
+const initialGtpMockData: GtpApplication[] = Array.from({ length: 10 }).map((_, i) => {
   const traveler = GTP_MOCK_TRAVELERS[i % GTP_MOCK_TRAVELERS.length];
   const statusCycle: typeof GTP_STATUSES[number][] = ['Received', 'Received', 'Received', 'Cancelled', 'Received', 'Duplicate'];
   const status = statusCycle[i % statusCycle.length];
+  // Only 'Received' rows are ever paid - Cancelled/Duplicate never reach payment.
+  const isPaid = status === 'Received' && i % 3 !== 0;
   const isSchengenDestination = traveler.destinations.some((d) => ['France', 'Italy'].includes(d));
   const day = 27 - (i % 5);
   const days = 7 + (i % 3) * 3;
 
   return {
     id: `GTPH-${(100000 + i).toString()}`,
+    // Reference No. is always assigned; Policy No. only once paid - no real
+    // numbering scheme has been assigned for GTP yet (see server's
+    // applications.gtp.ts), so this is a placeholder shape only.
+    referenceNo: `GTP-REF-${(600000 + i).toString().padStart(6, '0')}`,
+    policyNumber: isPaid ? `GTP-${(700000 + i).toString().padStart(6, '0')}` : undefined,
     travelType: 'International' as const,
     destinations: traveler.destinations,
     departureDate: '10/01/2026',
@@ -518,7 +538,7 @@ const initialGtpMockData: GtpApplication[] = Array.from({ length: 0 }).map((_, i
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
     // Straight-through website payment - some mock rows are left unpaid so
     // the Documents section has both locked and unlocked rows to demo.
-    isPaid: i % 3 !== 0,
+    isPaid,
   };
 });
 
@@ -952,6 +972,12 @@ export default function App() {
     setPdLifeConnected(false);
     setCurrentUserRole(null);
     setIsAuthenticated(false);
+    // The URL-sync effect only reacts to activeTab/activeSubTab changes, so
+    // without this the address bar keeps showing the last authenticated
+    // deep link (e.g. /ctpl/applications/2600139120) right through the
+    // login screen - not a security issue (the isAuthenticated guard above
+    // already forces Login regardless of path), but confusing and wrong.
+    window.history.replaceState(null, '', '/');
   };
 
   if (!isAuthenticated) {

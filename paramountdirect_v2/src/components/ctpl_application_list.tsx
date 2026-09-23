@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
 import { CTPL_POLICY_TYPES, CTPL_STATUSES, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
-import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
+import { PolicyDocumentsSection, type PolicyDocumentSpec } from './policy_documents';
+import { documentsApi, ApiError } from '../lib/api';
 
 interface Props {
   data: CtplApplication[];
@@ -17,18 +18,12 @@ interface Props {
   onCloseView?: () => void;
 }
 
-// `premium` is stored formatted (e.g. "₱682.00") and already includes the
-// COV fee when one applies - the Service Invoice needs the pre-fee base
-// amount back out to show an accurate line-item breakdown.
-const parsePeso = (formatted: string) => Number(formatted.replace(/[₱,]/g, '')) || 0;
-
 // CTPL issues a Certificate of Cover (COC) rather than a separate OR, unlike
-// OFW/GTP which get an Official Receipt.
+// OFW/GTP which get an Official Receipt. Keys match GeneratedDocument.docKey
+// (see ctplDocumentFill.ts) - only these two templates exist so far.
 const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
-  { key: 'policySchedule', label: 'Policy Schedule' },
-  { key: 'policyJacket', label: 'Policy Jacket' },
-  { key: 'coc', label: 'Certificate of Cover (COC)' },
-  { key: 'serviceInvoice', label: 'Service Invoice' },
+  { key: 'ctpl-coc', label: 'Certificate of Cover (COC)' },
+  { key: 'ctpl-service-invoice', label: 'Service Invoice' },
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -59,7 +54,6 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
   const [searchTerm, setSearchTerm] = useState('');
   const [policyTypeFilter, setPolicyTypeFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
   // Look up from `data` (rather than holding a snapshot) so the modal stays
@@ -76,10 +70,36 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
     setTimeout(() => setNotification(null), 2500);
   };
 
-  const handleViewDoc = (key: string) => setViewingDoc(key);
-  const handleSendDoc = (key: string) => {
-    const doc = CTPL_DOCUMENTS.find((d) => d.key === key);
-    notify(`${doc?.label ?? 'Document'} emailed to ${viewingApp?.email}.`);
+  // Looks up the real generated PDF (see ctplDocumentFill.ts / documents.ts)
+  // rather than rendering an in-app mock - opens it in a new tab via a
+  // short-lived presigned S3 URL, since the bucket itself is private.
+  const findGeneratedDoc = async (key: string) => {
+    if (!viewingApp) return null;
+    const docs = await documentsApi.list('CTPL', viewingApp.id);
+    return docs.find((d) => d.docKey === key) ?? null;
+  };
+
+  const handleViewDoc = async (key: string) => {
+    const label = CTPL_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    try {
+      const doc = await findGeneratedDoc(key);
+      if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
+      const { url } = await documentsApi.getUrl(doc.id);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : `Failed to open ${label}.`);
+    }
+  };
+
+  const handleSendDoc = async (key: string) => {
+    const label = CTPL_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    try {
+      const doc = await findGeneratedDoc(key);
+      if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
+      notify(`${label} emailed to ${viewingApp?.email}.`);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : `Failed to send ${label}.`);
+    }
   };
 
   const tabCounts: Record<string, number> = {
@@ -325,96 +345,6 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
             </div>
           </div>
         </div>
-      )}
-
-      {/* Printable Document Modal */}
-      {viewingApp && viewingDoc && (
-        <PrintableDocumentModal
-          title={CTPL_DOCUMENTS.find((d) => d.key === viewingDoc)?.label ?? 'Document'}
-          onClose={() => setViewingDoc(null)}
-        >
-          {viewingDoc === 'policySchedule' ? (
-            // Matches the real EMCC Policy Schedule template.
-            <>
-              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Policy Schedule</p>
-              <DocRow label="Policy No." value={viewingApp.policyNumber ?? '—'} />
-              <DocRow label="Confirmation of Cover No." value={viewingApp.policyNumber ? `COC-${viewingApp.policyNumber}` : '—'} />
-              <DocRow label="Official Receipt No." value={viewingApp.referenceNo ?? '—'} />
-              <DocRow label="Registered Owner" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
-              <div className="border border-slate-300">
-                <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Schedule of Vehicle</p>
-                <div className="grid grid-cols-2 text-[10px]">
-                  <div className="px-2 py-1.5 border-b border-r border-dashed border-slate-200"><span className="text-slate-500 font-bold">Type / MV Type</span><br /><span className="font-extrabold">{viewingApp.policyType} &mdash; {viewingApp.mvType}</span></div>
-                  <div className="px-2 py-1.5 border-b border-dashed border-slate-200"><span className="text-slate-500 font-bold">MV File No.</span><br /><span className="font-extrabold">{viewingApp.mvFileNumber}</span></div>
-                  <div className="px-2 py-1.5 border-r border-dashed border-slate-200"><span className="text-slate-500 font-bold">Plate No.</span><br /><span className="font-extrabold font-mono">{viewingApp.plateNumber}</span></div>
-                  <div className="px-2 py-1.5"><span className="text-slate-500 font-bold">Serial / Chassis No.</span><br /><span className="font-extrabold font-mono">{viewingApp.chassisNumber}</span></div>
-                </div>
-              </div>
-              <div className="border border-slate-300">
-                <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Section I / II &mdash; Third Party Liability (subject to schedule of indemnity)</p>
-                <div className="flex justify-between px-2 py-1.5 text-[10px]"><span className="font-bold text-slate-600">Limit of Liability: ₱200,000.00</span><span className="font-extrabold">{viewingApp.premium}</span></div>
-              </div>
-              <div className="border border-slate-300 text-[10px]">
-                <p className="bg-slate-100 font-extrabold uppercase px-2 py-1 border-b border-slate-300">Section III &amp; IV &mdash; Own Damage / Bodily Injury &amp; Property Damage</p>
-                <p className="px-2 py-1.5 text-slate-500 font-semibold">Not Covered &mdash; CTPL-only policy</p>
-              </div>
-              <DocRow label="Total Premium" value={viewingApp.premium} />
-            </>
-          ) : viewingDoc === 'coc' ? (
-            // Matches the real Confirmation of Cover template — Land Transportation
-            // Operators Vehicle (commercial, with passenger liability) vs.
-            // Non-Land Transportation Operators Vehicle (private, TPL only).
-            <>
-              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">"Original" Confirmation of Cover</p>
-              <p className="text-center text-[10px] font-bold uppercase text-slate-500 pb-2 border-b border-dashed border-slate-300">
-                {viewingApp.policyType === 'Commercial Vehicle' ? 'Land Transportation Operators Vehicle' : 'Non-Land Transportation Operators Vehicle'}
-              </p>
-              <DocRow label="Policy No." value={viewingApp.policyNumber ?? '—'} />
-              <DocRow label="Confirmation of Cover No." value={viewingApp.policyNumber ? `COC-${viewingApp.policyNumber}` : '—'} />
-              <DocRow label="Name and Address of Insured" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}, ${[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}`} />
-              <DocRow label="Vehicle" value={`${viewingApp.mvType} — Plate ${viewingApp.plateNumber}`} />
-              <div className="border border-slate-300">
-                <p className="bg-slate-100 text-[10px] font-extrabold uppercase px-2 py-1 border-b border-slate-300">Limits of Liability (Subject to Schedule of Indemnities)</p>
-                <div className="flex justify-between px-2 py-1.5 text-[10px] border-b border-dashed border-slate-200"><span className="font-bold text-slate-600">A. Third Party Liability</span><span className="font-extrabold">₱200,000.00</span></div>
-                {viewingApp.policyType === 'Commercial Vehicle' && (
-                  <div className="flex justify-between px-2 py-1.5 text-[10px]"><span className="font-bold text-slate-600">B. Passenger Liability</span><span className="font-extrabold">₱200,000.00</span></div>
-                )}
-              </div>
-              <DocRow label="Premiums Paid (Inclusive of Taxes)" value={viewingApp.premium} />
-              <p className="text-[9px] text-slate-500 leading-relaxed pt-1">This Confirmation of Cover is evidence of the policy of insurance required under Chapter VI, Compulsory Motor Vehicle Liability Insurance of the Insurance Code, as amended by Presidential Decree No. 1814.</p>
-              <p className="text-[10px] text-slate-500 pt-2 text-right">Reynaldo M. Saris, SAVP &mdash; Underwriting<br />Authorized Signature</p>
-            </>
-          ) : viewingDoc === 'serviceInvoice' ? (
-            // Matches the real Service Invoice template.
-            <>
-              <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Service Invoice</p>
-              <DocRow label="Invoice No." value={viewingApp.referenceNo ? `INV-${viewingApp.referenceNo}` : '—'} />
-              <DocRow label="Invoice Date" value={viewingApp.dateReceived} />
-              <DocRow label="Policy No." value={viewingApp.policyNumber ?? '—'} />
-              <DocRow label="Name" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
-              <table className="w-full text-[10px] border border-slate-300 mt-1">
-                <thead><tr className="bg-[#002f6c] text-white"><th className="text-left px-2 py-1.5">Item Description / Nature of Service</th><th className="text-right px-2 py-1.5">Amount</th></tr></thead>
-                <tbody>
-                  <tr><td className="px-2 py-1.5 border-b border-dashed border-slate-200">CTPL Insurance Premium &mdash; {viewingApp.mvType}</td><td className="px-2 py-1.5 border-b border-dashed border-slate-200 text-right font-bold">₱{(parsePeso(viewingApp.premium) - (viewingApp.requiresCOV ? COV_FEE : 0)).toFixed(2)}</td></tr>
-                  {viewingApp.requiresCOV && (
-                    <tr><td className="px-2 py-1.5">Certificate of Validation (COV) Fee</td><td className="px-2 py-1.5 text-right font-bold">₱{COV_FEE.toFixed(2)}</td></tr>
-                  )}
-                </tbody>
-              </table>
-              <DocRow label="Total Amount" value={viewingApp.premium} />
-              <p className="text-[10px] text-slate-500 pt-2">Please make check payments payable to Paramount Life &amp; General Insurance Corporation.</p>
-            </>
-          ) : (
-            <>
-              <DocRow label="Reference No." value={viewingApp.referenceNo ?? '—'} />
-              <DocRow label="Registered Owner" value={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
-              <DocRow label="Policy Type" value={viewingApp.policyType} />
-              <DocRow label="MV Type" value={viewingApp.mvType} />
-              <DocRow label="Plate Number" value={viewingApp.plateNumber} />
-              <DocRow label="Premium" value={viewingApp.premium} />
-            </>
-          )}
-        </PrintableDocumentModal>
       )}
 
       {/* Toast */}
