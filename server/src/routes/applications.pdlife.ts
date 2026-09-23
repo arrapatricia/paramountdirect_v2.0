@@ -77,6 +77,31 @@ router.put(
   })
 );
 
+// Applications start with no screener; the first issuer to open one in
+// Application Screening claims it. The conditional updateMany makes the
+// claim atomic, so two issuers opening the same row at once can't both win.
+router.patch(
+  '/:id/claim',
+  asyncHandler(async (req, res) => {
+    const user = req.user?.sub ? await prisma.user.findUnique({ where: { id: req.user.sub } }) : null;
+    if (!user) throw new HttpError(403, 'Only a logged-in user can claim an application');
+    const screenerName = `${user.firstName} ${user.lastName}`.trim();
+
+    const { count } = await prisma.pdLifeApplication.updateMany({
+      where: { id: req.params.id, OR: [{ screenedBy: null }, { screenedBy: '' }] },
+      data: { screenedBy: screenerName },
+    });
+
+    const application = await prisma.pdLifeApplication.findUnique({ where: { id: req.params.id } });
+    if (!application) throw new HttpError(404, 'Application not found');
+
+    if (count > 0) {
+      await recordAudit(req, { action: 'UPDATE', module: 'Application Screening', details: `${screenerName} claimed PD Life application ${application.id} (${application.payor})` });
+    }
+    res.json(application);
+  })
+);
+
 const statusUpdateSchema = z.object({
   status: z.enum(['Received', 'For_Verification', 'For_Evaluation', 'Paid', 'Issued']),
 });

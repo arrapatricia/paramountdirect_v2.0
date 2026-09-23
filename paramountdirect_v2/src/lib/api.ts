@@ -108,6 +108,11 @@ const STATUS_FROM_API: Record<string, string> = Object.fromEntries(
 export const toApiPdLifeStatus = (status: string): string => STATUS_TO_API[status] ?? status;
 export const fromApiPdLifeStatus = (status: string): string => STATUS_FROM_API[status] ?? status;
 
+// A null screenedBy is displayed as '-' - either means no issuer has
+// opened (and so claimed) the application yet.
+export const isUnassignedScreener = (screenedBy: string | null | undefined): boolean =>
+  !screenedBy || screenedBy === '-';
+
 const PLAN_CATEGORY_TO_API: Record<string, string> = {
   Health: 'Health',
   'Life & Accident': 'LifeAccident',
@@ -145,6 +150,8 @@ export const pdLifeApi = {
   list: () => apiFetch<PdLifeApplicationApi[]>('/api/applications/pd-life'),
   create: (payload: Omit<PdLifeApplicationApi, 'id' | 'applicationSeq' | 'policyNumber' | 'dateScreened'> & { dateScreened?: string }) =>
     apiFetch<PdLifeApplicationApi>('/api/applications/pd-life', { method: 'POST', body: JSON.stringify(payload) }),
+  claim: (id: string) =>
+    apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}/claim`, { method: 'PATCH' }),
   updateStatus: (id: string, status: string) =>
     apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}/status`, {
       method: 'PATCH',

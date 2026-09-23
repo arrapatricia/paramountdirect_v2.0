@@ -50,6 +50,7 @@ import {
   clearAuthToken,
   getAuthToken,
   fromApiPdLifeStatus,
+  isUnassignedScreener,
   toApiPdLifeStatus,
   toApiPlanCategory,
   formatApplicationId,
@@ -1006,6 +1007,28 @@ export default function App() {
       });
   };
 
+  // Opening an unassigned application from Application Screening claims it
+  // for the current user. Resolves to the other issuer's name if someone
+  // else claimed it first, so the screening list can show its lock warning.
+  const handleSelectScreeningApp = async (id: string, planCode: string): Promise<string | undefined> => {
+    const row = screeningData.find(app => app.id === id);
+    if (row && isUnassignedScreener(row.screenedBy)) {
+      if (!pdLifeConnected) {
+        setScreeningData(prev => prev.map(app => (app.id === id ? { ...app, screenedBy: currentUserName } : app)));
+      } else {
+        try {
+          const mapped = mapApiToScreeningItem(await pdLifeApi.claim(id));
+          setScreeningData(prev => prev.map(app => (app.id === id ? mapped : app)));
+          if (mapped.screenedBy !== currentUserName) return mapped.screenedBy;
+        } catch (err) {
+          setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to claim application.');
+          return;
+        }
+      }
+    }
+    setSelectedApp({ id, planCode });
+  };
+
   // Shared by both PdLifeCreateApplication call sites (Inquiry tab and
   // Screening tab) - posts to the real backend when a real session exists,
   // otherwise keeps the old local-only behavior so mock-only logins are
@@ -1025,7 +1048,7 @@ export default function App() {
       premium: app.premium,
       source: app.source,
       dateReceived: new Date().toISOString(),
-      screenedBy: app.screenedBy,
+      screenedBy: isUnassignedScreener(app.screenedBy) ? null : app.screenedBy,
       status: toApiPdLifeStatus(app.status),
       details: app.details as unknown as Record<string, unknown>,
     });
@@ -1410,7 +1433,6 @@ export default function App() {
         {activeTab === 'inquiry' && (
           selectedApp ? renderApplicationDetail(true) : isCreatingPdLifeApp ? (
             <PdLifeCreateApplication
-              currentUser={currentUserName}
               onBack={() => setIsCreatingPdLifeApp(false)}
               onCreate={handleCreatePdLifeApp}
               rates={premiumRates}
@@ -1473,7 +1495,6 @@ export default function App() {
         {activeTab === 'screening' && (
           selectedApp ? renderApplicationDetail() : isCreatingPdLifeApp ? (
             <PdLifeCreateApplication
-              currentUser={currentUserName}
               onBack={() => setIsCreatingPdLifeApp(false)}
               onCreate={handleCreatePdLifeApp}
               rates={premiumRates}
@@ -1481,7 +1502,7 @@ export default function App() {
           ) : (
             <ApplicationScreening
               data={screeningData}
-              onSelectApplication={(id, planCode) => setSelectedApp({ id, planCode })}
+              onSelectApplication={handleSelectScreeningApp}
               currentUser={currentUserName}
               onCreateNew={() => setIsCreatingPdLifeApp(true)}
             />

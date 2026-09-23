@@ -21,7 +21,6 @@ import { PH_REGION_NAMES, citiesForRegion, GENERIC_BARANGAYS } from './ph_geogra
 interface Props {
   onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
   onBack: () => void;
-  currentUser: string;
   rates: PremiumRate[];
 }
 
@@ -67,7 +66,7 @@ const calculateAge = (dobString: string) => {
   return age;
 };
 
-export default function PdLifeCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
+export default function PdLifeCreateApplication({ onCreate, onBack, rates }: Props) {
   const [category, setCategory] = useState<PdLifePlanCategory | null>(null);
 
   if (!category) {
@@ -109,7 +108,6 @@ export default function PdLifeCreateApplication({ onCreate, onBack, currentUser,
       onCreate={onCreate}
       onBackToCategories={() => setCategory(null)}
       onFinish={onBack}
-      currentUser={currentUser}
       rates={rates}
     />
   );
@@ -126,14 +124,12 @@ function PdLifeCategoryForm({
   onCreate,
   onBackToCategories,
   onFinish,
-  currentUser,
   rates,
 }: {
   category: PdLifePlanCategory;
   onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
   onBackToCategories: () => void;
   onFinish: () => void;
-  currentUser: string;
   rates: PremiumRate[];
 }) {
   const planOptions = PD_LIFE_PLAN_CODES[category];
@@ -299,7 +295,9 @@ function PdLifeCategoryForm({
       source,
       dateReceived: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       dateScreened: '-',
-      screenedBy: currentUser,
+      // No default screener - the first issuer to open it in Application
+      // Screening claims it.
+      screenedBy: '-',
       status: 'Received',
       planCategory: category,
       details: { ...baseDetails, category: categoryDetails } as PdLifeApplication['details'],

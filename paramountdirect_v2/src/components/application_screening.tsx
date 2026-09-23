@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Search, CheckSquare, Square, X, Lock, Eye, UserCheck, ShieldAlert, ChevronLeft, ChevronRight, ClipboardCheck, UserPlus } from 'lucide-react';
 import type { ScreeningItem } from '../App';
 import ApplicationStatusBar from './application_status_bar';
+import { isUnassignedScreener } from '../lib/api';
 
 interface Props {
   data: ScreeningItem[];
-  onSelectApplication?: (id: string, planCode: string) => void;
+  // Resolves to another issuer's name when the claim was lost to them.
+  onSelectApplication?: (id: string, planCode: string) => void | Promise<string | undefined>;
   currentUser?: string;
   onCreateNew?: () => void;
 }
@@ -103,15 +105,21 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
     }
   };
 
-  const handleViewDetails = (row: ScreeningItem) => {
-    if (row.screenedBy !== CURRENT_LOGGED_USER && row.status !== 'Issued') {
-      setAccessWarning(`Access Restricted: Application #${row.policyNumber || row.applicationId || row.id} is assigned to Issuer "${row.screenedBy}".`);
-      setTimeout(() => setAccessWarning(null), 4000);
+  const showAccessWarning = (row: ScreeningItem, screenedBy: string) => {
+    setAccessWarning(`Access Restricted: Application #${row.policyNumber || row.applicationId || row.id} is assigned to Issuer "${screenedBy}".`);
+    setTimeout(() => setAccessWarning(null), 4000);
+  };
+
+  // Unassigned rows are open to anyone - viewing one claims it (see
+  // App.tsx's handleSelectScreeningApp), which resolves to the other
+  // issuer's name if they got to it first.
+  const handleViewDetails = async (row: ScreeningItem) => {
+    if (!isUnassignedScreener(row.screenedBy) && row.screenedBy !== CURRENT_LOGGED_USER && row.status !== 'Issued') {
+      showAccessWarning(row, row.screenedBy);
       return;
     }
-    if (onSelectApplication) {
-      onSelectApplication(row.id, row.planCode);
-    }
+    const claimedBy = await onSelectApplication?.(row.id, row.planCode);
+    if (claimedBy) showAccessWarning(row, claimedBy);
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -327,7 +335,8 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
               ) : (
                 paginatedData.map((row) => {
                   const isIssued = row.status === 'Issued';
-                  const isLockedByOther = row.screenedBy !== CURRENT_LOGGED_USER && !isIssued;
+                  const isUnassigned = isUnassignedScreener(row.screenedBy);
+                  const isLockedByOther = !isUnassigned && row.screenedBy !== CURRENT_LOGGED_USER && !isIssued;
 
                   return (
                     <tr key={row.id} className={`transition-colors ${getRowTintStyle(row.status)}`}>
@@ -352,12 +361,14 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                       <td className="py-3.5 px-2 font-semibold text-slate-800 dark:text-slate-200">{row.dateReceived}</td>
                       <td className="py-3.5 px-2 font-semibold text-slate-800 dark:text-slate-200">{row.dateScreened}</td>
                       <td className="py-3.5 px-2 font-semibold text-slate-800 dark:text-slate-200">
+                        {isUnassigned ? '-' : (
                         <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold ${
                           isLockedByOther ? 'bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300' : 'bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
                         }`}>
                           {isLockedByOther ? <Lock className="h-3 w-3 text-amber-600" /> : <UserCheck className="h-3.5 w-3.5 text-[#d0112b]" />}
                           <span>{row.screenedBy}</span>
                         </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-2 text-center">
                         <div className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${getStatusBadgeStyle(row.status)}`}>
