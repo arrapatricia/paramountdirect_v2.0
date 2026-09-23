@@ -274,7 +274,7 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
 
       {/* Detail View Modal */}
       {viewingApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 my-8 dark:bg-slate-900 dark:border-slate-800">
             <div className="flex justify-between items-center border-b pb-4 border-slate-100 dark:border-slate-800">
               <h2 className="text-base font-bold uppercase text-slate-900 dark:text-white">Application {viewingApp.referenceNo ?? '(Reference No. pending payment)'}</h2>
