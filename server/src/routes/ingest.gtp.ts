@@ -12,7 +12,7 @@ import { requireServiceApiKey } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 
 const router = Router();
-router.use(requireServiceApiKey);
+router.use(requireServiceApiKey('WEBSITE_INGEST_API_KEY_GTP', 'yourtravelinsurance.ph', 'GTP'));
 
 const ingestSchema = z.object({
   travelType: z.enum(['International', 'Domestic']),

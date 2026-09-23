@@ -13,7 +13,7 @@ import { recordAudit } from '../utils/audit';
 import { generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
 
 const router = Router();
-router.use(requireServiceApiKey);
+router.use(requireServiceApiKey('WEBSITE_INGEST_API_KEY_OFW', 'ofwinsurance.ph', 'OFW'));
 
 const ingestSchema = z.object({
   lastName: z.string().min(1),

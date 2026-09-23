@@ -13,7 +13,7 @@ import { recordAudit } from '../utils/audit';
 import { generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
 
 const router = Router();
-router.use(requireServiceApiKey);
+router.use(requireServiceApiKey('WEBSITE_INGEST_API_KEY_CTPL', 'ctpl.ph', 'CTPL'));
 
 const ingestSchema = z.object({
   policyType: z.enum(['Private_Car', 'Commercial_Vehicle', 'Motorcycle']),

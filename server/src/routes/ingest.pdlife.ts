@@ -13,7 +13,7 @@ import { recordAudit } from '../utils/audit';
 import { Prisma } from '@prisma/client';
 
 const router = Router();
-router.use(requireServiceApiKey);
+router.use(requireServiceApiKey('WEBSITE_INGEST_API_KEY_PDLIFE', 'paramountdirect.com', 'PD Life'));
 
 const ingestSchema = z.object({
   payor: z.string().min(1),
