@@ -18,7 +18,7 @@ router.use(requireServiceApiKey);
 const ingestSchema = z.object({
   policyType: z.enum(['Private_Car', 'Commercial_Vehicle', 'Motorcycle']),
   mvType: z.string().min(1),
-  renewalType: z.enum(['New_1_Year', 'Renewal']),
+  renewalType: z.enum(['One_Year', 'Three_Years']),
 
   clientType: z.enum(['Individual', 'Corporate_without_assignee', 'Corporate_with_assignee']),
   ownerFirstName: z.string().min(1),

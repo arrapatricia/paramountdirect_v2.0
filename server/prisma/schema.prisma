@@ -402,8 +402,8 @@ enum CtplPolicyType {
 }
 
 enum CtplRenewalType {
-  New_1_Year
-  Renewal
+  One_Year
+  Three_Years
 }
 
 enum CtplClientType {

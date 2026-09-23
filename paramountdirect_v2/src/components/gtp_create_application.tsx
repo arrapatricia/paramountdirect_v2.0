@@ -71,9 +71,14 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
     : planVariant === 'Single Trip'
       ? getGtpSingleTripRate(rates, destinationCategory, applicationType, daysOfTravel)
       : getGtpMultiTripRate(rates, planVariant, destinationCategory);
+  // Cruise/Hazardous Sports Coverage are priced as a % of the base premium
+  // (see premium_rates.ts), not a flat fee - matches how the live rate
+  // calculator scales these add-ons with the selected plan.
   const addOnFee = !hasTravelDates ? 0 :
-    (cruiseCoverage ? getPremiumRate(rates, 'GTP', 'cruiseCoverage', 150) : 0) +
-    (hazardousSportsCoverage ? getPremiumRate(rates, 'GTP', 'hazardousSportsCoverage', 200) : 0);
+    basePremium * (
+      (cruiseCoverage ? getPremiumRate(rates, 'GTP', 'cruiseCoveragePercent', 21.90) : 0) +
+      (hazardousSportsCoverage ? getPremiumRate(rates, 'GTP', 'hazardousSportsCoveragePercent', 126.30) : 0)
+    ) / 100;
   const premiumValue = basePremium + addOnFee;
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');

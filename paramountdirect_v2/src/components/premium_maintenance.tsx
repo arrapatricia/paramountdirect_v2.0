@@ -14,6 +14,7 @@ const UNIT_LABEL: Record<PremiumRate['unit'], string> = {
   'per day': 'Per day',
   'per month': 'Per month',
   'add-on': 'Add-on fee',
+  'percent': '% of premium',
 };
 
 export default function PremiumMaintenance({ rates, onSave }: Props) {

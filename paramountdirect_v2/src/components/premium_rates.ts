@@ -7,7 +7,7 @@
 // and only looks up the numeric amount from here.
 
 export type PremiumProduct = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
-export type PremiumUnit = 'flat' | 'per day' | 'per month' | 'add-on';
+export type PremiumUnit = 'flat' | 'per day' | 'per month' | 'add-on' | 'percent';
 
 export interface PremiumRate {
   id: string;
@@ -15,7 +15,7 @@ export interface PremiumRate {
   key: string; // lookup key used by the matching create-application form
   label: string;
   amount: number;
-  currency: 'PHP' | 'USD';
+  currency: 'PHP' | 'USD' | '%';
   unit: PremiumUnit;
 }
 
@@ -169,6 +169,15 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   { id: 'gtp-mt180-excl', product: 'GTP', key: 'Multi-Trip 180|Excluding', label: 'Multi-Trip 180, Excluding USA/Canada/HK', amount: 10920.63, currency: 'PHP', unit: 'flat' },
   { id: 'gtp-mt180-dom', product: 'GTP', key: 'Multi-Trip 180|Domestic', label: 'Multi-Trip 180, Domestic', amount: 9706.38, currency: 'PHP', unit: 'flat' },
 
-  { id: 'gtp-cruise', product: 'GTP', key: 'cruiseCoverage', label: 'Cruise Coverage add-on', amount: 150, currency: 'PHP', unit: 'add-on' },
-  { id: 'gtp-hazardous', product: 'GTP', key: 'hazardousSportsCoverage', label: 'Hazardous Sports Coverage add-on', amount: 200, currency: 'PHP', unit: 'add-on' },
+  // Cruise/Hazardous Sports Coverage add-ons scale with the base premium
+  // (confirmed against the live yourtravelinsurance.ph calculator: a 500,000
+  // Economy plan quote priced Cruise Coverage at ~21.7% of premium and a
+  // 1,500,000 Standard plan quote priced it at ~22.1% - not a flat peso
+  // amount) - stored here as % of the selected plan's base premium rather
+  // than a flat fee so it scales with plan/duration; these percentages are
+  // an approximation averaged from those two reference quotes pending the
+  // insurer's own Additional Coverage rate card for the exact per-tier/
+  // per-bracket figures.
+  { id: 'gtp-cruise', product: 'GTP', key: 'cruiseCoveragePercent', label: 'Cruise Coverage add-on (% of premium)', amount: 21.90, currency: '%', unit: 'percent' },
+  { id: 'gtp-hazardous', product: 'GTP', key: 'hazardousSportsCoveragePercent', label: 'Hazardous Sports Coverage add-on (% of premium)', amount: 126.30, currency: '%', unit: 'percent' },
 ];

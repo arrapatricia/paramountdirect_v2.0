@@ -269,7 +269,7 @@ const CTPL_POLICY_TYPE_TO_API: Record<string, string> = {
   Motorcycle: 'Motorcycle',
 };
 const CTPL_POLICY_TYPE_FROM_API: Record<string, string> = Object.fromEntries(Object.entries(CTPL_POLICY_TYPE_TO_API).map(([d, a]) => [a, d]));
-const CTPL_RENEWAL_TO_API: Record<string, string> = { 'New (1 Year)': 'New_1_Year', Renewal: 'Renewal' };
+const CTPL_RENEWAL_TO_API: Record<string, string> = { '1 Year': 'One_Year', '3 Years': 'Three_Years' };
 const CTPL_RENEWAL_FROM_API: Record<string, string> = Object.fromEntries(Object.entries(CTPL_RENEWAL_TO_API).map(([d, a]) => [a, d]));
 const CTPL_CLIENT_TYPE_TO_API: Record<string, string> = {
   Individual: 'Individual',

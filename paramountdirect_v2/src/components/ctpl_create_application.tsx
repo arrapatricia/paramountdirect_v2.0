@@ -20,7 +20,7 @@ const cardClass = 'bg-white border border-slate-200 rounded-lg p-6 shadow-sm dar
 const sectionHeadingClass = 'text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4 dark:text-white dark:border-slate-800';
 
 export default function CtplCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
-  const [renewalType, setRenewalType] = useState<'New (1 Year)' | 'Renewal'>('New (1 Year)');
+  const [renewalType, setRenewalType] = useState<'1 Year' | '3 Years'>('1 Year');
   const [policyType, setPolicyType] = useState<typeof CTPL_POLICY_TYPES[number] | ''>('');
   const [mvType, setMvType] = useState('');
 
@@ -174,10 +174,10 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           <h2 className={sectionHeadingClass}>Choose Your Policy</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className={labelClass}>Renewal</label>
+              <label className={labelClass}>Term</label>
               <select value={renewalType} onChange={(e) => setRenewalType(e.target.value as typeof renewalType)} className={inputClass}>
-                <option>New (1 Year)</option>
-                <option>Renewal</option>
+                <option>1 Year</option>
+                <option>3 Years</option>
               </select>
             </div>
             <div>
@@ -334,7 +334,7 @@ function CtplReviewSummary({
   sameAsOwner, applicantFirstName, applicantSurname, email, mobileNumber,
   plateNumber, mvFileNumber, chassisNumber, requiresCOV, forPublicUse, premiumValue, totalDue, onEdit, onConfirm,
 }: {
-  renewalType: 'New (1 Year)' | 'Renewal';
+  renewalType: '1 Year' | '3 Years';
   policyType: typeof CTPL_POLICY_TYPES[number] | '';
   mvType: string;
   clientType: 'Individual' | 'Corporate without assignee' | 'Corporate with assignee';
@@ -372,7 +372,7 @@ function CtplReviewSummary({
       <div className={cardClass}>
         <h2 className={sectionHeadingClass}>Choose Your Policy</h2>
         <div className="text-xs">
-          {row('Renewal', renewalType)}
+          {row('Term', renewalType)}
           {row('Policy Type', policyType)}
           {row('LTO MV Type', mvType)}
           {policyType === 'Motorcycle' && row('For Public Use', forPublicUse ? 'Yes (LCOC series)' : 'No')}

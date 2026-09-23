@@ -341,7 +341,7 @@ async function main() {
       {
         policyType: 'Private_Car',
         mvType: 'Sedan',
-        renewalType: 'New_1_Year',
+        renewalType: 'One_Year',
         clientType: 'Individual',
         ownerFirstName: 'Carlos',
         ownerMiddleName: 'Santos',
@@ -362,7 +362,7 @@ async function main() {
       {
         policyType: 'Motorcycle',
         mvType: 'Scooter',
-        renewalType: 'Renewal',
+        renewalType: 'Three_Years',
         clientType: 'Individual',
         ownerFirstName: 'Ella',
         ownerMiddleName: 'Marasigan',
@@ -383,7 +383,7 @@ async function main() {
       {
         policyType: 'Commercial_Vehicle',
         mvType: 'Delivery Van',
-        renewalType: 'New_1_Year',
+        renewalType: 'One_Year',
         clientType: 'Corporate_with_assignee',
         ownerFirstName: 'N/A',
         ownerMiddleName: 'N/A',
@@ -404,7 +404,7 @@ async function main() {
       {
         policyType: 'Private_Car',
         mvType: 'SUV',
-        renewalType: 'Renewal',
+        renewalType: 'Three_Years',
         clientType: 'Individual',
         ownerFirstName: 'Noel',
         ownerMiddleName: 'Aguilar',

@@ -5,7 +5,7 @@ export interface CtplApplication {
   id: string;
   policyType: 'Private Car' | 'Commercial Vehicle' | 'Motorcycle';
   mvType: string; // Car, SUV, Truck, Trailer, Motorcycle, Tricycle, etc.
-  renewalType: 'New (1 Year)' | 'Renewal';
+  renewalType: '1 Year' | '3 Years';
 
   clientType: 'Individual' | 'Corporate without assignee' | 'Corporate with assignee';
   ownerFirstName: string;
