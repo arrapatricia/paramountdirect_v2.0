@@ -6,6 +6,10 @@ import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import type { CtplStatus } from '@prisma/client';
 import { generateUniqueCtplPolicyNumber, generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
+import { fillCtplCoc, fillCtplServiceInvoice } from '../services/ctplDocumentFill';
+import { storeGeneratedDocument } from '../services/documentStorage';
+
+const CTPL_TERM_YEARS: Record<string, number> = { One_Year: 1, Three_Years: 3 };
 
 const router = Router();
 router.use(requireAuth);
@@ -54,11 +58,21 @@ const createApplicationSchema = z.object({
   mvFileNumber: z.string().min(1),
   chassisNumber: z.string().min(1),
 
+  vehicleMake: z.string().optional(),
+  vehicleModel: z.string().optional(),
+  vehicleColor: z.string().optional(),
+  vehicleBodyType: z.string().optional(),
+  motorNumber: z.string().optional(),
+  authorizedCapacity: z.string().optional(),
+  unladenWeight: z.string().optional(),
+
   requiresCOV: z.boolean().default(false),
   forPublicUse: z.boolean().default(false),
 
   premium: z.string().min(1),
   dateReceived: z.coerce.date(),
+  effectiveDate: z.coerce.date().optional(),
+  expiryDate: z.coerce.date().optional(),
   status: z.enum(['Completed', 'Spoiled', 'Duplicate', 'Reversed', 'Cancelled']).default('Completed'),
   screenedBy: z.string().optional(),
   isPaid: z.boolean().default(false),
@@ -101,16 +115,57 @@ router.put(
     if (!current.referenceNo && !data.referenceNo) {
       data.referenceNo = await generateUniqueCtplReferenceNo();
     }
-    if (data.isPaid && !current.policyNumber && !data.policyNumber) {
+    // This PUT is issuing the policy for the first time - assign its policy
+    // number and, unless the caller already supplied a term, default the
+    // effective/expiry dates from today + renewalType so the generated
+    // documents below have real dates to print.
+    const isNewlyIssued = Boolean(data.isPaid && !current.policyNumber && !data.policyNumber);
+    if (isNewlyIssued) {
       data.policyNumber = await generateUniqueCtplPolicyNumber(
         data.policyType ?? current.policyType,
         data.forPublicUse ?? current.forPublicUse
       );
+      if (!data.effectiveDate && !current.effectiveDate) {
+        const effective = new Date();
+        const years = CTPL_TERM_YEARS[data.renewalType ?? current.renewalType] ?? 1;
+        const expiry = new Date(effective);
+        expiry.setFullYear(expiry.getFullYear() + years);
+        data.effectiveDate = effective;
+        data.expiryDate = expiry;
+      }
     }
 
     const application = await prisma.ctplApplication.update({ where: { id: req.params.id }, data });
 
     await recordAudit(req, { action: 'UPDATE', module: 'CTPL Applications', details: `Updated CTPL application ${application.id} (${application.plateNumber})` });
+
+    if (isNewlyIssued) {
+      try {
+        const [coc, invoice] = await Promise.all([fillCtplCoc(application), fillCtplServiceInvoice(application)]);
+        await storeGeneratedDocument({
+          applicationType: 'CTPL',
+          applicationId: application.id,
+          docKey: 'ctpl-coc',
+          contentType: 'application/pdf',
+          body: coc,
+          generatedBy: req.user?.email,
+        });
+        await storeGeneratedDocument({
+          applicationType: 'CTPL',
+          applicationId: application.id,
+          docKey: 'ctpl-service-invoice',
+          contentType: 'application/pdf',
+          body: invoice.buffer,
+          generatedBy: req.user?.email,
+          invoiceNumber: invoice.invoiceNumber,
+        });
+      } catch (err) {
+        // Payment/issuance already succeeded above - don't fail the request
+        // over document generation; surface it in the logs for follow-up.
+        console.error(`Failed to generate CTPL documents for ${application.id}:`, err);
+      }
+    }
+
     res.json(application);
   })
 );

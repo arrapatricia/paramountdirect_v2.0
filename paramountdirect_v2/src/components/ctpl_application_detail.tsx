@@ -18,8 +18,8 @@ interface Props {
   rates: PremiumRate[];
 }
 
-const getPremium = (rates: PremiumRate[], policyType: string, mvType: string) =>
-  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
+const getPremium = (rates: PremiumRate[], policyType: string, mvType: string, renewalType: string) =>
+  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
 
 const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
   { key: 'policySchedule', label: 'Policy Schedule' },
@@ -44,7 +44,7 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
     sameAsOwner: app.sameAsOwner, applicantFirstName: app.applicantFirstName, applicantSurname: app.applicantSurname,
     email: app.email, mobileNumber: app.mobileNumber,
     policyType: app.policyType, mvType: app.mvType, plateNumber: app.plateNumber, mvFileNumber: app.mvFileNumber, chassisNumber: app.chassisNumber,
-    requiresCOV: app.requiresCOV, forPublicUse: app.forPublicUse, status: app.status,
+    requiresCOV: app.requiresCOV, forPublicUse: app.forPublicUse, status: app.status, renewalType: app.renewalType,
   }));
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
     setTimeout(() => setNotification(null), 2500);
   };
 
-  const premiumValue = getPremium(rates, form.policyType, form.mvType);
+  const premiumValue = getPremium(rates, form.policyType, form.mvType, form.renewalType);
   const totalDue = premiumValue + (form.requiresCOV ? COV_FEE : 0);
 
   const handleSave = () => {
@@ -174,6 +174,13 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
             <select value={form.mvType} onChange={(e) => setForm({ ...form, mvType: e.target.value })} className={inputClass}>
               <option value="">-- Select --</option>
               {CTPL_MV_TYPES_BY_POLICY[form.policyType].map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Term</label>
+            <select value={form.renewalType} onChange={(e) => setForm({ ...form, renewalType: e.target.value as CtplApplication['renewalType'] })} className={inputClass}>
+              <option>1 Year</option>
+              <option>3 Years</option>
             </select>
           </div>
           <div><label className={labelClass}>Plate Number</label><input value={form.plateNumber} onChange={(e) => setForm({ ...form, plateNumber: e.target.value.toUpperCase() })} className={inputClass} /></div>

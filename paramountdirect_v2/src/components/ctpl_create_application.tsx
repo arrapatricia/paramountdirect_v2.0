@@ -11,8 +11,8 @@ interface Props {
   rates: PremiumRate[];
 }
 
-const getPremium = (rates: PremiumRate[], policyType: string, mvType: string) =>
-  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
+const getPremium = (rates: PremiumRate[], policyType: string, mvType: string, renewalType: string) =>
+  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
 
 const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
@@ -44,7 +44,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [requiresCOV, setRequiresCOV] = useState(false);
   const [forPublicUse, setForPublicUse] = useState(false);
 
-  const premiumValue = getPremium(rates, policyType, mvType);
+  const premiumValue = getPremium(rates, policyType, mvType, renewalType);
   const totalDue = premiumValue + (requiresCOV ? COV_FEE : 0);
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');

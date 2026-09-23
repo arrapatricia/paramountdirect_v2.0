@@ -444,6 +444,17 @@ model CtplApplication {
   mvFileNumber   String
   chassisNumber  String
 
+  // Vehicle details needed to fill the COC/Service Invoice PDF templates -
+  // not collected before Change Log entry on generated documents; defaults
+  // to "" so existing rows don't need a backfill.
+  vehicleMake        String @default("")
+  vehicleModel       String @default("")
+  vehicleColor       String @default("")
+  vehicleBodyType    String @default("")
+  motorNumber        String @default("")
+  authorizedCapacity String @default("")
+  unladenWeight      String @default("")
+
   requiresCOV    Boolean  @default(false)
 
   // Motorcycle-only: for-hire/public utility motorcycle (e.g. habal-habal) -
@@ -452,6 +463,10 @@ model CtplApplication {
 
   premium       String
   dateReceived  DateTime
+  // Policy term - populated once the policy is issued (isPaid); needed for
+  // the COC's inception dates and the Service Invoice's "Term of Insurance".
+  effectiveDate DateTime?
+  expiryDate    DateTime?
   status        CtplStatus @default(Completed)
   screenedBy    String?
   isPaid        Boolean    @default(false)
@@ -674,6 +689,10 @@ model GeneratedDocument {
   docKey          String
   s3Key           String                  @unique
   contentType     String                  @default("application/pdf")
+  // Only set for docKeys that carry their own invoice numbering (e.g.
+  // "service-invoice") - assigned once at generation time and never
+  // reassigned, same immutability contract as the document itself.
+  invoiceNumber   String?                 @unique
   generatedAt     DateTime                @default(now())
   generatedBy     String?
 
