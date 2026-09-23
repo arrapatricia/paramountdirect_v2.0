@@ -1,0 +1,63 @@
+// Vehicle Year and Make option lists, mirrored from ctpl.ph's own "Select
+// Your Vehicle" step (c2c_car_info[year_model] / c2c_vehicle_maker_id) so
+// staff pick from the same reference data the public site does. Series
+// stays free-text in the create-application form - ctpl.ph cascades it from
+// a per-maker trim catalog (c2c_vehicle_trim_id) with thousands of rows
+// across 400+ makers, too large to mirror here.
+//
+// The maker list is ctpl.ph's real data as-is, deduplicated by exact text
+// (case-insensitive) after dropping obvious data-entry junk (bare years and
+// "#VALUE!" that had leaked into their maker table) - it still contains
+// their own near-duplicate/misspelled entries (e.g. "MERCEDES-BENZ" /
+// "MERCEDEZ BENZ", "PORSCHE" / "PORSHE") since those are genuinely separate
+// selectable options on the live site and a vehicle's CR may match either.
+
+const CURRENT_YEAR = new Date().getFullYear();
+export const CTPL_VEHICLE_YEARS: string[] = Array.from(
+  { length: CURRENT_YEAR - 1960 + 1 },
+  (_, i) => String(CURRENT_YEAR - i)
+);
+
+export const CTPL_VEHICLE_MAKERS: string[] = [
+  'ACE', 'ACURA', 'ADLEY', 'ADV', 'AEOLUS', 'ALFA ROMEO', 'ALTEC', 'AMERICAN EAGLE', 'ANFRA', 'APACHE',
+  'APRILIA', 'APV', 'ASIA', 'ASIA STAR', 'ASIAN', 'ASIASTAR', 'ASTON MARTIN', 'ASTRO', 'AUDI', 'AUSTIN',
+  'AUSTIN MINI', 'AUTOCAR', 'BAI', 'BAIC', 'BAJA', 'BAJAJ', 'BAJAJ RE', 'BAJAJ RE RE', 'BAJAJRE', 'BAJARE',
+  'BAJJA', 'BEAT', 'BEMAC', 'BEMAX', 'BENELLI', 'BENTLEY', 'BLAZE', 'BMW', 'BRISTOL', 'BUICK ENCLAVE',
+  'BULK CARRIER', 'BYD', 'C F MOTO', 'CADILLAC', 'CAMECO', 'CAN-AM', 'CARTER', 'CATERPILLAR', 'CCG', 'CF MOTO',
+  'CFMOTO', 'CHANA', 'CHANG JIANG', 'CHANGAN', 'CHANGDONG', 'CHANGHE', 'CHANLAN', 'CHARIOT', 'CHENGLONG', 'CHERRY',
+  'CHERY', 'CHEVROLET', 'CHEVY', 'CHINA STYRE', 'CHONGQING', 'CHRYSLER', 'CLICK125I', 'CNJ', 'COLT', 'COSMOS',
+  'CPI', 'CRUISER', 'CUMMINS', 'DAEWOO', 'DAIHATSU', 'DATSUN', 'DAYANG', 'DAYE', 'DAZZ', 'DELPHI',
+  'DEMAK', 'DENZA', 'DERBI', 'DODGE', 'DONG FENG', 'DONGFENG', 'DREAM', 'DUCATI', 'DY50C', 'DYNAPAC',
+  'E-BUS', 'EAGLE', 'EASTWORLD', 'ET150', 'FARSPEED', 'FAW', 'FEKON', 'FERRARI', 'FIAT', 'FKM',
+  'FORD', 'FORTUNE', 'FOSHAN', 'FOTON', 'FREIGHTLINER', 'FRUEHAUF', 'FUSO', 'GAC', 'GAC MOTOR', 'GEELY',
+  'GIBDA', 'GILERA', 'GINDY', 'GIORNO', 'GLOBAL MOTOR', 'GLOBAL MOTORS', 'GMC', 'GOLDSTAR', 'GRANDEUR', 'GRANDSTAR',
+  'GRANSTAR', 'GREAT WALL', 'GUANGZHOU', 'HAIMA', 'HAOJUE', 'HAOUJUE', 'HARABAS', 'HARLEY DAVIDSON', 'HARLEY-DAVIDSON', 'HARTFORD',
+  'HAYAKU', 'HENGTONG', 'HIGER', 'HINO', 'HODA', 'HOINDA', 'HOLDEN', 'HONA', 'HONDA', 'HOWO',
+  'HUBEI', 'HUMMER', 'HUSQVARNA', 'HYOSUNG', 'HYUNDAI', 'INDIAN', 'INTERNATIONAL', 'INTERNATIONAL HARVESTER', 'INTERNATIONAL N', 'INTERNATIONAL TRUCK',
+  'ISUZU', 'ITALJET', 'IVECO', 'JAC', 'JAGUAR', 'JAWA', 'JAZZ', 'JEEP', 'JET', 'JIANGLING',
+  'JIANGMEN', 'JIANGMEN HAOJUE', 'JIANGMEN HAOUJUE', 'JIANGMEN-HAOJUE', 'JIANOMEN HAOJUE', 'JIANSHE', 'JINBEI', 'JINHAO', 'JITNEY', 'JMC',
+  'JOHN DEERE', 'JONDA', 'JONWAY', 'JOYLONG', 'KARRY', 'KASAKI', 'KATO', 'KAWASAKI', 'KENBO', 'KENNEDY',
+  'KENWORTH', 'KIA', 'KINGLONG', 'KINLLON-D', 'KIRIN', 'KTM', 'KYMCO', 'LAMBORGHINI', 'LAMBRETTA', 'LAND ROVER',
+  'LAYLAND', 'LEGACY', 'LEGEND', 'LEXUS', 'LIFAN', 'LINCOLN', 'LINKBELT', 'LML', 'LONCIN', 'LONCIN-D',
+  'LOTUS ELISE', 'LUCKY STAR', 'M.GRAY', 'MACK', 'MAHINDRA', 'MAJAJ', 'MAN', 'MASERATI', 'MAXUS', 'MAZDA',
+  'MCX', 'MERCEDES BENZ', 'MERCEDES-BENZ', 'MERCEDEZ BENZ', 'MERCURY', 'MG', 'MICROBASE', 'MICROBASE MOTORBIKE', 'MINI', 'MINI COOPER',
+  'MIO', 'MISTAH', 'MITSIBISHI', 'MITSOKOSHI', 'MITSUBISH', 'MITSUBISHI', 'MITSUBISHI FUSO', 'MITSUBISHI-FUSO', 'MITSUBUSHI', 'MITSUKOSHI',
+  'MOBILE', 'MODENAS', 'MONARCH', 'MORRIS GARAGES', 'MOTO GUZZI', 'MOTOCROSS', 'MOTOPLUS', 'MOTOPOSH', 'MOTORPLUS', 'MOTORSTAR',
+  'MTC', 'MULTICAB', 'MUSSO', 'MUSTANG', 'MUTT', 'NISSAN', 'OPEL', 'ORANGE/BLAC', 'ORSTAR', 'PAZER',
+  'PETERBUILT', 'PEUGEOT', 'PGO', 'PIAGGIO', 'PIONEER', 'PLYMOUTH', 'PMR', 'PMRC', 'PONTIAC', 'PORSCHE',
+  'PORSHE', 'PORTABLE', 'POWERDRIVE', 'PROTON', 'PUEGEOT', 'QIANJIANG', 'QJMOTOR', 'RACAL', 'RAIDER', 'RAMAS',
+  'RAMBLADE', 'RAMDRIVE', 'RAMJET', 'RAMSKI', 'RAMSTAR', 'RAMWIND', 'RANDELL', 'RANGE ROVER', 'RCD', 'RE',
+  'REBUILT', 'RENAULT', 'REO', 'RINXI', 'ROLLS-ROYCE', 'ROUGH', 'ROVER', 'ROYAL ALLOY', 'ROYAL ENFIELD', 'RS',
+  'RSU', 'RUSI', 'RUSU', 'SAAB', 'SACHS MADASS', 'SAMSUNG', 'SANY', 'SATURN', 'SCANIA', 'SCION',
+  'SHAANXI', 'SHACMAN', 'SHEN', 'SHENYANG', 'SHENYANG JINBEI', 'SICHUAN GRAND ROYAL', 'SINOTRUCK', 'SINOTRUK', 'SINSKI', 'SKW',
+  'SKY JET', 'SKYGO', 'SKYSTAR', 'SKYWING', 'SMART', 'SMASH', 'SNIPER', 'SOJEN', 'SONIC', 'SPRAYER SPRINKL',
+  'SSANGYONG', 'STAR 8', 'STAR-X', 'STARGOLD', 'SUBARI', 'SUBARU', 'SUKIDA', 'SUNRISER', 'SUZUKI', 'SYM',
+  'SYM JET', 'T KING', 'TADANO', 'TATA', 'TAYLOR', 'TESLA', 'THUNDERBIRD', 'TICO', 'TIGER', 'TIGGO',
+  'TIMPTE', 'TMX', 'TOKYU', 'TOYOTA', 'TRAILER', 'TRAILKING', 'TRI', 'TRICITY', 'TRIKE', 'TRIKES',
+  'TRIMOTOR', 'TRIMOTORS', 'TRIUMP', 'TRIUMPH', 'TRUCK', 'TV', 'TVS', 'TVSCK', 'TVSDAZZ', 'TVZ',
+  'ULTIMA', 'UM', 'VANPELT HMSD125', 'VEGA', 'VENUS', 'VESPA', 'VINFAST', 'VOGE', 'VOLKSWAGEN', 'VOLVO',
+  'WAVE', 'WHESTERN STAR', 'WILLYS', 'WINGMAN', 'WULING', 'XCMG', 'XR150LEKJ', 'XRM', 'XTM', 'YALE',
+  'YAMA', 'YAMAGUCHI', 'YAMAH', 'YAMAHA', 'YAMAHAMIO', 'YAMHA', 'YASUKI', 'YIN GANG', 'YINXIANG', 'YMAAHA',
+  'YMAHA', 'YTX', 'YVS', 'ZEBRA', 'ZEEKR', 'ZEUS', 'ZINSKI', 'ZION', 'ZITS', 'ZONGSHEN',
+  'ZONTES', 'ZOOMLION', 'ZRM',
+];

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
 import { CTPL_MV_TYPES_BY_POLICY, CTPL_POLICY_TYPES, COV_FEE, type CtplApplication } from './ctpl_types';
+import { CTPL_VEHICLE_YEARS, CTPL_VEHICLE_MAKERS } from './ctpl_vehicle_reference';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
 interface Props {
-  onCreate: (app: CtplApplication) => void;
+  onCreate: (app: CtplApplication) => void | Promise<void>;
   onBack: () => void;
   currentUser: string;
   rates: PremiumRate[];
@@ -41,6 +42,14 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [plateNumber, setPlateNumber] = useState('');
   const [mvFileNumber, setMvFileNumber] = useState('');
   const [chassisNumber, setChassisNumber] = useState('');
+  const [vehicleYear, setVehicleYear] = useState('');
+  const [vehicleMake, setVehicleMake] = useState('');
+  const [vehicleSeries, setVehicleSeries] = useState('');
+  const [vehicleColor, setVehicleColor] = useState('');
+  const [vehicleBodyType, setVehicleBodyType] = useState('');
+  const [motorNumber, setMotorNumber] = useState('');
+  const [authorizedCapacity, setAuthorizedCapacity] = useState('');
+  const [unladenWeight, setUnladenWeight] = useState('');
   const [requiresCOV, setRequiresCOV] = useState(false);
   const [forPublicUse, setForPublicUse] = useState(false);
 
@@ -49,11 +58,14 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<CtplApplication | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit =
     policyType && mvType &&
     ownerFirstName && ownerSurname && ownerAddress && email && mobileNumber &&
     plateNumber && mvFileNumber && chassisNumber &&
+    vehicleYear && vehicleMake && vehicleSeries &&
     (sameAsOwner || (applicantFirstName && applicantSurname));
 
   const buildApplication = (): CtplApplication => ({
@@ -67,6 +79,9 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     email, mobileNumber,
     plateNumber: plateNumber.toUpperCase(),
     mvFileNumber, chassisNumber: chassisNumber.toUpperCase(),
+    vehicleYear, vehicleMake, vehicleSeries,
+    vehicleColor, vehicleBodyType, motorNumber: motorNumber.toUpperCase(),
+    authorizedCapacity, unladenWeight,
     requiresCOV,
     forPublicUse: policyType === 'Motorcycle' && forPublicUse,
     premium: `₱${totalDue.toFixed(2)}`,
@@ -85,11 +100,19 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     const newApp = buildApplication();
-    onCreate(newApp);
-    setSubmittedApp(newApp);
-    setStep('confirmed');
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onCreate(newApp);
+      setSubmittedApp(newApp);
+      setStep('confirmed');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit the application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (step === 'confirmed' && submittedApp) {
@@ -159,12 +182,22 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
           plateNumber={plateNumber}
           mvFileNumber={mvFileNumber}
           chassisNumber={chassisNumber}
+          vehicleYear={vehicleYear}
+          vehicleMake={vehicleMake}
+          vehicleSeries={vehicleSeries}
+          vehicleColor={vehicleColor}
+          vehicleBodyType={vehicleBodyType}
+          motorNumber={motorNumber}
+          authorizedCapacity={authorizedCapacity}
+          unladenWeight={unladenWeight}
           requiresCOV={requiresCOV}
           forPublicUse={forPublicUse}
           premiumValue={premiumValue}
           totalDue={totalDue}
           onEdit={() => setStep('form')}
           onConfirm={handleConfirmSubmit}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
         />
       ) : (
       <form onSubmit={handleReview} className="space-y-6 pb-10">
@@ -298,6 +331,33 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             </div>
           </div>
 
+          <div className="text-xs font-extrabold text-slate-500 uppercase tracking-wide pt-4 pb-2 dark:text-slate-400">Vehicle Description</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Year Model</label>
+              <select required value={vehicleYear} onChange={(e) => setVehicleYear(e.target.value)} className={inputClass}>
+                <option value="">-- Select --</option>
+                {CTPL_VEHICLE_YEARS.map((y) => <option key={y}>{y}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Vehicle Maker</label>
+              <select required value={vehicleMake} onChange={(e) => setVehicleMake(e.target.value)} className={inputClass}>
+                <option value="">-- Select --</option>
+                {CTPL_VEHICLE_MAKERS.map((m) => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Series</label>
+              <input required value={vehicleSeries} onChange={(e) => setVehicleSeries(e.target.value)} className={inputClass} placeholder="ALTIS 1.8 G A/T" />
+            </div>
+            <div><label className={labelClass}>Color</label><input value={vehicleColor} onChange={(e) => setVehicleColor(e.target.value)} className={inputClass} /></div>
+            <div><label className={labelClass}>Body Type</label><input value={vehicleBodyType} onChange={(e) => setVehicleBodyType(e.target.value)} className={inputClass} placeholder="Sedan" /></div>
+            <div><label className={labelClass}>Motor Number</label><input value={motorNumber} onChange={(e) => setMotorNumber(e.target.value)} className={inputClass} /></div>
+            <div><label className={labelClass}>Authorized Capacity</label><input value={authorizedCapacity} onChange={(e) => setAuthorizedCapacity(e.target.value)} className={inputClass} placeholder="5" /></div>
+            <div><label className={labelClass}>Unladen Weight (kg)</label><input value={unladenWeight} onChange={(e) => setUnladenWeight(e.target.value)} className={inputClass} /></div>
+          </div>
+
           <label className="flex items-center space-x-2 mt-4 cursor-pointer">
             <input type="checkbox" checked={requiresCOV} onChange={(e) => setRequiresCOV(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI</span>
@@ -332,7 +392,9 @@ function CtplReviewSummary({
   renewalType, policyType, mvType, clientType, ownerFirstName, ownerMiddleName, ownerSurname,
   ownerAddress, ownerRegion, ownerCity, ownerBarangay,
   sameAsOwner, applicantFirstName, applicantSurname, email, mobileNumber,
-  plateNumber, mvFileNumber, chassisNumber, requiresCOV, forPublicUse, premiumValue, totalDue, onEdit, onConfirm,
+  plateNumber, mvFileNumber, chassisNumber,
+  vehicleYear, vehicleMake, vehicleSeries, vehicleColor, vehicleBodyType, motorNumber, authorizedCapacity, unladenWeight,
+  requiresCOV, forPublicUse, premiumValue, totalDue, onEdit, onConfirm, isSubmitting, submitError,
 }: {
   renewalType: '1 Year' | '3 Years';
   policyType: typeof CTPL_POLICY_TYPES[number] | '';
@@ -353,12 +415,22 @@ function CtplReviewSummary({
   plateNumber: string;
   mvFileNumber: string;
   chassisNumber: string;
+  vehicleYear: string;
+  vehicleMake: string;
+  vehicleSeries: string;
+  vehicleColor: string;
+  vehicleBodyType: string;
+  motorNumber: string;
+  authorizedCapacity: string;
+  unladenWeight: string;
   requiresCOV: boolean;
   forPublicUse: boolean;
   premiumValue: number;
   totalDue: number;
   onEdit: () => void;
   onConfirm: () => void;
+  isSubmitting: boolean;
+  submitError: string | null;
 }) {
   const row = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -400,16 +472,26 @@ function CtplReviewSummary({
           {row('Plate Number', plateNumber ? plateNumber.toUpperCase() : '-')}
           {row('MV File Number', mvFileNumber || '-')}
           {row('Serial/Chassis Number', chassisNumber ? chassisNumber.toUpperCase() : '-')}
+          {row('Vehicle', [vehicleYear, vehicleMake, vehicleSeries].filter(Boolean).join(' ') || '-')}
+          {row('Color / Body Type', [vehicleColor, vehicleBodyType].filter(Boolean).join(' / ') || '-')}
+          {row('Motor Number', motorNumber ? motorNumber.toUpperCase() : '-')}
+          {row('Authorized Capacity / Unladen Weight', [authorizedCapacity, unladenWeight ? `${unladenWeight} kg` : ''].filter(Boolean).join(' / ') || '-')}
           {row('Requires COV', requiresCOV ? `Yes (+₱${COV_FEE.toFixed(2)})` : 'No')}
         </div>
       </div>
 
+      {submitError && (
+        <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300">
+          {submitError} The application was not saved — please try again.
+        </div>
+      )}
+
       <div className="flex flex-wrap justify-end gap-3 pt-2">
-        <button type="button" onClick={onEdit} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+        <button type="button" onClick={onEdit} disabled={isSubmitting} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed">
           Back to Edit
         </button>
-        <button type="button" onClick={onConfirm} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
-          Confirm &amp; Submit
+        <button type="button" onClick={onConfirm} disabled={isSubmitting} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          {isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
         </button>
       </div>
     </div>

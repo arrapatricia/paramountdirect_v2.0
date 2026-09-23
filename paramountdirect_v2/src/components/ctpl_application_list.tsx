@@ -67,7 +67,7 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
   // application - unpaid ones render as the full ctpl_application_detail.tsx
   // page instead (App.tsx makes that call), so this guards against a stale
   // viewingId briefly pointing at one mid-transition.
-  const viewingApp = viewingId ? data.find((d) => d.referenceNo === viewingId && d.isPaid) ?? null : null;
+  const viewingApp = viewingId ? data.find((d) => (d.referenceNo === viewingId || d.id === viewingId) && d.isPaid) ?? null : null;
 
   const closeModal = () => onCloseView?.();
 
@@ -229,7 +229,7 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
                     </td>
                     <td className="py-3.5 px-2 text-center">
                       <button
-                        onClick={() => row.referenceNo && onView?.(row.referenceNo)}
+                        onClick={() => onView?.(row.referenceNo ?? row.id)}
                         className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-[#002f6c] hover:text-white transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                         title="View Application Details"
                       >

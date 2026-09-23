@@ -4,12 +4,47 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
-import type { CtplStatus } from '@prisma/client';
+import type { CtplApplication, CtplStatus } from '@prisma/client';
 import { generateUniqueCtplPolicyNumber, generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
 import { fillCtplCoc, fillCtplServiceInvoice } from '../services/ctplDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 
 const CTPL_TERM_YEARS: Record<string, number> = { One_Year: 1, Three_Years: 3 };
+
+async function generateAndStoreCtplDocuments(application: CtplApplication, generatedBy?: string) {
+  try {
+    const [coc, invoice] = await Promise.all([fillCtplCoc(application), fillCtplServiceInvoice(application)]);
+    await storeGeneratedDocument({
+      applicationType: 'CTPL',
+      applicationId: application.id,
+      docKey: 'ctpl-coc',
+      contentType: 'application/pdf',
+      body: coc,
+      generatedBy,
+    });
+    await storeGeneratedDocument({
+      applicationType: 'CTPL',
+      applicationId: application.id,
+      docKey: 'ctpl-service-invoice',
+      contentType: 'application/pdf',
+      body: invoice.buffer,
+      generatedBy,
+      invoiceNumber: invoice.invoiceNumber,
+    });
+  } catch (err) {
+    // Payment/issuance already succeeded before this runs - don't fail the
+    // request over document generation; surface it in the logs for follow-up.
+    console.error(`Failed to generate CTPL documents for ${application.id}:`, err);
+  }
+}
+
+function defaultCtplTerm(renewalType: string) {
+  const effective = new Date();
+  const years = CTPL_TERM_YEARS[renewalType] ?? 1;
+  const expiry = new Date(effective);
+  expiry.setFullYear(expiry.getFullYear() + years);
+  return { effective, expiry };
+}
 
 const router = Router();
 router.use(requireAuth);
@@ -58,8 +93,9 @@ const createApplicationSchema = z.object({
   mvFileNumber: z.string().min(1),
   chassisNumber: z.string().min(1),
 
+  vehicleYear: z.string().optional(),
   vehicleMake: z.string().optional(),
-  vehicleModel: z.string().optional(),
+  vehicleSeries: z.string().optional(),
   vehicleColor: z.string().optional(),
   vehicleBodyType: z.string().optional(),
   motorNumber: z.string().optional(),
@@ -88,15 +124,25 @@ router.post(
 
     // Reference No. identifies the application from the moment it exists,
     // paid or not. Policy Number is only assigned once the policy is
-    // actually issued (isPaid).
+    // actually issued (isPaid) - which, for CTPL's straight-through website
+    // flow, is usually right here at creation (see ctpl_create_application.tsx).
     if (!data.referenceNo) data.referenceNo = await generateUniqueCtplReferenceNo();
-    if (data.isPaid && !data.policyNumber) {
+    const isIssuedOnCreate = Boolean(data.isPaid && !data.policyNumber);
+    if (isIssuedOnCreate) {
       data.policyNumber = await generateUniqueCtplPolicyNumber(data.policyType, data.forPublicUse);
+      if (!data.effectiveDate) {
+        const { effective, expiry } = defaultCtplTerm(data.renewalType);
+        data.effectiveDate = effective;
+        data.expiryDate = expiry;
+      }
     }
 
     const application = await prisma.ctplApplication.create({ data });
 
     await recordAudit(req, { action: 'CREATE', module: 'CTPL Applications', details: `Created CTPL application ${application.id} (${application.plateNumber})` });
+
+    if (isIssuedOnCreate) await generateAndStoreCtplDocuments(application, req.user?.email);
+
     res.status(201).json(application);
   })
 );
@@ -126,10 +172,7 @@ router.put(
         data.forPublicUse ?? current.forPublicUse
       );
       if (!data.effectiveDate && !current.effectiveDate) {
-        const effective = new Date();
-        const years = CTPL_TERM_YEARS[data.renewalType ?? current.renewalType] ?? 1;
-        const expiry = new Date(effective);
-        expiry.setFullYear(expiry.getFullYear() + years);
+        const { effective, expiry } = defaultCtplTerm(data.renewalType ?? current.renewalType);
         data.effectiveDate = effective;
         data.expiryDate = expiry;
       }
@@ -139,32 +182,7 @@ router.put(
 
     await recordAudit(req, { action: 'UPDATE', module: 'CTPL Applications', details: `Updated CTPL application ${application.id} (${application.plateNumber})` });
 
-    if (isNewlyIssued) {
-      try {
-        const [coc, invoice] = await Promise.all([fillCtplCoc(application), fillCtplServiceInvoice(application)]);
-        await storeGeneratedDocument({
-          applicationType: 'CTPL',
-          applicationId: application.id,
-          docKey: 'ctpl-coc',
-          contentType: 'application/pdf',
-          body: coc,
-          generatedBy: req.user?.email,
-        });
-        await storeGeneratedDocument({
-          applicationType: 'CTPL',
-          applicationId: application.id,
-          docKey: 'ctpl-service-invoice',
-          contentType: 'application/pdf',
-          body: invoice.buffer,
-          generatedBy: req.user?.email,
-          invoiceNumber: invoice.invoiceNumber,
-        });
-      } catch (err) {
-        // Payment/issuance already succeeded above - don't fail the request
-        // over document generation; surface it in the logs for follow-up.
-        console.error(`Failed to generate CTPL documents for ${application.id}:`, err);
-      }
-    }
+    if (isNewlyIssued) await generateAndStoreCtplDocuments(application, req.user?.email);
 
     res.json(application);
   })

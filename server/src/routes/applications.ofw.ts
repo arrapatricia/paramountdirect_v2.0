@@ -4,8 +4,29 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
-import type { OfwStatus } from '@prisma/client';
+import type { OfwApplication, OfwStatus } from '@prisma/client';
 import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
+import { fillOfwServiceInvoice } from '../services/ofwDocumentFill';
+import { storeGeneratedDocument } from '../services/documentStorage';
+
+async function generateAndStoreOfwDocuments(application: OfwApplication, generatedBy?: string) {
+  try {
+    const invoice = await fillOfwServiceInvoice(application);
+    await storeGeneratedDocument({
+      applicationType: 'OFW',
+      applicationId: application.id,
+      docKey: 'ofw-service-invoice',
+      contentType: 'application/pdf',
+      body: invoice.buffer,
+      generatedBy,
+      invoiceNumber: invoice.invoiceNumber,
+    });
+  } catch (err) {
+    // Payment/issuance already succeeded before this runs - don't fail the
+    // request over document generation; surface it in the logs for follow-up.
+    console.error(`Failed to generate OFW documents for ${application.id}:`, err);
+  }
+}
 
 const router = Router();
 router.use(requireAuth);
@@ -103,7 +124,8 @@ router.post(
     // paid or not. COI Number is only assigned once the policy is actually
     // issued (isPaid).
     if (!data.referenceNo) data.referenceNo = await generateUniqueOfwReferenceNo();
-    if (data.isPaid && !data.policyNumber) data.policyNumber = await generateUniqueOfwCoiNumber();
+    const isIssuedOnCreate = Boolean(data.isPaid && !data.policyNumber);
+    if (isIssuedOnCreate) data.policyNumber = await generateUniqueOfwCoiNumber();
     // Date Verified is stamped when employment gets verified 'Yes'; Date
     // Processed when the payment instruction is sent to the client; Date
     // Issued when the policy gets paid.
@@ -117,6 +139,9 @@ router.post(
     });
 
     await recordAudit(req, { action: 'CREATE', module: 'OFW Applications', details: `Created OFW application ${application.id} (${application.lastName}, ${application.firstName})` });
+
+    if (isIssuedOnCreate) await generateAndStoreOfwDocuments(application, req.user?.email);
+
     res.status(201).json(application);
   })
 );
@@ -135,7 +160,8 @@ router.put(
     if (!current.referenceNo && !data.referenceNo) {
       data.referenceNo = await generateUniqueOfwReferenceNo();
     }
-    if (data.isPaid && !current.policyNumber && !data.policyNumber) {
+    const isNewlyIssued = Boolean(data.isPaid && !current.policyNumber && !data.policyNumber);
+    if (isNewlyIssued) {
       data.policyNumber = await generateUniqueOfwCoiNumber();
     }
     if (data.employmentVerified === 'Yes' && !current.dateVerified && !data.dateVerified) {
@@ -161,6 +187,9 @@ router.put(
     });
 
     await recordAudit(req, { action: 'UPDATE', module: 'OFW Applications', details: `Updated OFW application ${application.id} (${application.lastName}, ${application.firstName})` });
+
+    if (isNewlyIssued) await generateAndStoreOfwDocuments(application, req.user?.email);
+
     res.json(application);
   })
 );

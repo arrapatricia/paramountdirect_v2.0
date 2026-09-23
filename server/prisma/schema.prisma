@@ -445,10 +445,14 @@ model CtplApplication {
   chassisNumber  String
 
   // Vehicle details needed to fill the COC/Service Invoice PDF templates -
-  // not collected before Change Log entry on generated documents; defaults
-  // to "" so existing rows don't need a backfill.
+  // year/make/series mirror ctpl.ph's own "Select Your Vehicle" step
+  // (c2c_car_info[year_model]/[c2c_vehicle_maker_id]/[c2c_vehicle_trim_id] -
+  // see ctpl_vehicle_reference.ts for the mirrored Year/Make option lists;
+  // Series stays free-text since ctpl.ph's per-maker trim catalog is too
+  // large to mirror). Defaults to "" so existing rows don't need a backfill.
+  vehicleYear        String @default("")
   vehicleMake        String @default("")
-  vehicleModel       String @default("")
+  vehicleSeries      String @default("")
   vehicleColor       String @default("")
   vehicleBodyType    String @default("")
   motorNumber        String @default("")

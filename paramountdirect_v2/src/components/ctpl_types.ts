@@ -25,6 +25,19 @@ export interface CtplApplication {
   mvFileNumber: string; // 15 numeric digits
   chassisNumber: string; // 17 alphanumeric
 
+  // Vehicle details needed to fill the COC/Service Invoice PDF templates -
+  // Year/Make mirror ctpl.ph's own picker (see ctpl_vehicle_reference.ts),
+  // Series is free-text since ctpl.ph's per-maker trim catalog is too large
+  // to mirror.
+  vehicleYear: string;
+  vehicleMake: string;
+  vehicleSeries: string;
+  vehicleColor: string;
+  vehicleBodyType: string;
+  motorNumber: string;
+  authorizedCapacity: string;
+  unladenWeight: string;
+
   requiresCOV: boolean; // Certificate of Validation - additional COV_FEE via DBP-DCI
 
   // Motorcycle-only: for-hire/public utility motorcycle (e.g. habal-habal) -
@@ -46,6 +59,9 @@ export interface CtplApplication {
   policyNumber?: string;
   // OR/reference number generated at the moment payment is confirmed.
   referenceNo?: string;
+  // Policy term - defaulted server-side from renewalType once issued.
+  effectiveDate?: string;
+  expiryDate?: string;
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;

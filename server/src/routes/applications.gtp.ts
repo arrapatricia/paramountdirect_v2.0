@@ -4,7 +4,28 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
-import type { GtpStatus } from '@prisma/client';
+import type { GtpApplication, GtpStatus } from '@prisma/client';
+import { fillGtpServiceInvoice } from '../services/gtpDocumentFill';
+import { storeGeneratedDocument } from '../services/documentStorage';
+
+async function generateAndStoreGtpDocuments(application: GtpApplication, generatedBy?: string) {
+  try {
+    const invoice = await fillGtpServiceInvoice(application);
+    await storeGeneratedDocument({
+      applicationType: 'GTP',
+      applicationId: application.id,
+      docKey: 'gtp-service-invoice',
+      contentType: 'application/pdf',
+      body: invoice.buffer,
+      generatedBy,
+      invoiceNumber: invoice.invoiceNumber,
+    });
+  } catch (err) {
+    // Payment/issuance already succeeded before this runs - don't fail the
+    // request over document generation; surface it in the logs for follow-up.
+    console.error(`Failed to generate GTP documents for ${application.id}:`, err);
+  }
+}
 
 const router = Router();
 router.use(requireAuth);
@@ -63,10 +84,14 @@ router.post(
   '/',
   asyncHandler(async (req, res) => {
     const data = createApplicationSchema.parse(req.body);
+    const isIssuedOnCreate = Boolean(data.isPaid);
 
     const application = await prisma.gtpApplication.create({ data });
 
     await recordAudit(req, { action: 'CREATE', module: 'GTP Applications', details: `Created GTP application ${application.id} (${application.travelerSurname})` });
+
+    if (isIssuedOnCreate) await generateAndStoreGtpDocuments(application, req.user?.email);
+
     res.status(201).json(application);
   })
 );
@@ -77,10 +102,16 @@ router.put(
   '/:id',
   asyncHandler(async (req, res) => {
     const data = updateApplicationSchema.parse(req.body);
+    const current = await prisma.gtpApplication.findUnique({ where: { id: req.params.id } });
+    if (!current) throw new HttpError(404, 'Application not found');
+    const isNewlyIssued = Boolean(data.isPaid && !current.isPaid);
 
     const application = await prisma.gtpApplication.update({ where: { id: req.params.id }, data });
 
     await recordAudit(req, { action: 'UPDATE', module: 'GTP Applications', details: `Updated GTP application ${application.id} (${application.travelerSurname})` });
+
+    if (isNewlyIssued) await generateAndStoreGtpDocuments(application, req.user?.email);
+
     res.json(application);
   })
 );

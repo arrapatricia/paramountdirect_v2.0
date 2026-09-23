@@ -234,6 +234,14 @@ function mapApiToCtplApplication(api: CtplApplicationApi): CtplApplication {
     plateNumber: api.plateNumber,
     mvFileNumber: api.mvFileNumber,
     chassisNumber: api.chassisNumber,
+    vehicleYear: api.vehicleYear,
+    vehicleMake: api.vehicleMake,
+    vehicleSeries: api.vehicleSeries,
+    vehicleColor: api.vehicleColor,
+    vehicleBodyType: api.vehicleBodyType,
+    motorNumber: api.motorNumber,
+    authorizedCapacity: api.authorizedCapacity,
+    unladenWeight: api.unladenWeight,
     requiresCOV: api.requiresCOV,
     forPublicUse: api.forPublicUse,
     premium: api.premium,
@@ -243,6 +251,8 @@ function mapApiToCtplApplication(api: CtplApplicationApi): CtplApplication {
     isPaid: api.isPaid,
     policyNumber: api.policyNumber ?? undefined,
     referenceNo: api.referenceNo ?? undefined,
+    effectiveDate: api.effectiveDate ?? undefined,
+    expiryDate: api.expiryDate ?? undefined,
   };
 }
 
@@ -448,6 +458,14 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 0 }).map((_,
     plateNumber: `ABC${1000 + i}`.slice(0, 7),
     mvFileNumber: `1301-0000${(1000000 + i).toString().slice(-7)}`,
     chassisNumber: `JT4BR38J2R${(100000 + i).toString().padStart(6, '0')}`,
+    vehicleYear: '2025',
+    vehicleMake: 'TOYOTA',
+    vehicleSeries: 'ALTIS 1.8 G A/T',
+    vehicleColor: 'WHITE',
+    vehicleBodyType: 'Sedan',
+    motorNumber: `HJDK${(100000 + i).toString().padStart(6, '0')}`,
+    authorizedCapacity: '5',
+    unladenWeight: '1200',
     requiresCOV: i % 5 === 0,
     forPublicUse: false,
     premium: `₱${owner.premium.toFixed(2)}`,
@@ -1075,10 +1093,20 @@ export default function App() {
       plateNumber: app.plateNumber,
       mvFileNumber: app.mvFileNumber,
       chassisNumber: app.chassisNumber,
+      vehicleYear: app.vehicleYear,
+      vehicleMake: app.vehicleMake,
+      vehicleSeries: app.vehicleSeries,
+      vehicleColor: app.vehicleColor,
+      vehicleBodyType: app.vehicleBodyType,
+      motorNumber: app.motorNumber,
+      authorizedCapacity: app.authorizedCapacity,
+      unladenWeight: app.unladenWeight,
       requiresCOV: app.requiresCOV,
       forPublicUse: app.forPublicUse,
       premium: app.premium,
       dateReceived: new Date().toISOString(),
+      effectiveDate: null,
+      expiryDate: null,
       status: app.status,
       screenedBy: app.screenedBy,
       isPaid: app.isPaid,
@@ -1281,9 +1309,9 @@ export default function App() {
               onCreate={handleCreateCtplApp}
               rates={premiumRates}
             />
-          ) : viewingCtplId && ctplApplications.find((a) => a.referenceNo === viewingCtplId && !a.isPaid) ? (
+          ) : viewingCtplId && ctplApplications.find((a) => (a.referenceNo === viewingCtplId || a.id === viewingCtplId) && !a.isPaid) ? (
             <CtplApplicationDetail
-              app={ctplApplications.find((a) => a.referenceNo === viewingCtplId)!}
+              app={ctplApplications.find((a) => a.referenceNo === viewingCtplId || a.id === viewingCtplId)!}
               onBack={() => setViewingCtplId(null)}
               onUpdate={handleUpdateCtplApp}
               rates={premiumRates}
