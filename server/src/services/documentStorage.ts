@@ -14,6 +14,7 @@ export async function storeGeneratedDocument(params: {
   body: Buffer;
   generatedBy?: string;
   invoiceNumber?: string;
+  endorsementId?: string;
 }) {
   const s3Key = `documents/${params.applicationType}/${params.applicationId}/${params.docKey}-${Date.now()}.pdf`;
 
@@ -35,6 +36,7 @@ export async function storeGeneratedDocument(params: {
       contentType: params.contentType,
       generatedBy: params.generatedBy,
       invoiceNumber: params.invoiceNumber,
+      endorsementId: params.endorsementId,
     },
   });
 }

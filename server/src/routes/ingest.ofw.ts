@@ -24,9 +24,13 @@ const ingestSchema = z.object({
   birthdate: z.coerce.date(),
   placeOfBirth: z.string().min(1),
   phAddress: z.string().min(1),
-  phRegion: z.string().min(1),
+  // ofwinsurance.ph's own form only collects city/municipality and province
+  // (no region or barangay) - matches OfwApplication.phRegion/phBarangay's
+  // own @default("") in schema.prisma, so omitting these is a real, expected
+  // gap for ingested rows, not a validation bug.
+  phRegion: z.string().default(''),
   phCity: z.string().min(1),
-  phBarangay: z.string().min(1),
+  phBarangay: z.string().default(''),
   phone: z.string().min(1),
   email: z.string().email(),
   referralSource: z.string().min(1),
@@ -54,9 +58,10 @@ const ingestSchema = z.object({
   premium: z.string().min(1),
   dateReceived: z.coerce.date(),
 
-  // At least one required, up to three.
+  // At least one required, up to three. birthdate is nullable - ofwinsurance.ph's
+  // own form never collects a beneficiary's birthdate at all.
   beneficiaries: z
-    .array(z.object({ fullName: z.string().min(1), relationship: z.string().min(1), birthdate: z.coerce.date() }))
+    .array(z.object({ fullName: z.string().min(1), relationship: z.string().min(1), birthdate: z.coerce.date().nullable().default(null) }))
     .default([]),
 });
 

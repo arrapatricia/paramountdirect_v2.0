@@ -375,6 +375,8 @@ model OfwApplication {
 
   // Real FK back-relation - see NonLifePaymentTransaction.ofwApplicationId.
   paymentTransactions NonLifePaymentTransaction[]
+  // See Endorsement.ofwApplicationId.
+  endorsements        Endorsement[]
 
   @@index([status])
 }
@@ -385,7 +387,9 @@ model OfwBeneficiary {
   application    OfwApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   fullName       String
   relationship   String
-  birthdate      DateTime
+  // Null for beneficiaries ingested from ofwinsurance.ph - that site's own
+  // form never collects a beneficiary's birthdate at all.
+  birthdate      DateTime?
   createdAt      DateTime        @default(now())
 
   @@index([applicationId])
@@ -485,6 +489,8 @@ model CtplApplication {
 
   // Real FK back-relation - see NonLifePaymentTransaction.ctplApplicationId.
   paymentTransactions NonLifePaymentTransaction[]
+  // See Endorsement.ctplApplicationId.
+  endorsements        Endorsement[]
 
   @@index([status])
 }
@@ -551,6 +557,8 @@ model GtpApplication {
 
   // Real FK back-relation - see NonLifePaymentTransaction.gtpApplicationId.
   paymentTransactions NonLifePaymentTransaction[]
+  // See Endorsement.gtpApplicationId.
+  endorsements        Endorsement[]
 
   @@index([status])
 }
@@ -699,8 +707,110 @@ model GeneratedDocument {
   invoiceNumber   String?                 @unique
   generatedAt     DateTime                @default(now())
   generatedBy     String?
+  // Set for documents issued by an endorsement (endorsement form, extension
+  // Service Invoice, cancellation, credit memo) rather than at policy issuance.
+  endorsementId   String?
+  endorsement     Endorsement?            @relation(fields: [endorsementId], references: [id])
 
   @@index([applicationType, applicationId])
+  @@index([endorsementId])
+}
+
+// ---------------------------------------------------------------------------
+// Endorsements (Non-Life: CTPL / OFW / GTP)
+// ---------------------------------------------------------------------------
+
+// Non_Financial covers every change that doesn't touch premium (name,
+// address, vehicle details, ...). Financial is Term_Extension (additional
+// premium, new Service Invoice) or a cancellation - Flat (nothing consumed,
+// full refund) or Pro_Rata (part of the term already used) - which issues
+// a Credit Memo.
+enum EndorsementType {
+  Non_Financial
+  Term_Extension
+  Cancellation_Flat
+  Cancellation_Pro_Rata
+}
+
+// Non-financial endorsements are auto-approved on submit. Financial ones go
+// Pending -> Reviewed -> Approved/Denied, and only touch the policy on Approve.
+enum EndorsementStatus {
+  Pending
+  Reviewed
+  Approved
+  Denied
+}
+
+// Same polymorphic-parent pattern as NonLifePaymentTransaction: `product`
+// says which one of the three application FKs is set.
+model Endorsement {
+  id                String           @id @default(cuid())
+  product           NonLifeProduct
+  ctplApplicationId String?
+  ctplApplication   CtplApplication? @relation(fields: [ctplApplicationId], references: [id])
+  ofwApplicationId  String?
+  ofwApplication    OfwApplication?  @relation(fields: [ofwApplicationId], references: [id])
+  gtpApplicationId  String?
+  gtpApplication    GtpApplication?  @relation(fields: [gtpApplicationId], references: [id])
+  // Denormalized from the application for display/search.
+  policyNumber      String
+
+  type              EndorsementType
+  status            EndorsementStatus @default(Pending)
+  // Assigned once approved (immediately, for Non_Financial) - see
+  // endorsementNumbering.ts.
+  endorsementNumber String?           @unique
+  // The date the endorsement takes effect - for a cancellation, the
+  // cancellation date the refund is computed from.
+  effectiveDate     DateTime
+  reason            String            @default("")
+
+  // Non_Financial only: [{ field, label, from, to }] - applied to the
+  // application as-is, and printed on the endorsement form.
+  changes        Json?
+  // CTPL transfer of ownership: prints the "insurable interest transferred"
+  // wording instead of the list of corrected fields.
+  withDeedOfSale Boolean @default(false)
+
+  // Financial only. Term_Extension: the policy's expiry before and after.
+  previousExpiryDate DateTime?
+  newExpiryDate      DateTime?
+  // Financial only - signed amounts: positive = additional premium charged
+  // (extension), negative = premium returned (cancellation).
+  premium            Float?
+  dst                Float?
+  vat                Float?
+  lgt                Float?
+  otherFees          Float?
+  total              Float?
+  // Extension Service Invoice number (shared non-life invoice series) /
+  // cancellation Credit Memo number - assigned on approval.
+  invoiceNumber      String?   @unique
+  creditMemoNumber   String?   @unique
+
+  requestedBy     String
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewRemarks   String?
+  decidedBy       String?
+  decidedAt       DateTime?
+  decisionRemarks String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  documents GeneratedDocument[]
+
+  @@index([product, status])
+  @@index([ctplApplicationId])
+  @@index([ofwApplicationId])
+  @@index([gtpApplicationId])
+}
+
+// Last number used per numbering series ("endorsement-CTPL", "credit-memo",
+// ...), incremented atomically - same idea as PdLifePolicyNumberSequence.
+model NumberSequence {
+  key        String @id
+  lastNumber Int    @default(0)
 }
 
 // ---------------------------------------------------------------------------

@@ -12,17 +12,17 @@ import { generateUniqueInvoiceNumber } from '../lib/invoiceNumbering';
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates', 'ctpl');
 
-const CTPL_POLICY_TYPE_LABEL: Record<string, string> = {
+export const CTPL_POLICY_TYPE_LABEL: Record<string, string> = {
   Private_Car: 'PRIVATE CAR',
   Commercial_Vehicle: 'COMMERCIAL VEHICLE',
   Motorcycle: 'MOTORCYCLE',
 };
 
-function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number): string {
   return amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function formatDate(date: Date | null): string {
+export function formatDate(date: Date | null): string {
   if (!date) return '';
   return date.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: '2-digit' }).toUpperCase();
 }
@@ -44,7 +44,20 @@ function computeCtplBreakdown(base: number) {
   return { base, dst, lgt, otherFees, vat, vatExempt, total };
 }
 
-async function fillFields(templateFile: string, values: Record<string, string>): Promise<Buffer> {
+// The templates' fields use the standard Helvetica font, which can only
+// encode WinAnsi - map the few common characters outside it (peso sign,
+// curly quotes, dashes) and drop anything else rather than throw mid-fill.
+function toWinAnsi(value: string): string {
+  return value
+    .replace(/\u20B1/g, 'PHP ')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\t/g, '    ')
+    .replace(/[^\n\x20-\x7E\xA0-\xFF]/g, '');
+}
+
+export async function fillFields(templateFile: string, values: Record<string, string>): Promise<Buffer> {
   const bytes = readFileSync(path.join(TEMPLATES_DIR, templateFile));
   const pdf = await PDFDocument.load(bytes);
   const form = pdf.getForm();
@@ -53,7 +66,7 @@ async function fillFields(templateFile: string, values: Record<string, string>):
     const field = form.getFieldMaybe(name);
     if (!field) continue; // template revision may not have every field - skip rather than throw
     try {
-      form.getTextField(name).setText(value);
+      form.getTextField(name).setText(toWinAnsi(value));
     } catch {
       // Not a text field (or otherwise unsettable) - leave it untouched.
     }
@@ -64,7 +77,7 @@ async function fillFields(templateFile: string, values: Record<string, string>):
   return Buffer.from(filled);
 }
 
-function insuredNameAndAddress(app: CtplApplication) {
+export function insuredNameAndAddress(app: CtplApplication) {
   const name = app.sameAsOwner
     ? `${app.ownerFirstName} ${app.ownerMiddleName} ${app.ownerSurname}`.replace(/\s+/g, ' ').trim()
     : `${app.applicantFirstName} ${app.applicantSurname}`.replace(/\s+/g, ' ').trim();

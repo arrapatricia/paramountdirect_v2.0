@@ -188,7 +188,9 @@ function mapApiToOfwApplication(api: OfwApplicationApi): OfwApplication {
     contractStart: toDisplayDateOnly(api.contractStart),
     contractEnd: toDisplayDateOnly(api.contractEnd),
     insuranceStart: toDisplayDateOnly(api.insuranceStart),
-    beneficiaries: api.beneficiaries.map((b) => ({ fullName: b.fullName, relationship: b.relationship, birthdate: toDisplayDateOnly(b.birthdate) })),
+    // Null for beneficiaries ingested from ofwinsurance.ph - that site never
+    // collects a beneficiary's birthdate at all.
+    beneficiaries: api.beneficiaries.map((b) => ({ fullName: b.fullName, relationship: b.relationship, birthdate: b.birthdate ? toDisplayDateOnly(b.birthdate) : '' })),
     isConflictZone: api.isConflictZone,
     documents: {
       passport: api.passportDoc as OfwApplication['documents']['passport'],

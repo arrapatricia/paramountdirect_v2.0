@@ -171,7 +171,9 @@ export interface OfwBeneficiaryApi {
   id?: string;
   fullName: string;
   relationship: string;
-  birthdate: string;
+  // Null for beneficiaries ingested from ofwinsurance.ph - that site's own
+  // form never collects a beneficiary's birthdate at all.
+  birthdate: string | null;
 }
 
 export interface OfwApplicationApi {
