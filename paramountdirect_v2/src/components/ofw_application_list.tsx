@@ -65,14 +65,17 @@ const shortDateTime = (s?: string) => s ? s.replace(/\/\d{4}(?=\s|$)/, '') : s;
 // maintained in two places.
 function printableDocBody(app: OfwApplication, viewingDoc: string) {
   if (viewingDoc === 'coi') {
-    // Matches the real "Certificate of Insurance" (BM/DH variant) template.
+    // Matches the real "Certificate of Insurance" (BM/DH variant) template -
+    // see DM_Certificate of Insurance BM/DH_withFields.pdf. Benefit amounts
+    // and wording are identical between the two variants; only the covered
+    // wording (Balik Manggagawa vs. Direct Hired) differs.
     return (
       <>
         <p className="text-center text-sm font-extrabold uppercase tracking-wide text-slate-900">Certificate of Insurance</p>
         <p className="text-[11px] leading-relaxed text-slate-700 border-b border-dashed border-slate-300 pb-3">
-          This is to certify that <strong>{app.firstName} {app.middleName} {app.lastName}</strong> is covered under the{' '}
+          <strong>{app.firstName} {app.middleName} {app.lastName}</strong> is covered under the{' '}
           <strong>Compulsory Migrant Workers Insurance &ndash; {app.natureOfEmployment === 'Balik-Manggagawa' ? 'Balik Manggagawa' : 'Direct Hired'}</strong>{' '}
-          of Paramount Life &amp; General Insurance Corporation (PLGIC). This certificate of insurance is governed by the terms and conditions, warranties, and clauses of said Policy. The insurance coverage shall be effective from the date of departure and shall continue during the entire term of employment but not to exceed one (1) year.
+          of Paramount Life &amp; General Insurance Corporation (PLGIC). This certificate of insurance is governed by the terms and conditions, warranties, and clauses of said Policy and all claims will be adjusted in accordance therewith. The insurance coverage shall be effective from the date set forth below and premium payment is received by Paramount Life &amp; General Insurance Corporation's Head Office, Branch Office, or Authorized Representative.
         </p>
         <DocRow label="COI No." value={app.policyNumber ?? '—'} />
         <DocRow label="Insured" value={`${app.firstName} ${app.middleName} ${app.lastName}`} />
@@ -81,24 +84,32 @@ function printableDocBody(app: OfwApplication, viewingDoc: string) {
         <DocRow label="Insurance Start Date" value={app.insuranceStart} />
         <div className="grid grid-cols-2 gap-3 pt-1">
           <table className="w-full text-[10px] border border-slate-300">
-            <thead><tr className="bg-slate-100"><th className="text-left px-2 py-1 border-b border-slate-300">Benefits</th><th className="text-right px-2 py-1 border-b border-slate-300">Amount</th></tr></thead>
+            <thead><tr className="bg-slate-100"><th className="text-left px-2 py-1 border-b border-slate-300">Benefits</th><th className="text-right px-2 py-1 border-b border-slate-300">Amount of Benefits</th></tr></thead>
             <tbody>
-              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Accidental Death</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $5,000.00</td></tr>
-              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Natural Death</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $2,500.00</td></tr>
-              <tr><td className="px-2 py-1">Repatriation (in case of death)</td><td className="px-2 py-1 text-right font-bold">Actual Cost</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Accidental Death</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $20,000.00</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Natural Death</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $10,000.00</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Permanent Total Disablement</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $7,500.00</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Repatriation (in case of death)</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">Actual Cost</td></tr>
+              <tr><td className="px-2 py-1">Termination of Employment</td><td className="px-2 py-1 text-right font-bold">Actual Cost</td></tr>
             </tbody>
           </table>
           <table className="w-full text-[10px] border border-slate-300">
-            <thead><tr className="bg-slate-100"><th className="text-left px-2 py-1 border-b border-slate-300">Benefits (continuation)</th><th className="text-right px-2 py-1 border-b border-slate-300">Amount</th></tr></thead>
+            <thead><tr className="bg-slate-100"><th className="text-left px-2 py-1 border-b border-slate-300">Benefits (continuation)</th><th className="text-right px-2 py-1 border-b border-slate-300">Amount of Benefits</th></tr></thead>
             <tbody>
-              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Subsistence Benefit</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $100.00/mo.</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Subsistence Benefit</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $100.00, not exceeding 6 months</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Money Claims Benefit</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">US $1,000 max/mo, not exceeding 6 months</td></tr>
               <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Compassionate Visit</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">Actual Cost</td></tr>
-              <tr><td className="px-2 py-1">Medical Evacuation</td><td className="px-2 py-1 text-right font-bold">Actual Cost</td></tr>
+              <tr><td className="px-2 py-1 border-b border-dashed border-slate-200">Medical Evacuation</td><td className="px-2 py-1 border-b border-dashed border-slate-200 text-right font-bold">Actual Cost</td></tr>
+              <tr><td className="px-2 py-1">Medical Repatriation</td><td className="px-2 py-1 text-right font-bold">Actual Cost</td></tr>
             </tbody>
           </table>
         </div>
+        <p className="text-[10px] text-slate-600 pt-1"><strong>Term of Insurance:</strong> Coverage starts upon the insured Migrant Worker's departure from the Philippines and shall continue during the entire term of his/her employment contract but not to exceed one (1) year from the date of his/her departure from the Philippines.</p>
         <DocRow label="Premium" value={app.premium} />
         <p className="text-[10px] text-slate-500 pt-2 text-right">Paramount Life &amp; General Insurance Corporation<br /><strong>George T. Tiu</strong> &mdash; President</p>
+        <p className="text-[9px] text-slate-400 pt-2 border-t border-dashed border-slate-300 leading-relaxed">
+          The reader policy may be viewed and printed thru any of the websites of the Insurance Commission (www.insurance.gov.ph), Philippine Overseas Employment Administration (www.poea.gov.ph), Paramount Life &amp; General Insurance Corporation (www.paramount.com.ph) and the recruitment agency. For 24/7 Medical Evacuation and Repatriation, call our hotline +632 8396 9697.
+        </p>
       </>
     );
   }

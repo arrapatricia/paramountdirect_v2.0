@@ -77,7 +77,7 @@ export function PrintableDocumentModal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-start justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-3xl w-full p-8 shadow-2xl border border-slate-200 space-y-6 font-sans my-6 dark:bg-slate-900 dark:border-slate-800">
         <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
           <h2 className="text-base font-bold text-slate-900 uppercase dark:text-white">{title}</h2>
