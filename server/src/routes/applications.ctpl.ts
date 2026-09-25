@@ -6,14 +6,19 @@ import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import type { CtplApplication, CtplStatus } from '@prisma/client';
 import { generateUniqueCtplPolicyNumber, generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
-import { fillCtplCoc, fillCtplServiceInvoice } from '../services/ctplDocumentFill';
+import { fillCtplCoc, fillCtplServiceInvoice, fillCtplPolicySchedule, fillCtplPolicyJacket } from '../services/ctplDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 
 const CTPL_TERM_YEARS: Record<string, number> = { One_Year: 1, Three_Years: 3 };
 
 async function generateAndStoreCtplDocuments(application: CtplApplication, generatedBy?: string) {
   try {
-    const [coc, invoice] = await Promise.all([fillCtplCoc(application), fillCtplServiceInvoice(application)]);
+    const [coc, invoice, schedule, jacket] = await Promise.all([
+      fillCtplCoc(application),
+      fillCtplServiceInvoice(application),
+      fillCtplPolicySchedule(application),
+      fillCtplPolicyJacket(application),
+    ]);
     await storeGeneratedDocument({
       applicationType: 'CTPL',
       applicationId: application.id,
@@ -30,6 +35,22 @@ async function generateAndStoreCtplDocuments(application: CtplApplication, gener
       body: invoice.buffer,
       generatedBy,
       invoiceNumber: invoice.invoiceNumber,
+    });
+    await storeGeneratedDocument({
+      applicationType: 'CTPL',
+      applicationId: application.id,
+      docKey: 'ctpl-policy-schedule',
+      contentType: 'application/pdf',
+      body: schedule,
+      generatedBy,
+    });
+    await storeGeneratedDocument({
+      applicationType: 'CTPL',
+      applicationId: application.id,
+      docKey: 'ctpl-policy-jacket',
+      contentType: 'application/pdf',
+      body: jacket,
+      generatedBy,
     });
   } catch (err) {
     // Payment/issuance already succeeded before this runs - don't fail the

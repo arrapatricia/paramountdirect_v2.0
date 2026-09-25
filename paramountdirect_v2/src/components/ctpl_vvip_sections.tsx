@@ -189,7 +189,7 @@ export function UploadedDocumentsSection({ notify }: { notify: (message: string)
   const removeDoc = (id: string) => setDocs((prev) => prev.filter((d) => d.id !== id));
 
   return (
-    <Section icon={Paperclip} title="Uploaded Documents" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+    <Section icon={Paperclip} title="COV Document" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
       <div className="flex justify-end -mt-1 mb-1">
         <label className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#002f6c] text-white text-[11px] font-bold hover:bg-[#00224f] cursor-pointer">
           <Plus className="w-3.5 h-3.5" /><span>Upload Document</span>

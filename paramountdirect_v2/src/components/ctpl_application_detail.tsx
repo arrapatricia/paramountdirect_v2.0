@@ -26,10 +26,10 @@ const getPremium = (rates: PremiumRate[], policyType: string, mvType: string, re
   !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
 
 const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
-  { key: 'policySchedule', label: 'Policy Schedule' },
-  { key: 'policyJacket', label: 'Policy Jacket' },
-  { key: 'coc', label: 'Certificate of Cover (COC)' },
-  { key: 'serviceInvoice', label: 'Service Invoice' },
+  { key: 'ctpl-policy-schedule', label: 'Policy Schedule' },
+  { key: 'ctpl-policy-jacket', label: 'Policy Jacket' },
+  { key: 'ctpl-coc', label: 'Certificate of Cover (COC)' },
+  { key: 'ctpl-service-invoice', label: 'Service Invoice' },
 ];
 
 // Only statuses that make sense for an application still awaiting payment -
@@ -108,9 +108,14 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
             </h1>
             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{app.ownerFirstName} {app.ownerSurname} &middot; {app.plateNumber}</span>
-              <span className="text-[10px] font-black text-[#002f6c] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30">
-                ₱{totalDue.toFixed(2)}
-              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-2xl font-black text-[#002f6c] dark:text-[#49b1ea]">₱{totalDue.toFixed(2)}</span>
+              {form.requiresCOV && (
+                <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                  <ShieldAlert className="w-3 h-3" /><span>COV Availed</span>
+                </span>
+              )}
             </div>
           </div>
         </div>

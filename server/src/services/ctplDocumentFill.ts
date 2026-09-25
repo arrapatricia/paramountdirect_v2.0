@@ -9,6 +9,7 @@ import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import type { CtplApplication } from '@prisma/client';
 import { generateUniqueInvoiceNumber } from '../lib/invoiceNumbering';
+import { ctplPolicyPrefix } from '../lib/ctplNumbering';
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates', 'ctpl');
 
@@ -115,6 +116,62 @@ export async function fillCtplCoc(app: CtplApplication): Promise<Buffer> {
     business_profession: '',
     official_receipt_no: '',
   });
+}
+
+export async function fillCtplPolicySchedule(app: CtplApplication): Promise<Buffer> {
+  const { name, address } = insuredNameAndAddress(app);
+  const breakdown = computeCtplBreakdown(parsePremium(app.premium));
+
+  return fillFields('ctpl-policy-schedule.pdf', {
+    policy_number: app.policyNumber ?? '',
+    coc_number: app.policyNumber ?? '',
+    date_issued: formatDate(new Date()),
+    inception_date_1: formatDate(app.effectiveDate),
+    inception_date_2: formatDate(app.expiryDate),
+    model: app.vehicleSeries,
+    make: app.vehicleMake,
+    type_of_body: app.vehicleBodyType,
+    color: app.vehicleColor,
+    mv_file_number: app.mvFileNumber,
+    plate_number: app.plateNumber,
+    serial_chassis: app.chassisNumber,
+    motor_number: app.motorNumber,
+    authorized_capacity: app.authorizedCapacity,
+    'UNLADEN WEIGHT': app.unladenWeight,
+    ctpl_premium: formatCurrency(breakdown.base),
+    total_premium: formatCurrency(breakdown.total),
+    doc_stamps: formatCurrency(breakdown.dst),
+    doc_stamps_2: formatCurrency(breakdown.dst),
+    vat: formatCurrency(breakdown.vat),
+    lgt: formatCurrency(breakdown.lgt),
+    verification_fee: formatCurrency(breakdown.otherFees),
+    total_amount_due: formatCurrency(breakdown.total),
+    invoice_number: app.policyNumber ?? '',
+    insured_name_address: `${name}, ${address}`,
+    // Not tracked yet - left blank rather than guessed:
+    authentication_number: '',
+    business_profession: '',
+    official_receipt_no: '',
+    assignee: '',
+  });
+}
+
+const CTPL_POLICY_JACKET_TEMPLATE: Record<string, string> = {
+  P: 'ctpl-policy-jacket-pcoc.pdf',
+  M: 'ctpl-policy-jacket-mcoc.pdf',
+  C: 'ctpl-policy-jacket-ccoc.pdf',
+  L: 'ctpl-policy-jacket-lcoc.pdf',
+};
+
+// Unlike the COC/Invoice/Schedule, the Policy Jacket is the printed
+// terms-and-conditions booklet - it carries no per-application fields, only
+// boilerplate text that differs by policy-type prefix (same P/M/C/L split
+// ctplNumbering.ts uses for the policy number itself), so this just returns
+// the matching static template's bytes rather than filling a form.
+export async function fillCtplPolicyJacket(app: CtplApplication): Promise<Buffer> {
+  const prefix = ctplPolicyPrefix(app.policyType, app.forPublicUse);
+  const templateFile = CTPL_POLICY_JACKET_TEMPLATE[prefix] ?? CTPL_POLICY_JACKET_TEMPLATE.P;
+  return readFileSync(path.join(TEMPLATES_DIR, templateFile));
 }
 
 export async function fillCtplServiceInvoice(app: CtplApplication): Promise<{ buffer: Buffer; invoiceNumber: string }> {

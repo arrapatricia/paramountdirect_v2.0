@@ -62,14 +62,27 @@ router.post(
   })
 );
 
-// The policy/COI number is on the parent application row, not on
-// GeneratedDocument itself - looked up per applicationType so the download
-// filename reads as e.g. "ofw-application-80009923.pdf" instead of the raw
-// S3 key's docKey-timestamp name.
-async function findPolicyNumber(applicationType: DocumentApplicationType, applicationId: string): Promise<string | null> {
+// docKey -> the short label the download/print filename uses, e.g.
+// "service_invoice-XYZ5678.pdf" - matches the plate-number naming convention
+// already agreed for CTPL; docKeys not listed here fall back to the raw key.
+const DOC_KEY_FILENAME_LABEL: Record<string, string> = {
+  'ctpl-coc': 'coc',
+  'ctpl-service-invoice': 'service_invoice',
+  'ctpl-policy-jacket': 'policy_jacket',
+  'ctpl-policy-schedule': 'policy_schedule',
+  'ctpl-endorsement': 'endorsement',
+  'ctpl-endorsement-service-invoice': 'service_invoice',
+  'ctpl-credit-memo': 'credit_memo',
+};
+
+// The plate number (CTPL) or policy number (OFW/GTP, which have no plate
+// number) is on the parent application row, not on GeneratedDocument itself -
+// looked up per applicationType so the download filename reads as e.g.
+// "coc-XYZ5678.pdf" instead of the raw S3 key's docKey-timestamp name.
+async function findFilenameSuffix(applicationType: DocumentApplicationType, applicationId: string): Promise<string | null> {
   switch (applicationType) {
     case 'CTPL':
-      return (await prisma.ctplApplication.findUnique({ where: { id: applicationId }, select: { policyNumber: true } }))?.policyNumber ?? null;
+      return (await prisma.ctplApplication.findUnique({ where: { id: applicationId }, select: { plateNumber: true } }))?.plateNumber ?? null;
     case 'OFW':
       return (await prisma.ofwApplication.findUnique({ where: { id: applicationId }, select: { policyNumber: true } }))?.policyNumber ?? null;
     default:
@@ -85,8 +98,9 @@ router.get(
     const document = await prisma.generatedDocument.findUnique({ where: { id: req.params.id } });
     if (!document) throw new HttpError(404, 'Document not found');
 
-    const policyNumber = await findPolicyNumber(document.applicationType, document.applicationId);
-    const filename = `${document.applicationType.toLowerCase()}-application-${policyNumber ?? document.applicationId}.pdf`;
+    const suffix = await findFilenameSuffix(document.applicationType, document.applicationId);
+    const label = DOC_KEY_FILENAME_LABEL[document.docKey] ?? document.docKey;
+    const filename = `${label}-${suffix ?? document.applicationId}.pdf`;
 
     const url = await getDocumentViewUrl(document.s3Key, filename);
     res.json({ url });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2, User, FileStack } from 'lucide-react';
+import { Search, Eye, ArrowLeft, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2, User, FileStack } from 'lucide-react';
 import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
 import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
 import { PolicyDocumentsSection, type PolicyDocumentSpec } from './policy_documents';
@@ -28,8 +28,10 @@ interface Props {
 
 // CTPL issues a Certificate of Cover (COC) rather than a separate OR, unlike
 // OFW/GTP which get an Official Receipt. Keys match GeneratedDocument.docKey
-// (see ctplDocumentFill.ts) - only these two templates exist so far.
+// (see ctplDocumentFill.ts).
 const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
+  { key: 'ctpl-policy-schedule', label: 'Policy Schedule' },
+  { key: 'ctpl-policy-jacket', label: 'Policy Jacket' },
   { key: 'ctpl-coc', label: 'Certificate of Cover (COC)' },
   { key: 'ctpl-service-invoice', label: 'Service Invoice' },
 ];
@@ -131,6 +133,116 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
     setActiveTab(tab);
     setCurrentPage(1);
   };
+
+  // A paid application is a read-only quick preview, but still gets its own
+  // full page (not a scrollable centered modal) - matches the unpaid
+  // ctpl_application_detail.tsx page so neither view needs an inner scroll
+  // box regardless of how much content a given application has.
+  if (viewingApp) {
+    return (
+      <div className="p-4 md:p-8 space-y-4 max-w-[1000px] mx-auto font-sans text-slate-900 dark:text-slate-100">
+        <div className="flex justify-between items-start gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
+          <div className="flex items-start space-x-4">
+            <button onClick={closeModal} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300 flex-shrink-0" title="Back">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">Application {viewingApp.referenceNo ?? '(Reference No. pending payment)'}</h2>
+              <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{viewingApp.ownerFirstName} {viewingApp.ownerSurname} &middot; {viewingApp.plateNumber}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-2xl font-black text-[#002f6c] dark:text-[#49b1ea]">{viewingApp.premium}</span>
+                {viewingApp.requiresCOV && (
+                  <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                    <ShieldCheck className="w-3 h-3" /><span>COV Availed</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+              Paid
+            </span>
+            <span title={CTPL_STATUS_DESCRIPTIONS[viewingApp.status]} className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap ${getPolicyStatusBadgeStyle(getCtplPolicyStatus(viewingApp))}`}>
+              {getCtplPolicyStatus(viewingApp)}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <Section icon={User} title="Owner & Applicant" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+            <FieldGrid>
+              <Field label="Registered Owner" editing={false} edit={null} view={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+              <Field label="Client Type" editing={false} edit={null} view={viewingApp.clientType} />
+              <Field label="Email" editing={false} edit={null} view={viewingApp.email} />
+              <Field label="Mobile" editing={false} edit={null} view={viewingApp.mobileNumber} />
+              {!viewingApp.sameAsOwner && (
+                <Field label="Applicant (if different from owner)" editing={false} edit={null} view={`${viewingApp.applicantFirstName} ${viewingApp.applicantSurname}`} />
+              )}
+              <div className="md:col-span-2 xl:col-span-3">
+                <Field
+                  label="Owner Address"
+                  editing={false}
+                  edit={null}
+                  view={[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}
+                />
+              </div>
+            </FieldGrid>
+          </Section>
+
+          <Section icon={Car} title="Vehicle Details" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+            <FieldGrid>
+              <Field label="Policy Type" editing={false} edit={null} view={`${viewingApp.policyType} (${viewingApp.renewalType})${viewingApp.forPublicUse ? ' — For Public Use' : ''}`} />
+              <Field label="MV Type" editing={false} edit={null} view={viewingApp.mvType} />
+              <Field label="Plate Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.plateNumber}</span>} />
+              <Field label="MV File Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.mvFileNumber}</span>} />
+              <div className="md:col-span-2 xl:col-span-3">
+                <Field label="Serial/Chassis Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.chassisNumber}</span>} />
+              </div>
+            </FieldGrid>
+            {viewingApp.requiresCOV && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-center space-x-2 dark:bg-amber-950/30 dark:border-amber-800">
+                <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
+                <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI.</span>
+              </div>
+            )}
+          </Section>
+
+          <Section icon={FileStack} title="Documents & Endorsements" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+            <PolicyDocumentsSection
+              isPaid={viewingApp.isPaid}
+              documents={CTPL_DOCUMENTS}
+              onView={handleViewDoc}
+              onSend={handleSendDoc}
+              lockedMessage="Documents will be available once the client completes payment on the website."
+            />
+            <div className="mt-3">
+              <CtplPolicyEndorsements app={viewingApp} connected={connected} onPolicyChanged={() => onPolicyChanged?.()} notify={notify} />
+            </div>
+          </Section>
+
+          <ConsentSection ownerName={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} referenceNo={viewingApp.referenceNo ?? viewingApp.id} />
+          <RemarksSection />
+          <UploadedDocumentsSection notify={notify} />
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+            Back to CTPL Applications
+          </button>
+        </div>
+
+        {notification && (
+          <div className="fixed top-6 right-6 z-[100] p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-white" />
+            <span>{notification}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-[1650px] mx-auto font-sans text-slate-900 dark:text-slate-100">
@@ -299,99 +411,6 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
           </div>
         )}
       </div>
-
-      {/* Detail View Modal */}
-      {viewingApp && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 dark:bg-slate-900 dark:border-slate-800">
-            <div className="flex justify-between items-start gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
-              <div>
-                <h2 className="text-lg font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">Application {viewingApp.referenceNo ?? '(Reference No. pending payment)'}</h2>
-                <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{viewingApp.ownerFirstName} {viewingApp.ownerSurname} &middot; {viewingApp.plateNumber}</span>
-                  <span className="text-[10px] font-black text-[#002f6c] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30">
-                    {viewingApp.premium}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
-                    Paid
-                  </span>
-                  <span title={CTPL_STATUS_DESCRIPTIONS[viewingApp.status]} className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap ${getPolicyStatusBadgeStyle(getCtplPolicyStatus(viewingApp))}`}>
-                    {getCtplPolicyStatus(viewingApp)}
-                  </span>
-                </div>
-              </div>
-              <button onClick={closeModal} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0">
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <Section icon={User} title="Owner & Applicant" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
-                <FieldGrid>
-                  <Field label="Registered Owner" editing={false} edit={null} view={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
-                  <Field label="Client Type" editing={false} edit={null} view={viewingApp.clientType} />
-                  <Field label="Email" editing={false} edit={null} view={viewingApp.email} />
-                  <Field label="Mobile" editing={false} edit={null} view={viewingApp.mobileNumber} />
-                  {!viewingApp.sameAsOwner && (
-                    <Field label="Applicant (if different from owner)" editing={false} edit={null} view={`${viewingApp.applicantFirstName} ${viewingApp.applicantSurname}`} />
-                  )}
-                  <div className="md:col-span-2 xl:col-span-3">
-                    <Field
-                      label="Owner Address"
-                      editing={false}
-                      edit={null}
-                      view={[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}
-                    />
-                  </div>
-                </FieldGrid>
-              </Section>
-
-              <Section icon={Car} title="Vehicle Details" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
-                <FieldGrid>
-                  <Field label="Policy Type" editing={false} edit={null} view={`${viewingApp.policyType} (${viewingApp.renewalType})${viewingApp.forPublicUse ? ' — For Public Use' : ''}`} />
-                  <Field label="MV Type" editing={false} edit={null} view={viewingApp.mvType} />
-                  <Field label="Plate Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.plateNumber}</span>} />
-                  <Field label="MV File Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.mvFileNumber}</span>} />
-                  <div className="md:col-span-2 xl:col-span-3">
-                    <Field label="Serial/Chassis Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.chassisNumber}</span>} />
-                  </div>
-                </FieldGrid>
-                {viewingApp.requiresCOV && (
-                  <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-center space-x-2 dark:bg-amber-950/30 dark:border-amber-800">
-                    <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
-                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI.</span>
-                  </div>
-                )}
-              </Section>
-
-              <Section icon={FileStack} title="Documents & Endorsements" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
-                <PolicyDocumentsSection
-                  isPaid={viewingApp.isPaid}
-                  documents={CTPL_DOCUMENTS}
-                  onView={handleViewDoc}
-                  onSend={handleSendDoc}
-                  lockedMessage="Documents will be available once the client completes payment on the website."
-                />
-                <div className="mt-3">
-                  <CtplPolicyEndorsements app={viewingApp} connected={connected} onPolicyChanged={() => onPolicyChanged?.()} notify={notify} />
-                </div>
-              </Section>
-
-              <ConsentSection ownerName={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} referenceNo={viewingApp.referenceNo ?? viewingApp.id} />
-              <RemarksSection />
-              <UploadedDocumentsSection notify={notify} />
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toast */}
       {notification && (
