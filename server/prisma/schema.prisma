@@ -366,7 +366,9 @@ model OfwApplication {
   // resulting PHP-formatted amount - refreshed on every premium change until
   // the payment instruction is sent, then frozen forever (see
   // applications.ofw.ts) so a forex swing afterward can't change what's due.
-  fxRate                   Float?
+  // Fixed-precision (not float) per dev request, to avoid binary
+  // floating-point rounding drift on a rate this gets multiplied against.
+  fxRate                   Decimal? @db.Decimal(12, 3)
   premiumPhp               String?
   dateReceived             DateTime
   // Set once employment is verified 'Yes', once the payment instruction is

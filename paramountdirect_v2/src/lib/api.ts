@@ -209,7 +209,8 @@ export interface OfwApplicationApi {
   employmentContractDoc: string;
   medicalCertificateDoc: string;
   premium: string;
-  fxRate: number | null;
+  // Serialized as a string over JSON (Prisma Decimal.toJSON()), not a number.
+  fxRate: string | null;
   premiumPhp: string | null;
   dateReceived: string;
   dateVerified: string | null;

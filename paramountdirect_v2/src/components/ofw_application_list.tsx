@@ -304,7 +304,7 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
                 <span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.premiumPhp ?? '—'}</span>
                 {viewingApp.fxRate && (
                   <span className="ml-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                    @ ₱{viewingApp.fxRate.toFixed(4)}/$ {viewingApp.paymentInstructionSent ? '(locked)' : ''}
+                    @ ₱{Number(viewingApp.fxRate).toFixed(3)}/$ {viewingApp.paymentInstructionSent ? '(locked)' : ''}
                   </span>
                 )}
               </div>
@@ -686,7 +686,7 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
                 <span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.premiumPhp ?? '—'}</span>
                 {viewingApp.fxRate && (
                   <span className="ml-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                    @ ₱{viewingApp.fxRate.toFixed(4)}/$ {viewingApp.paymentInstructionSent ? '(locked)' : ''}
+                    @ ₱{Number(viewingApp.fxRate).toFixed(3)}/$ {viewingApp.paymentInstructionSent ? '(locked)' : ''}
                   </span>
                 )}
               </div>

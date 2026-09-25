@@ -48,7 +48,8 @@ export interface OfwApplication {
   // USD->PHP rate and the resulting PHP-formatted amount - refreshed on
   // every premium change until the payment instruction is sent, then frozen
   // (see applications.ofw.ts) so a forex swing afterward can't change what's due.
-  fxRate?: number;
+  // Fixed-precision NUMERIC(12,3) from the DB, arrives as a string.
+  fxRate?: string;
   premiumPhp?: string;
   dateReceived: string;
   // Set once employment is verified 'Yes', once the payment instruction is
