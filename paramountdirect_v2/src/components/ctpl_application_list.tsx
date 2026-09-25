@@ -3,6 +3,7 @@ import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, 
 import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
 import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
 import { PolicyDocumentsSection, type PolicyDocumentSpec } from './policy_documents';
+import { ConsentSection, RemarksSection, UploadedDocumentsSection } from './ctpl_vvip_sections';
 import { documentsApi, ApiError } from '../lib/api';
 import CtplPolicyEndorsements from './ctpl_policy_endorsements';
 import { Section, FieldGrid, Field } from './application_detail_ui';
@@ -377,6 +378,10 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
                   <CtplPolicyEndorsements app={viewingApp} connected={connected} onPolicyChanged={() => onPolicyChanged?.()} notify={notify} />
                 </div>
               </Section>
+
+              <ConsentSection ownerName={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} referenceNo={viewingApp.referenceNo ?? viewingApp.id} />
+              <RemarksSection />
+              <UploadedDocumentsSection notify={notify} />
             </div>
 
             <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">

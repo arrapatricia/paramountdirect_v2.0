@@ -6,6 +6,7 @@ import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocu
 import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 import { Section, FieldGrid, Field } from './application_detail_ui';
+import { ConsentSection, RemarksSection, UploadedDocumentsSection } from './ctpl_vvip_sections';
 
 // Unpaid CTPL applications land here as a full page rather than the quick-
 // preview modal in ctpl_application_list.tsx, since - unlike a paid, already
@@ -313,6 +314,10 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
               lockedMessage="Documents will be available once the client completes payment on the website."
             />
           </div>
+
+          <ConsentSection ownerName={`${app.ownerFirstName} ${app.ownerMiddleName} ${app.ownerSurname}`} referenceNo={app.referenceNo ?? app.id} />
+          <RemarksSection />
+          <UploadedDocumentsSection notify={notify} />
         </div>
       )}
 
