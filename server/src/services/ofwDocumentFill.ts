@@ -150,3 +150,25 @@ export async function fillOfwServiceInvoice(app: OfwApplication): Promise<{ buff
 
   return { buffer, invoiceNumber };
 }
+
+// The DM (Domestic Migrant / OFW Compulsory Insurance) master policy number,
+// same for both the BM and DH variants - confirmed by the business side.
+const OFW_MASTER_POLICY_NUMBER = 'G-3083';
+
+// Fills the real Certificate of Insurance template - two variants of the
+// same 5-field form (DM_Certificate of Insurance BM/DH_withFields.pdf),
+// selected by natureOfEmployment. Field names are identical between the two
+// ("BM_..." even on the DH template - not a typo, that's how the template
+// was built).
+export async function fillOfwCoi(app: OfwApplication): Promise<Buffer> {
+  const name = `${app.firstName} ${app.middleName} ${app.lastName}`.replace(/\s+/g, ' ').trim();
+  const template = app.natureOfEmployment === 'Direct_hired' ? 'ofw-coi-dh.pdf' : 'ofw-coi-bm.pdf';
+
+  return fillFields(template, {
+    BM_Fullname: name.toUpperCase(),
+    BM_COIno: app.policyNumber ?? '',
+    BM_MasterPolNo: OFW_MASTER_POLICY_NUMBER,
+    BM_DateIssued: formatDate(app.dateIssued ?? new Date()),
+    BM_Term: `${formatDate(app.insuranceStart)} to ${formatDate(app.contractEnd)}`,
+  });
+}

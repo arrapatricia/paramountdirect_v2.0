@@ -7,7 +7,7 @@ import { recordAudit } from '../utils/audit';
 import type { OfwApplication, OfwStatus } from '@prisma/client';
 import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
 import { formatPhp, getUsdToPhpRate, parseUsdPremium } from '../lib/forex';
-import { fillOfwServiceInvoice } from '../services/ofwDocumentFill';
+import { fillOfwServiceInvoice, fillOfwCoi } from '../services/ofwDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 
 async function generateAndStoreOfwDocuments(application: OfwApplication, generatedBy?: string) {
@@ -26,6 +26,20 @@ async function generateAndStoreOfwDocuments(application: OfwApplication, generat
     // Payment/issuance already succeeded before this runs - don't fail the
     // request over document generation; surface it in the logs for follow-up.
     console.error(`Failed to generate OFW documents for ${application.id}:`, err);
+  }
+
+  try {
+    const coi = await fillOfwCoi(application);
+    await storeGeneratedDocument({
+      applicationType: 'OFW',
+      applicationId: application.id,
+      docKey: 'ofw-coi',
+      contentType: 'application/pdf',
+      body: coi,
+      generatedBy,
+    });
+  } catch (err) {
+    console.error(`Failed to generate OFW COI for ${application.id}:`, err);
   }
 }
 

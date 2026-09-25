@@ -34,7 +34,7 @@ The backend **does** talk to iPeak for one flow — PD Life applications are tra
 
 Every table in the schema is `@@map`ped to a snake_case plural Postgres name (migration `20260925080000_rename_tables_snake_case`; e.g. `OfwApplication` → `ofw_applications`). Prisma model names in code are unchanged, but raw SQL must use the table name. See `DATABASE_SCHEMA.md` for the full field-by-field reference.
 
-**Document generation** is real for CTPL (Certificate of Cover + Service Invoice, via `pdf-lib`-filled AcroForm templates uploaded to S3, one immutable `GeneratedDocument` row per file) and for OFW's Service Invoice. OFW's Certificate of Insurance and all of GTP's documents are still the older mock-template render pending real fillable templates. Invoice numbering (`6000000XXXXXX` series) is **shared across OFW/CTPL/GTP by design** — see the memory note "Shared non-life invoice numbering" — not a per-product sequence, since all three use the same invoice series/template in the real business process. See `docs/ctpl/HANDOVER.md` and `docs/ofw/HANDOVER.md` for the document-fill pipeline internals and tax-breakdown formulas.
+**Document generation** is real for CTPL (Certificate of Cover + Service Invoice, via `pdf-lib`-filled AcroForm templates uploaded to S3, one immutable `GeneratedDocument` row per file) and for OFW (Service Invoice and, as of 2026-09-25, Certificate of Insurance — see `docs/ofw/HANDOVER.md` §6). OFW's Official Receipt and all of GTP's documents are still the older mock-template render pending real fillable templates. Invoice numbering (`6000000XXXXXX` series) is **shared across OFW/CTPL/GTP by design** — see the memory note "Shared non-life invoice numbering" — not a per-product sequence, since all three use the same invoice series/template in the real business process. See `docs/ctpl/HANDOVER.md` and `docs/ofw/HANDOVER.md` for the document-fill pipeline internals and tax-breakdown formulas.
 
 ### 1.1 Tech stack
 
@@ -231,7 +231,7 @@ In rough priority order, informed by both the Gap Analysis's "High" priority ite
 2. **Move Premium Maintenance server-side.** Currently resets on page reload; this is the one Gap Analysis item this engagement solved on the frontend but left unpersisted.
 3. **Decide the Application/Payment status model** — reconcile the BRD's fuller status lists (Duplicate/Denied/Withdrawn for PD Life; Paid/Underpaid/Unpaid/Reversed for payments) against what's currently implemented, since retrofitting enums after real data exists is costlier.
 4. **Most of iPeak/AS400/Paynamics** is still a separate, much larger workstream — PD Life's outbound Insert/Update-Status calls exist now, but the inbound half (iPeak's results flowing back for client-facing documents), payment/Paynamics, and OFW/CTPL/GTP coverage are untouched and should be scoped independently. See `docs/life/HANDOVER.md` for specifics.
-5. **Fill in the remaining document templates** — OFW's COI and all of GTP's documents are still mock-rendered pending real fillable templates from the business side.
+5. **Fill in the remaining document templates** — OFW's Official Receipt and all of GTP's documents are still mock-rendered pending real fillable templates from the business side.
 6. **CMS** remains explicitly parked; revisit only when stakeholders re-raise it.
 
 ---
