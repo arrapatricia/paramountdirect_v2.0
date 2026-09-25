@@ -11,6 +11,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { requireServiceApiKey } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import { generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
+import { formatPhp, getUsdToPhpRate, parseUsdPremium } from '../lib/forex';
 
 const router = Router();
 router.use(requireServiceApiKey('WEBSITE_INGEST_API_KEY_OFW', 'ofwinsurance.ph', 'OFW'));
@@ -70,11 +71,14 @@ router.post(
   asyncHandler(async (req, res) => {
     const { beneficiaries, ...data } = ingestSchema.parse(req.body);
 
+    const fxRate = await getUsdToPhpRate();
     const application = await prisma.ofwApplication.create({
       data: {
         ...data,
         status: 'Received',
         referenceNo: await generateUniqueOfwReferenceNo(),
+        fxRate,
+        premiumPhp: formatPhp(parseUsdPremium(data.premium) * fxRate),
         beneficiaries: { create: beneficiaries },
       },
     });

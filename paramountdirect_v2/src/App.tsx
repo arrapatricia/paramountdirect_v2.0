@@ -11,6 +11,7 @@ import CtplDashboard from './components/ctpl_dashboard';
 import CtplApplicationList from './components/ctpl_application_list';
 import CtplApplicationDetail from './components/ctpl_application_detail';
 import CtplCreateApplication from './components/ctpl_create_application';
+import EndorsementsQueue from './components/endorsements_queue';
 import { CTPL_STATUSES, type CtplApplication } from './components/ctpl_types';
 import GtpDashboard from './components/gtp_dashboard';
 import GtpApplicationList from './components/gtp_application_list';
@@ -199,12 +200,15 @@ function mapApiToOfwApplication(api: OfwApplicationApi): OfwApplication {
       medicalCertificate: api.medicalCertificateDoc as OfwApplication['documents']['medicalCertificate'],
     },
     premium: api.premium,
+    fxRate: api.fxRate ?? undefined,
+    premiumPhp: api.premiumPhp ?? undefined,
     // OFW's milestone dates carry a time-of-day (unlike most other display
     // dates in this file) since verify/process/issue can all happen the same day.
     dateReceived: toDisplayDateTime(api.dateReceived),
     dateVerified: api.dateVerified ? toDisplayDateTime(api.dateVerified) : undefined,
     dateProcessed: api.dateProcessed ? toDisplayDateTime(api.dateProcessed) : undefined,
     dateIssued: api.dateIssued ? toDisplayDateTime(api.dateIssued) : undefined,
+    paymentInstructionSentBy: api.paymentInstructionSentBy ?? undefined,
     status: api.status as OfwApplication['status'],
     screenedBy: api.screenedBy ?? '-',
     employmentVerified: api.employmentVerified as OfwApplication['employmentVerified'],
@@ -622,7 +626,11 @@ function resolveInitialNav(): StoredNav {
   const stored = readStoredNav();
   const parsed = parsePath(window.location.pathname);
   if (parsed) {
-    return { product: parsed.product, tab: parsed.tab, subTab: parsed.subTab ?? stored?.subTab ?? 'branch' };
+    // /maintenance/* is shared across product lines and carries no product
+    // in the URL, so keep whichever product was selected before the reload
+    // (Maintenance re-skins to it - see lib/brand.ts).
+    const product = parsed.tab === 'maintenance' ? stored?.product ?? parsed.product : parsed.product;
+    return { product, tab: parsed.tab, subTab: parsed.subTab ?? stored?.subTab ?? 'branch' };
   }
   return stored ?? { product: 'PD Life', tab: 'dashboard', subTab: 'branch' };
 }
@@ -796,7 +804,8 @@ export default function App() {
       setIsCreatingPdLifeApp(false);
       const parsed = parsePath(window.location.pathname);
       if (parsed) {
-        setActiveProduct(parsed.product);
+        // Maintenance URLs don't carry a product - stay on the current one.
+        if (parsed.tab !== 'maintenance') setActiveProduct(parsed.product);
         setActiveTab(parsed.tab);
         if (parsed.tab === 'maintenance') setActiveSubTab(parsed.subTab ?? 'branch');
         setViewingOfwId(parsed.tab === 'ofw-applications' ? parsed.recordId ?? null : null);
@@ -878,6 +887,15 @@ export default function App() {
       cancelled = true;
     };
   }, [isAuthenticated]);
+
+  // Re-fetches after an endorsement changes a policy (corrected details, new
+  // expiry, cancellation) - see ctpl_policy_endorsements.tsx / endorsements_queue.tsx.
+  const reloadCtplApplications = () => {
+    ctplApi
+      .list()
+      .then((apps) => setCtplApplications(apps.map(mapApiToCtplApplication)))
+      .catch((err) => setCtplLoadError(err instanceof Error ? err.message : 'Failed to reload CTPL applications.'));
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !getAuthToken()) return;
@@ -1374,8 +1392,15 @@ export default function App() {
               viewingId={viewingCtplId}
               onView={setViewingCtplId}
               onCloseView={() => setViewingCtplId(null)}
+              connected={ctplConnected}
+              onPolicyChanged={reloadCtplApplications}
             />
           )
+        )}
+
+        {/* CTPL Endorsements */}
+        {activeTab === 'ctpl-endorsements' && (
+          <EndorsementsQueue product="CTPL" currentUserRole={currentUserRole} onPolicyChanged={reloadCtplApplications} />
         )}
 
         {/* CTPL Payment Transactions */}
@@ -1490,6 +1515,7 @@ export default function App() {
             setActiveSubTab={setActiveSubTab}
             annualTargets={annualTargets}
             onUpdateAnnualTargets={handleUpdateAnnualTargets}
+            activeProduct={activeProduct}
           />
         )}
 

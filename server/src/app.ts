@@ -12,6 +12,7 @@ import paymentRoutes from './routes/payments';
 import nonLifePaymentRoutes from './routes/payments.nonlife';
 import auditLogRoutes from './routes/auditLogs';
 import documentRoutes from './routes/documents';
+import endorsementRoutes from './routes/endorsements';
 import ingestPdLifeRoutes from './routes/ingest.pdlife';
 import ingestOfwRoutes from './routes/ingest.ofw';
 import ingestCtplRoutes from './routes/ingest.ctpl';
@@ -39,6 +40,7 @@ export function createApp() {
   app.use('/api/payments-nonlife', nonLifePaymentRoutes);
   app.use('/api/audit-logs', auditLogRoutes);
   app.use('/api/documents', documentRoutes);
+  app.use('/api/endorsements', endorsementRoutes);
   app.use('/api/ingest/pd-life', ingestPdLifeRoutes);
   app.use('/api/ingest/ofw', ingestOfwRoutes);
   app.use('/api/ingest/ctpl', ingestCtplRoutes);

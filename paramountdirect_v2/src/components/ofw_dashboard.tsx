@@ -9,6 +9,7 @@ interface OfwDashboardProps {
 }
 
 const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
+const php = (n: number) => `₱${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const safePct = (numerator: number, denominator: number) => (denominator === 0 ? 0 : (numerator / denominator) * 100);
 
 const FULL_MONTH_NAME: Record<string, string> = {
@@ -29,6 +30,13 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
     () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premium),
     [data]
   );
+  // Each application's premiumPhp is its own frozen-at-send-time USD->PHP
+  // conversion (see applications.ofw.ts) - summed the same way as the USD
+  // series above, just from a different field.
+  const monthlyPremiumPhp = useMemo(
+    () => buildMonthlyPremiumSeries(data, (r) => r.dateReceived, (r) => r.premiumPhp ?? '0'),
+    [data]
+  );
 
   const recordsByYear = useMemo(() => {
     const forYear = (year: number) => data.filter((r) => parseDateParts(r.dateReceived)?.year === year);
@@ -44,6 +52,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
   const completeMonths2025 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + m.y2025, 0);
   const completeMonths2026 = monthlyPremium.slice(0, CURRENT_MONTH_INDEX).reduce((s, m) => s + (m.y2026 ?? 0), 0);
   const premiumYtd2026 = monthlyPremium.reduce((s, m) => s + (m.y2026 ?? 0), 0);
+  const premiumPhpYtd2026 = monthlyPremiumPhp.reduce((s, m) => s + (m.y2026 ?? 0), 0);
   const premiumYoyPct = safePct(completeMonths2026 - completeMonths2025, completeMonths2025);
   const attainmentPct = Math.min(100, Math.round(safePct(premiumYtd2026, annualTarget)));
 
@@ -103,6 +112,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 dark:text-slate-500">Total Premium Collected (YTD)</h3>
           <p className="text-xl font-black text-[#002f6c] dark:text-[#49b1ea]">{usd(premiumYtd2026)}</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500">{php(premiumPhpYtd2026)}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3 text-emerald-500" />
             <span className="text-emerald-500">+{premiumYoyPct.toFixed(1)}%</span>
@@ -116,6 +126,7 @@ export default function OfwDashboard({ data, annualTarget }: OfwDashboardProps) 
             <p className="text-xl font-black text-slate-900 dark:text-white">{usd(premiumYtd2026)}</p>
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ {usd(annualTarget)}</span>
           </div>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500">{php(premiumPhpYtd2026)}</p>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden mt-3 dark:bg-slate-800">
             <div className="h-full rounded-full bg-[#002f6c] dark:bg-[#49b1ea]" style={{ width: `${attainmentPct}%` }} />
           </div>

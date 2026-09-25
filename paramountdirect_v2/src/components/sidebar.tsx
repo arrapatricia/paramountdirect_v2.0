@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Search,
   ClipboardCheck,
+  FilePen,
   CreditCard,
   Wrench,
   FileText,
@@ -35,6 +36,7 @@ import {
 
 import logoImg from '../assets/PD Logo_full color.png';
 import logoImgWhite from '../assets/PD Logo_white.png';
+import { brandTheme } from '../lib/brand';
 
 export type ProductLine = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
 
@@ -86,6 +88,7 @@ export default function Sidebar({
   darkMode = false,
   onToggleDarkMode
 }: SidebarProps) {
+  const brand = brandTheme(activeProduct);
   const userInitials = currentUserName
     .split(' ')
     .filter(Boolean)
@@ -115,6 +118,7 @@ export default function Sidebar({
     'CTPL': [
       { id: 'ctpl-dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'ctpl-applications', label: 'CTPL Applications', icon: ClipboardCheck },
+      { id: 'ctpl-endorsements', label: 'Endorsements', icon: FilePen },
       { id: 'ctpl-payments', label: 'Payment Transactions', icon: CreditCard },
     ],
     'GTP': [
@@ -473,11 +477,11 @@ export default function Sidebar({
                         }}
                         className={`w-full text-left py-2 px-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-2 truncate cursor-pointer ${
                           isSubActive
-                            ? 'text-[#d0112b] bg-red-50 font-bold dark:bg-red-950/30'
+                            ? brand.navActive
                             : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
                         }`}
                       >
-                        <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? 'text-[#d0112b]' : 'text-slate-400'}`} />
+                        <SubIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSubActive ? brand.navActiveIcon : 'text-slate-400'}`} />
                         <span className="truncate">{sub.label}</span>
                       </button>
                     );

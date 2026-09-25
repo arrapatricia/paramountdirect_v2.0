@@ -13,6 +13,8 @@ import {
   Check,
 } from 'lucide-react';
 import type { AnnualTargets } from '../App';
+import type { ProductLine } from './sidebar';
+import { brandTheme } from '../lib/brand';
 
 interface PageClickStat {
   page: string;
@@ -51,14 +53,53 @@ interface UnfinishedApplication {
 // No history yet on the new system — page/source/step structure is real,
 // but every metric starts at zero and fills in as real traffic and
 // applications come through.
-const gaPageClicks: PageClickStat[] = [
-  { page: '/health-insurance', product: 'Health Care', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
-  { page: '/life-accident-insurance', product: 'Life & Accident', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
-  { page: '/comprehensive-insurance', product: 'Comprehensive', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
-  { page: '/apply/healthcare-cash-plan', product: 'Health Care', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
-  { page: '/apply/golden-life-advantage-plan', product: 'Life & Accident', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
-  { page: '/apply/sure-savings-plan', product: 'Comprehensive', clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' },
-];
+interface SiteContent {
+  domain: string;
+  pageClicks: PageClickStat[];
+  dropOffSteps: DropOffStep[];
+}
+
+const zeroStats = { clicks: 0, visitors: 0, ctr: '0.0%', avgDuration: '0m 00s' };
+
+// paramountdirect.com - PD Life products and their multi-step apply form.
+const PD_SITE: SiteContent = {
+  domain: 'paramountdirect.com',
+  pageClicks: [
+    { page: '/health-insurance', product: 'Health Care', ...zeroStats },
+    { page: '/life-accident-insurance', product: 'Life & Accident', ...zeroStats },
+    { page: '/comprehensive-insurance', product: 'Comprehensive', ...zeroStats },
+    { page: '/apply/healthcare-cash-plan', product: 'Health Care', ...zeroStats },
+    { page: '/apply/golden-life-advantage-plan', product: 'Life & Accident', ...zeroStats },
+    { page: '/apply/sure-savings-plan', product: 'Comprehensive', ...zeroStats },
+  ],
+  dropOffSteps: [
+    { step: 'Policy Owner Information', count: 0 },
+    { step: 'Contact Information', count: 0 },
+    { step: 'Other / Employment Information', count: 0 },
+    { step: 'Payor Information', count: 0 },
+  ],
+};
+
+// ofwinsurance.ph - the public OFW site's pages (same nav as the live
+// site) and the sections of its online application form.
+const OFW_SITE: SiteContent = {
+  domain: 'ofwinsurance.ph',
+  pageClicks: [
+    { page: '/', product: 'Home', ...zeroStats },
+    { page: '/online-applications', product: 'Apply Now', ...zeroStats },
+    { page: '/how-to-pay', product: 'How To Pay', ...zeroStats },
+    { page: '/claims-process', product: 'How To Claim', ...zeroStats },
+    { page: '/ofw-branches', product: 'Branch Locator', ...zeroStats },
+    { page: '/contact-us', product: 'Contact Us', ...zeroStats },
+  ],
+  dropOffSteps: [
+    { step: 'Personal Information', count: 0 },
+    { step: 'Employment Information', count: 0 },
+    { step: 'Beneficiaries', count: 0 },
+    { step: 'Required Documents', count: 0 },
+    { step: 'Payment', count: 0 },
+  ],
+};
 
 const sourcePerformance: SourcePerformance[] = [
   { id: 1, name: 'ML', type: 'Affiliate', status: 'Active', clicks: 0, applications: 0, conversionRate: '0.0%' },
@@ -69,24 +110,16 @@ const sourcePerformance: SourcePerformance[] = [
   { id: 6, name: 'Direct', type: 'Organic', status: 'Inactive', clicks: 0, applications: 0, conversionRate: '0.0%' },
 ];
 
-const dropOffSteps: DropOffStep[] = [
-  { step: 'Policy Owner Information', count: 0 },
-  { step: 'Contact Information', count: 0 },
-  { step: 'Other / Employment Information', count: 0 },
-  { step: 'Payor Information', count: 0 },
-];
-
 // Real unfinished-application records only — nothing has been abandoned yet.
 const unfinishedApplications: UnfinishedApplication[] = [];
 
-const KPI_TOTAL_CLICKS = gaPageClicks.reduce((sum, p) => sum + p.clicks, 0);
-const KPI_TOTAL_VISITORS = gaPageClicks.reduce((sum, p) => sum + p.visitors, 0);
 const KPI_STARTED = 0;
 const KPI_COMPLETED = 0;
 const KPI_UNFINISHED = KPI_STARTED - KPI_COMPLETED;
 const KPI_COMPLETION_RATE = KPI_STARTED === 0 ? '0.0' : ((KPI_COMPLETED / KPI_STARTED) * 100).toFixed(1);
 
 interface MarketingDashboardProps {
+  activeProduct: ProductLine;
   annualTargets: AnnualTargets;
   onUpdateAnnualTargets: (targets: AnnualTargets) => void;
 }
@@ -98,7 +131,13 @@ const ANNUAL_TARGET_FIELDS: { key: keyof AnnualTargets; label: string; currency:
   { key: 'gtp', label: 'GTP', currency: '₱' },
 ];
 
-export default function MarketingDashboard({ annualTargets, onUpdateAnnualTargets }: MarketingDashboardProps) {
+export default function MarketingDashboard({ activeProduct, annualTargets, onUpdateAnnualTargets }: MarketingDashboardProps) {
+  const brand = brandTheme(activeProduct);
+  const isOfw = activeProduct === 'OFW';
+  const site = isOfw ? OFW_SITE : PD_SITE;
+  const { pageClicks: gaPageClicks, dropOffSteps } = site;
+  const KPI_TOTAL_CLICKS = gaPageClicks.reduce((sum, p) => sum + p.clicks, 0);
+  const KPI_TOTAL_VISITORS = gaPageClicks.reduce((sum, p) => sum + p.visitors, 0);
   const [remindedIds, setRemindedIds] = useState<string[]>([]);
   const [targetDrafts, setTargetDrafts] = useState<Record<keyof AnnualTargets, string>>(() => ({
     pdLife: String(annualTargets.pdLife),
@@ -141,12 +180,12 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-y-2 border-b pb-4 border-slate-200 dark:border-slate-800">
         <div className="flex items-center space-x-2">
-          <BarChart3 className="w-5 h-5 text-[#d0112b]" />
+          <BarChart3 className={`w-5 h-5 ${brand.text}`} />
           <div>
-            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#d0112b] font-['Montserrat']">
+            <h1 className={`text-lg md:text-xl font-bold uppercase tracking-wider font-['Montserrat'] ${brand.text}`}>
               MARKETING DASHBOARD
             </h1>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Google Analytics traffic, source performance &amp; application drop-off for paramountdirect.com</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Google Analytics traffic, source performance &amp; application drop-off for {site.domain}</p>
           </div>
         </div>
       </div>
@@ -155,7 +194,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center space-x-2">
-            <Target className="w-4 h-4 text-[#d0112b]" />
+            <Target className={`w-4 h-4 ${brand.text}`} />
             <h2 className="text-sm font-extrabold text-slate-800 uppercase dark:text-slate-100">Annual Targets</h2>
           </div>
         </div>
@@ -167,7 +206,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
               <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 dark:text-slate-500" htmlFor={`annual-target-${field.key}`}>
                 {field.label}
               </label>
-              <div className="flex items-center rounded-xl border border-slate-200 overflow-hidden focus-within:border-[#d0112b] dark:border-slate-700">
+              <div className={`flex items-center rounded-xl border border-slate-200 overflow-hidden dark:border-slate-700 ${brand.focusWithinBorder}`}>
                 <span className="px-3 text-sm font-bold text-slate-400 dark:text-slate-500">{field.currency}</span>
                 <input
                   id={`annual-target-${field.key}`}
@@ -186,7 +225,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
         <div className="flex items-center space-x-3 mt-5">
           <button
             onClick={handleSaveTargets}
-            className="px-5 py-2 rounded-xl bg-[#d0112b] text-white text-xs font-bold hover:bg-[#a80e23] transition-colors cursor-pointer"
+            className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${brand.button}`}
           >
             Save Targets
           </button>
@@ -250,7 +289,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
             <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest dark:text-slate-500">Unfinished Applications</h3>
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
           </div>
-          <p className="text-xl font-black text-[#d0112b]">{KPI_UNFINISHED.toLocaleString()}</p>
+          <p className={`text-xl font-black ${brand.text}`}>{KPI_UNFINISHED.toLocaleString()}</p>
           <div className="flex items-center space-x-1 mt-2 text-[10px] font-bold">
             <span className="text-slate-400 dark:text-slate-500">No data yet</span>
           </div>
@@ -278,13 +317,13 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
               href="https://analytics.google.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center space-x-1 text-[10px] font-bold text-[#008cb4] hover:underline"
+              className={`flex items-center space-x-1 text-[10px] font-bold hover:underline ${brand.accentText}`}
             >
               <span>Open GA4</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">paramountdirect.com — most-clicked product &amp; apply pages this month</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">{site.domain} — most-clicked {isOfw ? 'site' : 'product & apply'} pages this month</p>
 
           <div className="space-y-4">
             {gaPageClicks.map((p) => (
@@ -298,7 +337,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-[#008cb4]"
+                    className={`h-full rounded-full ${brand.accentBar}`}
                     style={{ width: `${(p.clicks / maxPageClicks) * 100}%` }}
                   />
                 </div>
@@ -315,7 +354,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
         {/* Drop-off by Step */}
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <h2 className="text-sm font-extrabold text-slate-800 uppercase mb-1 dark:text-slate-100">Application Drop-off by Step</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">Where applicants abandon the multi-step form, across all products</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">Where applicants abandon the {isOfw ? 'OFW online application form' : 'multi-step form, across all products'}</p>
 
           <div className="space-y-4">
             {dropOffSteps.map((d) => (
@@ -326,7 +365,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-[#d0112b]"
+                    className={`h-full rounded-full ${brand.bar}`}
                     style={{ width: `${(d.count / maxDropOff) * 100}%` }}
                   />
                 </div>
@@ -336,7 +375,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
 
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs dark:border-slate-800">
             <span className="font-bold text-slate-500 dark:text-slate-400">Total unfinished applications tracked</span>
-            <span className="font-black text-[#d0112b]">{totalDropOff.toLocaleString()}</span>
+            <span className={`font-black ${brand.text}`}>{totalDropOff.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -376,7 +415,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
                   </td>
                   <td className="py-4 px-4 text-right font-bold text-slate-800 dark:text-slate-100">{source.clicks.toLocaleString()}</td>
                   <td className="py-4 px-4 text-right font-bold text-slate-800 dark:text-slate-100">{source.applications.toLocaleString()}</td>
-                  <td className="py-4 px-4 text-right font-black text-[#008cb4]">{source.conversionRate}</td>
+                  <td className={`py-4 px-4 text-right font-black ${brand.accentText}`}>{source.conversionRate}</td>
                   <td className="py-4 px-4 flex items-center justify-end space-x-2">
                     <button className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
                       <Edit2 className="w-3.5 h-3.5" />
@@ -446,7 +485,7 @@ export default function MarketingDashboard({ annualTargets, onUpdateAnnualTarget
                         className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
                           remindedIds.includes(app.id)
                             ? 'bg-emerald-50 text-emerald-600 cursor-default dark:bg-emerald-950/30 dark:text-emerald-300'
-                            : 'bg-slate-100 text-slate-700 hover:bg-[#d0112b] hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300'
+                            : `bg-slate-100 text-slate-700 hover:text-white cursor-pointer dark:bg-slate-800 dark:text-slate-300 ${activeProduct === 'PD Life' ? 'hover:bg-[#d0112b]' : 'hover:bg-[#002f6c]'}`
                         }`}
                       >
                         <Mail className="w-3.5 h-3.5" />

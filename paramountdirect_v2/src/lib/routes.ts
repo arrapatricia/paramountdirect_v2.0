@@ -26,6 +26,7 @@ export const TAB_PATHS: Record<string, string> = {
 
   'ctpl-dashboard': '/ctpl',
   'ctpl-applications': '/ctpl/applications',
+  'ctpl-endorsements': '/ctpl/endorsements',
   'ctpl-payments': '/ctpl/payment-transactions',
 
   'gtp-dashboard': '/gtp',

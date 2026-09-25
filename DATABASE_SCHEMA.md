@@ -6,6 +6,8 @@ diagram) is published at: https://claude.ai/artifact/VcCNqqE1uARECufh4DiPgF
 
 `PK` primary key, `FK` foreign key, `UK` unique constraint.
 
+**Table names:** every model is `@@map`ped to a snake_case plural Postgres table (migration `20260925080000_rename_tables_snake_case`). Each heading below shows both names. Prisma code keeps using the model name (`prisma.ofwApplication`); only raw SQL and database tools like Prisma Studio or psql see the table name.
+
 ## Entity relationship diagram
 
 Real Prisma `@relation` foreign keys only — models with fields that reference another model
@@ -45,7 +47,7 @@ erDiagram
 
 ## Users & Roles
 
-### `User`
+### `User` → table `users`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -61,7 +63,7 @@ erDiagram
 
 Relations: belongs to one `Role` (optional), one `Branch` (optional); has many `AuditLog`.
 
-### `Role`
+### `Role` → table `roles`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -72,7 +74,7 @@ Relations: belongs to one `Role` (optional), one `Branch` (optional); has many `
 
 Relations: has many `User`, many `RolePermission`.
 
-### `RolePermission`
+### `RolePermission` → table `role_permissions`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -83,7 +85,7 @@ Relations: has many `User`, many `RolePermission`.
 
 ## Branches
 
-### `Branch`
+### `Branch` → table `branches`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -100,7 +102,7 @@ Relations: has many `User`.
 Category-specific data (medical questions, employment, etc.) lives in `details` as JSON
 rather than columns, since it varies by plan category.
 
-### `PdLifeApplication`
+### `PdLifeApplication` → table `pd_life_applications`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -116,7 +118,7 @@ rather than columns, since it varies by plan category.
 Relations: has many `PdLifeBeneficiary`, many `PdLifeIpeakRequest`; has one optional
 `LifePaymentTransaction` (joined by `policyNumber` ↔ `policyNo`, not an id FK).
 
-### `PdLifeBeneficiary`
+### `PdLifeBeneficiary` → table `pd_life_beneficiaries`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -125,7 +127,7 @@ Relations: has many `PdLifeBeneficiary`, many `PdLifeIpeakRequest`; has one opti
 | `fullName` / `birthdate` / `relationship` | String / DateTime | |
 | `sharePercent?` / `designation?` / `trusteeName?` | Float? / String? | |
 
-### `PdLifeIpeakRequest`
+### `PdLifeIpeakRequest` → table `pd_life_ipeak_requests`
 
 Audit/retry trail for every call made to iPeak (LEAP Services).
 
@@ -138,7 +140,7 @@ Audit/retry trail for every call made to iPeak (LEAP Services).
 | `requestPayload` / `responseBody?` | Json | |
 | `statusCode?` / `success` / `errorMessage?` / `retryCount` | Int? / Boolean / String? / Int | |
 
-### `PdLifePolicyNumberSequence`
+### `PdLifePolicyNumberSequence` → table `pd_life_policy_number_sequences`
 
 No relations — a sequence counter table.
 
@@ -149,11 +151,13 @@ No relations — a sequence counter table.
 
 ## OFW applications
 
-### `OfwApplication`
+### `OfwApplication` → table `ofw_applications`
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` PK | String (cuid) | |
+| `referenceNo` UK | String? | assigned as soon as the application exists |
+| `policyNumber` UK | String? | the COI No.; assigned once paid |
 | `lastName` … `referralSource` (12 cols) | String / enum | applicant identity/contact; `gender`, `civilStatus` enums; includes `phRegion` / `phBarangay` alongside `phAddress` / `phCity` |
 | `natureOfEmployment` | enum | `Direct_hired` \| `Balik_Manggagawa` |
 | `coverageType` | enum | `Land_based` \| `Sea_based` |
@@ -162,13 +166,17 @@ No relations — a sequence counter table.
 | `passportDoc` / `visaDoc` / `employmentContractDoc` / `medicalCertificateDoc` | enum | `Uploaded` \| `Missing` — per-document checklist status, not file storage |
 | `status` | enum | `Received` \| `Cancelled` \| `Duplicate` \| `Reversed` |
 | `employmentVerified` | enum | `Pending` \| `Yes` \| `No` — must be verified before a payment instruction can be sent |
+| `premium` | String | USD, e.g. `$42.00` |
+| `fxRate` / `premiumPhp` | Float? / String? | USD→PHP rate and the PHP amount; refreshed on each edit until the payment instruction is sent, then locked |
+| `dateReceived` / `dateVerified` / `dateProcessed` / `dateIssued` | DateTime / DateTime? | stamped at receipt, verification, payment instruction, and payment |
 | `paymentInstructionSent` | Boolean | |
+| `paymentInstructionSentBy` | String? | name of the logged-in account that sent the payment instruction; set once by the server |
+| `screenedBy` | String? | the Issuer shown in the list |
 | `isPaid` | Boolean | |
-| `policyNumber` UK / `referenceNo` UK | String? | assigned once paid/issued |
 
 Relations: has many `NonLifePaymentTransaction` (`product = OFW`); has many `OfwBeneficiary`.
 
-### `OfwBeneficiary`
+### `OfwBeneficiary` → table `ofw_beneficiaries`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -179,7 +187,7 @@ Relations: has many `NonLifePaymentTransaction` (`product = OFW`); has many `Ofw
 
 ## CTPL applications
 
-### `CtplApplication`
+### `CtplApplication` → table `ctpl_applications`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -202,7 +210,7 @@ Relations: has many `NonLifePaymentTransaction` (`product = CTPL`).
 
 ## GTP applications
 
-### `GtpApplication`
+### `GtpApplication` → table `gtp_applications`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -224,7 +232,7 @@ Relations: has many `NonLifePaymentTransaction` (`product = GTP`).
 
 PD Life bills on an installment ledger; CTPL/OFW/GTP are straight-through one-time payments.
 
-### `LifePaymentTransaction`
+### `LifePaymentTransaction` → table `life_payment_transactions`
 
 | Field | Type | Notes |
 |---|---|---|
@@ -248,7 +256,7 @@ Relations: belongs to one `PdLifeApplication` (via `policyNo`); has many `Paymen
 | `uploaded` / `amountPaid` / `underpay` | Float | |
 | `orNumber` / `orDate?` | String / DateTime? | |
 
-### `NonLifePaymentTransaction` (CTPL / OFW / GTP)
+### `NonLifePaymentTransaction` → table `non_life_payment_transactions` (CTPL / OFW / GTP)
 
 | Field | Type | Notes |
 |---|---|---|
@@ -270,7 +278,7 @@ Backs the Policy Schedule / COC / OR / Service Invoice download-and-store flow �
 far (`ctplDocumentFill.ts`, COC + Service Invoice only); OFW/GTP will write to this same table
 once their own fill services exist.
 
-### `GeneratedDocument`
+### `GeneratedDocument` → table `generated_documents`
 
 One immutable row per generated file.
 
@@ -287,7 +295,7 @@ One immutable row per generated file.
 
 ## Audit Logs
 
-### `AuditLog`
+### `AuditLog` → table `audit_logs`
 
 | Field | Type | Notes |
 |---|---|---|

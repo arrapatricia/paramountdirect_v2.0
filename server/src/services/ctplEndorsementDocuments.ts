@@ -23,6 +23,11 @@ export interface EndorsementChange {
 
 const fmt = (n: number | null | undefined) => formatCurrency(Math.abs(n ?? 0));
 
+// The invoice/credit memo "Term of Insurance" fields are too narrow for a
+// spelled-out month - legacy printed these as e.g. "JAN 10, 2026".
+const shortDate = (d: Date | null | undefined) =>
+  d ? d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase() : '';
+
 function fullAddress(app: CtplApplication): string {
   return [app.ownerAddress, app.ownerBarangay !== 'N/A' ? app.ownerBarangay : '', app.ownerCity, app.ownerRegion]
     .filter(Boolean)
@@ -56,8 +61,7 @@ function nonFinancialDetails(app: CtplApplication, e: Endorsement): string {
   const changes = (e.changes as unknown as EndorsementChange[] | null) ?? [];
   const labels = changes.map((c) => c.label);
   const joined = labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}` : labels[0] ?? '';
-  const width = Math.max(...labels.map((l) => l.length), 0);
-  const lines = changes.map((c) => `      ${c.label.padEnd(width)}  :  ${(c.to || '-').toUpperCase().replace(/\s+/g, ' ').trim()}`);
+  const lines = changes.map((c) => `      ${c.label}:  ${(c.to || '-').toUpperCase().replace(/\s+/g, ' ').trim()}`);
   return `\nThe correct ${joined} of the vehicle insured under this policy should be read as:\n\n${lines.join('\n')}\n\nAnd not as previously stated.`;
 }
 
@@ -113,8 +117,8 @@ async function fillExtensionServiceInvoice(app: CtplApplication, e: Endorsement)
     policy_number: app.policyNumber ?? '',
     endorsement_number: e.endorsementNumber ?? '',
     // The invoice covers only the added days, previous expiry -> new expiry.
-    effectivity_date: formatDate(e.previousExpiryDate),
-    expiration_date: formatDate(e.newExpiryDate),
+    effectivity_date: shortDate(e.previousExpiryDate),
+    expiration_date: shortDate(e.newExpiryDate),
     quantity: '1',
     unit_cost: fmt(e.premium),
     total_cost: fmt(e.premium),
@@ -133,7 +137,7 @@ async function fillExtensionServiceInvoice(app: CtplApplication, e: Endorsement)
     sc_pwd_id: '',
     agents_code: '',
     old_pol_no: '',
-    vat_breakdown: '',
+    vat_breakdown: fmt(e.vat),
   });
 }
 
@@ -190,8 +194,8 @@ async function fillCreditMemo(app: CtplApplication, e: Endorsement) {
     invoice_date: formatDate(e.decidedAt ?? new Date()),
     policy_number: app.policyNumber ?? '',
     endorsement_number: e.endorsementNumber ?? '',
-    effectivity_date: formatDate(app.effectiveDate),
-    expiration_date: formatDate(app.expiryDate),
+    effectivity_date: shortDate(app.effectiveDate),
+    expiration_date: shortDate(app.expiryDate),
     old_pol_no: '',
     vatable_sales: fmt(e.premium),
     zero_rated_sales: '-',

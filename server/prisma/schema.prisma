@@ -27,17 +27,17 @@ enum UserStatus {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  firstName    String
-  lastName     String
-  email        String     @unique
-  passwordHash String
-  status       UserStatus @default(Active)
+  id               String     @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String     @unique
+  passwordHash     String
+  status           UserStatus @default(Active)
   // Product lines this user's account can switch into, e.g. ["PD Life", "OFW"].
   assignedProducts String[]
-  lastLoginAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  lastLoginAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   roleId String?
   role   Role?   @relation(fields: [roleId], references: [id])
@@ -49,23 +49,25 @@ model User {
 
   @@index([roleId])
   @@index([branchId])
+  @@map("users")
 }
 
 model Role {
-  id             String   @id @default(cuid())
-  name           String
+  id                String   @id @default(cuid())
+  name              String
   // Which product system this role belongs to: "PD Life" | "OFW" | "CTPL" | "GTP".
-  productScope   String
+  productScope      String
   // True for the newer Direct Marketing-specific roles (Operations, Marketing,
   // Contact Center) as opposed to the larger legacy PD Life role list.
-  isDirectMarketing Boolean @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isDirectMarketing Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   users       User[]
   permissions RolePermission[]
 
   @@unique([name, productScope])
+  @@map("roles")
 }
 
 model RolePermission {
@@ -78,6 +80,7 @@ model RolePermission {
   canDelete  Boolean @default(false)
 
   @@unique([roleId, moduleName])
+  @@map("role_permissions")
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +116,8 @@ model Branch {
   updatedAt DateTime       @updatedAt
 
   users User[]
+
+  @@map("branches")
 }
 
 // ---------------------------------------------------------------------------
@@ -140,55 +145,55 @@ enum PdLifeStatus {
 }
 
 model PdLifeApplication {
-  id            String             @id @default(cuid())
+  id             String             @id @default(cuid())
   // Human-readable sequential reference (1, 2, 3, ...), assigned at
   // creation via a native Postgres sequence - display as a zero-padded
   // 7-digit string (e.g. "0000001"). Distinct from `policyNumber`, which
   // is only assigned once the application is actually transmitted to iPeak.
-  applicationSeq Int               @default(autoincrement())
-  payor         String
-  planCategory  PdLifePlanCategory
-  planCode      String
-  planDesc      String
-  premium       String
-  source        String
-  dateReceived  DateTime
-  dateScreened  DateTime?
-  screenedBy    String?
-  status        PdLifeStatus       @default(Received)
+  applicationSeq Int                @default(autoincrement())
+  payor          String
+  planCategory   PdLifePlanCategory
+  planCode       String
+  planDesc       String
+  premium        String
+  source         String
+  dateReceived   DateTime
+  dateScreened   DateTime?
+  screenedBy     String?
+  status         PdLifeStatus       @default(Received)
   // Category-specific structured data (applicant details, beneficiaries,
   // medical declarations, etc.) - shape depends on planCategory.
-  details       Json               @default("{}")
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  details        Json               @default("{}")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   // Policy number assigned once the application is transmitted to iPeak
   // (LEAP Services); doubles as iPeak's ApplicationID/PolicyNo.
-  policyNumber     String?      @unique
+  policyNumber    String?      @unique
   // Insured's personal details, mirroring the frontend's PolicyOwnerInfo -
   // in this product line the insured is always their own policy owner.
-  firstName        String?
-  middleName       String?
-  lastName         String?
-  otherName        String?
-  gender           Gender?
-  civilStatus      CivilStatus?
-  birthdate        DateTime?
-  placeOfBirth     String?
-  nationality      String?
-  billingAddress   String?
-  residingAddress  String?
-  heightCm         Float?
-  weightKg         Float?
+  firstName       String?
+  middleName      String?
+  lastName        String?
+  otherName       String?
+  gender          Gender?
+  civilStatus     CivilStatus?
+  birthdate       DateTime?
+  placeOfBirth    String?
+  nationality     String?
+  billingAddress  String?
+  residingAddress String?
+  heightCm        Float?
+  weightKg        Float?
   // Employment / financial details, mirroring the category `details` blob.
-  occupation       String?
-  companyAddress   String?
-  sourceOfFunds    String?
-  tin              String?
-  sssNo            String?
-  mobileNumber     String?
-  telephoneNumber  String?
-  email            String?
+  occupation      String?
+  companyAddress  String?
+  sourceOfFunds   String?
+  tin             String?
+  sssNo           String?
+  mobileNumber    String?
+  telephoneNumber String?
+  email           String?
 
   beneficiaries          PdLifeBeneficiary[]
   ipeakRequests          PdLifeIpeakRequest[]
@@ -198,21 +203,23 @@ model PdLifeApplication {
 
   @@index([status])
   @@index([planCategory])
+  @@map("pd_life_applications")
 }
 
 model PdLifeBeneficiary {
-  id             String            @id @default(cuid())
-  applicationId  String
-  application    PdLifeApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  fullName       String
-  birthdate      DateTime
-  relationship   String
-  sharePercent   Float?
-  designation    String?
-  trusteeName    String?
-  createdAt      DateTime          @default(now())
+  id            String            @id @default(cuid())
+  applicationId String
+  application   PdLifeApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fullName      String
+  birthdate     DateTime
+  relationship  String
+  sharePercent  Float?
+  designation   String?
+  trusteeName   String?
+  createdAt     DateTime          @default(now())
 
   @@index([applicationId])
+  @@map("pd_life_beneficiaries")
 }
 
 enum PdLifeIpeakMethod {
@@ -242,6 +249,7 @@ model PdLifeIpeakRequest {
 
   @@index([applicationId])
   @@index([policyNumber])
+  @@map("pd_life_ipeak_requests")
 }
 
 // One row per PD Life plan code, holding the last sequential number used in
@@ -251,6 +259,8 @@ model PdLifeIpeakRequest {
 model PdLifePolicyNumberSequence {
   planCode   String @id
   lastNumber Int    @default(0)
+
+  @@map("pd_life_policy_number_sequences")
 }
 
 // ---------------------------------------------------------------------------
@@ -309,21 +319,29 @@ enum EmploymentVerifiedStatus {
 }
 
 model OfwApplication {
-  id                 String             @id @default(cuid())
-  lastName           String
-  firstName          String
-  middleName         String
-  gender             Gender
-  civilStatus        CivilStatus
-  birthdate          DateTime
-  placeOfBirth       String
-  phAddress          String
-  phRegion           String             @default("")
-  phCity             String
-  phBarangay         String             @default("")
-  phone              String
-  email              String
-  referralSource     String
+  id             String      @id @default(cuid())
+  // Listed first so they're the leading columns in Prisma Studio.
+  // Assigned to every application as soon as it exists, paid or not.
+  referenceNo    String?     @unique
+  // OFW calls its policy identifier the "COI Number" (Certificate of
+  // Insurance); assigned once payment is confirmed - also exposed on
+  // NonLifePaymentTransaction rows for display/search even when
+  // ofwApplicationId is set, since that's the natural lookup key for a payment.
+  policyNumber   String?     @unique
+  lastName       String
+  firstName      String
+  middleName     String
+  gender         Gender
+  civilStatus    CivilStatus
+  birthdate      DateTime
+  placeOfBirth   String
+  phAddress      String
+  phRegion       String      @default("")
+  phCity         String
+  phBarangay     String      @default("")
+  phone          String
+  email          String
+  referralSource String
 
   natureOfEmployment NatureOfEmployment
   coverageType       CoverageType
@@ -338,23 +356,33 @@ model OfwApplication {
   insuranceStart     DateTime
   isConflictZone     Boolean            @default(false)
 
-  passportDoc            DocumentStatus @default(Missing)
-  visaDoc                DocumentStatus @default(Missing)
-  employmentContractDoc  DocumentStatus @default(Missing)
-  medicalCertificateDoc  DocumentStatus @default(Missing)
+  passportDoc           DocumentStatus @default(Missing)
+  visaDoc               DocumentStatus @default(Missing)
+  employmentContractDoc DocumentStatus @default(Missing)
+  medicalCertificateDoc DocumentStatus @default(Missing)
 
-  premium       String
-  dateReceived  DateTime
+  premium                  String
+  // USD->PHP rate at the time premium was last (re)computed, and the
+  // resulting PHP-formatted amount - refreshed on every premium change until
+  // the payment instruction is sent, then frozen forever (see
+  // applications.ofw.ts) so a forex swing afterward can't change what's due.
+  fxRate                   Float?
+  premiumPhp               String?
+  dateReceived             DateTime
   // Set once employment is verified 'Yes', once the payment instruction is
   // sent to the client (dateProcessed), and once the policy is issued
   // (isPaid), respectively - null until then.
-  dateVerified  DateTime?
-  dateProcessed DateTime?
-  dateIssued    DateTime?
-  status        OfwStatus  @default(Received)
-  screenedBy    String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  dateVerified             DateTime?
+  dateProcessed            DateTime?
+  dateIssued               DateTime?
+  // Name of the logged-in account that sent the payment instruction -
+  // stamped server-side alongside dateProcessed, for tracking. Null on rows
+  // processed before this field existed.
+  paymentInstructionSentBy String?
+  status                   OfwStatus @default(Received)
+  screenedBy               String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   // See EmploymentVerifiedStatus - must be verified before a payment
   // instruction can be sent, which itself must happen before isPaid can be true.
@@ -365,34 +393,28 @@ model OfwApplication {
   // At least one required, up to three - see OfwBeneficiary.
   beneficiaries OfwBeneficiary[]
 
-  // OFW calls its policy identifier the "COI Number" (Certificate of
-  // Insurance); assigned once payment is confirmed - also exposed on
-  // NonLifePaymentTransaction rows for display/search even when
-  // ofwApplicationId is set, since that's the natural lookup key for a payment.
-  policyNumber  String?    @unique
-  // Assigned to every application as soon as it exists, paid or not.
-  referenceNo   String?    @unique
-
   // Real FK back-relation - see NonLifePaymentTransaction.ofwApplicationId.
   paymentTransactions NonLifePaymentTransaction[]
   // See Endorsement.ofwApplicationId.
   endorsements        Endorsement[]
 
   @@index([status])
+  @@map("ofw_applications")
 }
 
 model OfwBeneficiary {
-  id             String          @id @default(cuid())
-  applicationId  String
-  application    OfwApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  fullName       String
-  relationship   String
+  id            String         @id @default(cuid())
+  applicationId String
+  application   OfwApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fullName      String
+  relationship  String
   // Null for beneficiaries ingested from ofwinsurance.ph - that site's own
   // form never collects a beneficiary's birthdate at all.
-  birthdate      DateTime?
-  createdAt      DateTime        @default(now())
+  birthdate     DateTime?
+  createdAt     DateTime       @default(now())
 
   @@index([applicationId])
+  @@map("ofw_beneficiaries")
 }
 
 // ---------------------------------------------------------------------------
@@ -425,28 +447,28 @@ enum CtplStatus {
 }
 
 model CtplApplication {
-  id             String          @id @default(cuid())
-  policyType     CtplPolicyType
-  mvType         String
-  renewalType    CtplRenewalType
+  id          String          @id @default(cuid())
+  policyType  CtplPolicyType
+  mvType      String
+  renewalType CtplRenewalType
 
   clientType         CtplClientType
-  ownerFirstName      String
-  ownerMiddleName     String
-  ownerSurname        String
-  ownerAddress        String         @default("")
-  ownerRegion         String         @default("")
-  ownerCity           String         @default("")
-  ownerBarangay       String         @default("")
-  sameAsOwner         Boolean        @default(true)
-  applicantFirstName  String
-  applicantSurname    String
-  email               String
-  mobileNumber        String
+  ownerFirstName     String
+  ownerMiddleName    String
+  ownerSurname       String
+  ownerAddress       String         @default("")
+  ownerRegion        String         @default("")
+  ownerCity          String         @default("")
+  ownerBarangay      String         @default("")
+  sameAsOwner        Boolean        @default(true)
+  applicantFirstName String
+  applicantSurname   String
+  email              String
+  mobileNumber       String
 
-  plateNumber    String
-  mvFileNumber   String
-  chassisNumber  String
+  plateNumber   String
+  mvFileNumber  String
+  chassisNumber String
 
   // Vehicle details needed to fill the COC/Service Invoice PDF templates -
   // year/make/series mirror ctpl.ph's own "Select Your Vehicle" step
@@ -463,11 +485,11 @@ model CtplApplication {
   authorizedCapacity String @default("")
   unladenWeight      String @default("")
 
-  requiresCOV    Boolean  @default(false)
+  requiresCOV Boolean @default(false)
 
   // Motorcycle-only: for-hire/public utility motorcycle (e.g. habal-habal) -
   // gets its own policy number series (LCOC-) instead of the regular MCOC-.
-  forPublicUse   Boolean  @default(false)
+  forPublicUse Boolean @default(false)
 
   premium       String
   dateReceived  DateTime
@@ -484,8 +506,8 @@ model CtplApplication {
   // Assigned once the policy is issued / once payment is confirmed - also
   // exposed on NonLifePaymentTransaction rows for display/search even when
   // ctplApplicationId is set, since that's the natural lookup key for a payment.
-  policyNumber  String?    @unique
-  referenceNo   String?    @unique
+  policyNumber String? @unique
+  referenceNo  String? @unique
 
   // Real FK back-relation - see NonLifePaymentTransaction.ctplApplicationId.
   paymentTransactions NonLifePaymentTransaction[]
@@ -493,6 +515,7 @@ model CtplApplication {
   endorsements        Endorsement[]
 
   @@index([status])
+  @@map("ctpl_applications")
 }
 
 // ---------------------------------------------------------------------------
@@ -522,12 +545,12 @@ enum GtpStatus {
 }
 
 model GtpApplication {
-  id             String        @id @default(cuid())
-  travelType     GtpTravelType
-  destinations   String[]
-  departureDate  DateTime
-  returnDate     DateTime
-  daysOfTravel   Int
+  id              String             @id @default(cuid())
+  travelType      GtpTravelType
+  destinations    String[]
+  departureDate   DateTime
+  returnDate      DateTime
+  daysOfTravel    Int
   applicationType GtpApplicationType
 
   travelerFirstName String
@@ -537,23 +560,23 @@ model GtpApplication {
   mobileNumber      String
 
   planVariant             GtpPlanVariant
-  cruiseCoverage          Boolean @default(false)
-  hazardousSportsCoverage Boolean @default(false)
-  isSchengenDestination   Boolean @default(false)
+  cruiseCoverage          Boolean        @default(false)
+  hazardousSportsCoverage Boolean        @default(false)
+  isSchengenDestination   Boolean        @default(false)
 
-  premium       String
-  dateReceived  DateTime
-  status        GtpStatus @default(Received)
-  screenedBy    String?
-  isPaid        Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  premium      String
+  dateReceived DateTime
+  status       GtpStatus @default(Received)
+  screenedBy   String?
+  isPaid       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Assigned once the policy is issued / once payment is confirmed - also
   // exposed on NonLifePaymentTransaction rows for display/search even when
   // gtpApplicationId is set, since that's the natural lookup key for a payment.
-  policyNumber  String?   @unique
-  referenceNo   String?   @unique
+  policyNumber String? @unique
+  referenceNo  String? @unique
 
   // Real FK back-relation - see NonLifePaymentTransaction.gtpApplicationId.
   paymentTransactions NonLifePaymentTransaction[]
@@ -561,6 +584,7 @@ model GtpApplication {
   endorsements        Endorsement[]
 
   @@index([status])
+  @@map("gtp_applications")
 }
 
 // ---------------------------------------------------------------------------
@@ -581,47 +605,47 @@ enum PolicyStatus {
 // of the payment/ledger split, previously just "PaymentTransaction" back
 // when it was the only one.
 model LifePaymentTransaction {
-  id               String   @id @default(cuid())
+  id              String            @id @default(cuid())
   // References the PD Life application this ledger belongs to via its
   // issued policy number - a LifePaymentTransaction can only exist once an
   // application has actually been issued a policy number by iPeak.
-  policyNo         String            @unique
-  application      PdLifeApplication @relation(fields: [policyNo], references: [policyNumber])
-  title            String
-  firstName        String
-  middleName       String
-  lastName         String
-  birthdate        DateTime
-  gender           String
-  currentAge       Int
-  issueAge         Int
-  address          String
-  mobileNumber     String
-  telephoneNumber  String
-  emailAddress     String
+  policyNo        String            @unique
+  application     PdLifeApplication @relation(fields: [policyNo], references: [policyNumber])
+  title           String
+  firstName       String
+  middleName      String
+  lastName        String
+  birthdate       DateTime
+  gender          String
+  currentAge      Int
+  issueAge        Int
+  address         String
+  mobileNumber    String
+  telephoneNumber String
+  emailAddress    String
 
-  policyStatus     PolicyStatus
-  hcrStatus        String
-  hcrUnit          String
-  premium          Float
-  hcrPremium       Float
-  deposit          Float
-  underpay         Float
-  dueDate          DateTime
-  payType          String
-  cashValue        Float
-  lifeBenefits     Float
+  policyStatus       PolicyStatus
+  hcrStatus          String
+  hcrUnit            String
+  premium            Float
+  hcrPremium         Float
+  deposit            Float
+  underpay           Float
+  dueDate            DateTime
+  payType            String
+  cashValue          Float
+  lifeBenefits       Float
   accidentalBenefits Float
-  mode             String
-  issueDate        DateTime
-  effectivityDate  DateTime
-  policyDate       DateTime
-  expiryDate       DateTime
+  mode               String
+  issueDate          DateTime
+  effectivityDate    DateTime
+  policyDate         DateTime
+  expiryDate         DateTime
 
-  planCode  String
-  planDesc  String
-  orDate    DateTime?
-  orNumber  String?
+  planCode String
+  planDesc String
+  orDate   DateTime?
+  orNumber String?
 
   // Ledger/installment detail (iPeak's PayHistory) is NOT duplicated into its
   // own table - it's read on demand from the most recent successful
@@ -630,6 +654,8 @@ model LifePaymentTransaction {
   // the same data in sync with every inquiry call.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("life_payment_transactions")
 }
 
 // ---------------------------------------------------------------------------
@@ -674,6 +700,7 @@ model NonLifePaymentTransaction {
   @@index([product])
   @@index([policyNumber])
   @@index([referenceNo])
+  @@map("non_life_payment_transactions")
 }
 
 // ---------------------------------------------------------------------------
@@ -714,6 +741,7 @@ model GeneratedDocument {
 
   @@index([applicationType, applicationId])
   @@index([endorsementId])
+  @@map("generated_documents")
 }
 
 // ---------------------------------------------------------------------------
@@ -804,6 +832,7 @@ model Endorsement {
   @@index([ctplApplicationId])
   @@index([ofwApplicationId])
   @@index([gtpApplicationId])
+  @@map("endorsements")
 }
 
 // Last number used per numbering series ("endorsement-CTPL", "credit-memo",
@@ -811,6 +840,8 @@ model Endorsement {
 model NumberSequence {
   key        String @id
   lastNumber Int    @default(0)
+
+  @@map("number_sequences")
 }
 
 // ---------------------------------------------------------------------------
@@ -822,7 +853,7 @@ model AuditLog {
   timestamp DateTime @default(now())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
-  userLabel String   // denormalized display name, kept even if the user is later deleted
+  userLabel String // denormalized display name, kept even if the user is later deleted
   role      String
   action    String
   module    String
@@ -831,4 +862,5 @@ model AuditLog {
 
   @@index([userId])
   @@index([module])
+  @@map("audit_logs")
 }

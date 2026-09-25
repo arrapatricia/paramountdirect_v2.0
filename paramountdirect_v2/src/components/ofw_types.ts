@@ -45,6 +45,11 @@ export interface OfwApplication {
   };
 
   premium: string; // formatted, e.g. "$42.00"
+  // USD->PHP rate and the resulting PHP-formatted amount - refreshed on
+  // every premium change until the payment instruction is sent, then frozen
+  // (see applications.ofw.ts) so a forex swing afterward can't change what's due.
+  fxRate?: number;
+  premiumPhp?: string;
   dateReceived: string;
   // Set once employment is verified 'Yes', once the payment instruction is
   // sent to the client (dateProcessed), and once the policy is issued
@@ -52,6 +57,8 @@ export interface OfwApplication {
   dateVerified?: string;
   dateProcessed?: string;
   dateIssued?: string;
+  // Account that sent the payment instruction - set by the server.
+  paymentInstructionSentBy?: string;
   status: OfwStatus;
   screenedBy: string;
 

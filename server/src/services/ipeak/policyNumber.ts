@@ -8,10 +8,10 @@ import { prisma } from '../../lib/prisma';
 
 async function nextSequenceNumber(planCode: string): Promise<number> {
   const rows = await prisma.$queryRaw<{ lastNumber: number }[]>`
-    INSERT INTO "PdLifePolicyNumberSequence" ("planCode", "lastNumber")
+    INSERT INTO "pd_life_policy_number_sequences" ("planCode", "lastNumber")
     VALUES (${planCode}, 1)
     ON CONFLICT ("planCode")
-    DO UPDATE SET "lastNumber" = "PdLifePolicyNumberSequence"."lastNumber" + 1
+    DO UPDATE SET "lastNumber" = "pd_life_policy_number_sequences"."lastNumber" + 1
     RETURNING "lastNumber"
   `;
   return rows[0].lastNumber;

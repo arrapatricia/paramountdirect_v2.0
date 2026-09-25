@@ -4,6 +4,7 @@ import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
 import { CTPL_POLICY_TYPES, CTPL_STATUSES, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
 import { PolicyDocumentsSection, type PolicyDocumentSpec } from './policy_documents';
 import { documentsApi, ApiError } from '../lib/api';
+import CtplPolicyEndorsements from './ctpl_policy_endorsements';
 
 interface Props {
   data: CtplApplication[];
@@ -16,6 +17,11 @@ interface Props {
   viewingId?: string | null;
   onView?: (id: string) => void;
   onCloseView?: () => void;
+  // Live backend available (App.tsx's ctplConnected) - endorsements are
+  // server-only, so the Endorsements section needs it.
+  connected?: boolean;
+  // Reload the application list after an endorsement changes a policy.
+  onPolicyChanged?: () => void;
 }
 
 // CTPL issues a Certificate of Cover (COC) rather than a separate OR, unlike
@@ -49,7 +55,7 @@ const getRowTintStyle = (status: string) => {
   }
 };
 
-export default function CtplApplicationList({ data, onCreateNew, viewingId = null, onView, onCloseView }: Props) {
+export default function CtplApplicationList({ data, onCreateNew, viewingId = null, onView, onCloseView, connected = false, onPolicyChanged }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof STATUS_TABS)[number]>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [policyTypeFilter, setPolicyTypeFilter] = useState('All');
@@ -336,6 +342,8 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
                 onSend={handleSendDoc}
                 lockedMessage="Documents will be available once the client completes payment on the website."
               />
+
+              <CtplPolicyEndorsements app={viewingApp} connected={connected} onPolicyChanged={() => onPolicyChanged?.()} notify={notify} />
             </div>
 
             <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">

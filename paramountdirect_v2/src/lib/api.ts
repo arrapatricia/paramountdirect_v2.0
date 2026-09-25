@@ -209,10 +209,13 @@ export interface OfwApplicationApi {
   employmentContractDoc: string;
   medicalCertificateDoc: string;
   premium: string;
+  fxRate: number | null;
+  premiumPhp: string | null;
   dateReceived: string;
   dateVerified: string | null;
   dateProcessed: string | null;
   dateIssued: string | null;
+  paymentInstructionSentBy: string | null;
   status: string;
   screenedBy: string | null;
   employmentVerified: string;
@@ -230,7 +233,7 @@ const OFW_COVERAGE_FROM_API: Record<string, string> = Object.fromEntries(Object.
 
 export const ofwApi = {
   list: () => apiFetch<OfwApplicationApi[]>('/api/applications/ofw'),
-  create: (payload: Omit<OfwApplicationApi, 'id' | 'policyNumber' | 'referenceNo' | 'dateVerified' | 'dateProcessed' | 'dateIssued'>) =>
+  create: (payload: Omit<OfwApplicationApi, 'id' | 'policyNumber' | 'referenceNo' | 'dateVerified' | 'dateProcessed' | 'dateIssued' | 'fxRate' | 'premiumPhp' | 'paymentInstructionSentBy'>) =>
     apiFetch<OfwApplicationApi>('/api/applications/ofw', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id: string, payload: Partial<Omit<OfwApplicationApi, 'id'>>) =>
     apiFetch<OfwApplicationApi>(`/api/applications/ofw/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
@@ -484,4 +487,105 @@ export const documentsApi = {
   list: (applicationType: string, applicationId: string) =>
     apiFetch<GeneratedDocumentApi[]>(`/api/documents?applicationType=${encodeURIComponent(applicationType)}&applicationId=${encodeURIComponent(applicationId)}`),
   getUrl: (id: string) => apiFetch<{ url: string }>(`/api/documents/${id}/url`),
+};
+
+// Policy endorsements (CTPL so far) - see server/src/routes/endorsements.ts.
+// Non-financial ones come back already Approved; financial ones start
+// Pending and move through review -> approve/deny.
+export type EndorsementTypeApi = 'Non_Financial' | 'Term_Extension' | 'Cancellation_Flat' | 'Cancellation_Pro_Rata';
+export type EndorsementStatusApi = 'Pending' | 'Reviewed' | 'Approved' | 'Denied';
+
+export interface EndorsementChangeApi {
+  field: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+export interface EndorsementApi {
+  id: string;
+  product: 'CTPL' | 'OFW' | 'GTP';
+  ctplApplicationId: string | null;
+  policyNumber: string;
+  type: EndorsementTypeApi;
+  status: EndorsementStatusApi;
+  endorsementNumber: string | null;
+  effectiveDate: string;
+  reason: string;
+  changes: EndorsementChangeApi[] | null;
+  withDeedOfSale: boolean;
+  previousExpiryDate: string | null;
+  newExpiryDate: string | null;
+  premium: number | null;
+  dst: number | null;
+  vat: number | null;
+  lgt: number | null;
+  otherFees: number | null;
+  total: number | null;
+  invoiceNumber: string | null;
+  creditMemoNumber: string | null;
+  requestedBy: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewRemarks: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  decisionRemarks: string | null;
+  createdAt: string;
+  ctplApplication: {
+    id: string;
+    referenceNo: string | null;
+    policyNumber: string | null;
+    ownerFirstName: string;
+    ownerMiddleName: string;
+    ownerSurname: string;
+    plateNumber: string;
+    effectiveDate: string | null;
+    expiryDate: string | null;
+    premium: string;
+    status: string;
+  } | null;
+  documents: GeneratedDocumentApi[];
+}
+
+export interface EndorsementAmountsApi {
+  premium: number;
+  dst: number;
+  vat: number;
+  lgt: number;
+  otherFees: number;
+  total: number;
+}
+
+export interface EndorsementPreviewApi {
+  type: EndorsementTypeApi;
+  amounts: EndorsementAmountsApi;
+  termDays: number;
+  addedDays?: number;
+  daysUsed?: number;
+  unexpiredDays?: number;
+}
+
+export type CtplEndorsementSubmission =
+  | { kind: 'Non_Financial'; effectiveDate: string; reason: string; withDeedOfSale: boolean; changes: Record<string, string> }
+  | { kind: 'Term_Extension'; effectiveDate: string; reason: string; newExpiryDate: string }
+  | { kind: 'Cancellation'; effectiveDate: string; reason: string };
+
+export const endorsementsApi = {
+  list: (params: { product?: string; status?: EndorsementStatusApi; applicationId?: string } = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
+    return apiFetch<EndorsementApi[]>(`/api/endorsements${qs ? `?${qs}` : ''}`);
+  },
+  previewCtpl: (applicationId: string, payload: { kind: 'Term_Extension'; newExpiryDate: string } | { kind: 'Cancellation'; effectiveDate: string }) =>
+    apiFetch<EndorsementPreviewApi>(`/api/endorsements/ctpl/${applicationId}/preview`, { method: 'POST', body: JSON.stringify(payload) }),
+  submitCtpl: (applicationId: string, payload: CtplEndorsementSubmission) =>
+    apiFetch<EndorsementApi>(`/api/endorsements/ctpl/${applicationId}`, { method: 'POST', body: JSON.stringify(payload) }),
+  review: (id: string, remarks?: string) =>
+    apiFetch<EndorsementApi>(`/api/endorsements/${id}/review`, { method: 'POST', body: JSON.stringify({ remarks }) }),
+  approve: (id: string, remarks?: string) =>
+    apiFetch<EndorsementApi>(`/api/endorsements/${id}/approve`, { method: 'POST', body: JSON.stringify({ remarks }) }),
+  deny: (id: string, remarks: string) =>
+    apiFetch<EndorsementApi>(`/api/endorsements/${id}/deny`, { method: 'POST', body: JSON.stringify({ remarks }) }),
+  regenerateDocuments: (id: string) =>
+    apiFetch<EndorsementApi>(`/api/endorsements/${id}/documents`, { method: 'POST' }),
 };

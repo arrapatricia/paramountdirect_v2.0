@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import type { OfwApplication, OfwStatus } from '@prisma/client';
 import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
+import { formatPhp, getUsdToPhpRate, parseUsdPremium } from '../lib/forex';
 import { fillOfwServiceInvoice } from '../services/ofwDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 
@@ -113,7 +114,18 @@ const createApplicationSchema = z.object({
   dateVerified: z.coerce.date().optional(),
   dateProcessed: z.coerce.date().optional(),
   dateIssued: z.coerce.date().optional(),
+  fxRate: z.number().optional(),
+  premiumPhp: z.string().optional(),
 });
+
+// Display name of the logged-in account, same format PD Life's claim uses
+// for screenedBy. Falls back to undefined (field left null) for API-key
+// callers with no user.
+async function currentUserName(userId: string | undefined): Promise<string | undefined> {
+  if (!userId) return undefined;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  return user ? `${user.firstName} ${user.lastName}`.trim() : undefined;
+}
 
 router.post(
   '/',
@@ -130,11 +142,19 @@ router.post(
     // Processed when the payment instruction is sent to the client; Date
     // Issued when the policy gets paid.
     if (data.employmentVerified === 'Yes' && !data.dateVerified) data.dateVerified = new Date();
+    let paymentInstructionSentBy: string | undefined;
     if (data.paymentInstructionSent && !data.dateProcessed) data.dateProcessed = new Date();
+    if (data.paymentInstructionSent) paymentInstructionSentBy = await currentUserName(req.user?.sub);
     if (data.isPaid && !data.dateIssued) data.dateIssued = new Date();
+    // Premium/PHP conversion is always fresh on create - it only freezes
+    // once the payment instruction is sent (see PUT below).
+    if (!data.fxRate || !data.premiumPhp) {
+      data.fxRate = await getUsdToPhpRate();
+      data.premiumPhp = formatPhp(parseUsdPremium(data.premium) * data.fxRate);
+    }
 
     const application = await prisma.ofwApplication.create({
-      data: { ...data, beneficiaries: { create: beneficiaries } },
+      data: { ...data, paymentInstructionSentBy, beneficiaries: { create: beneficiaries } },
       include: { beneficiaries: true },
     });
 
@@ -170,8 +190,21 @@ router.put(
     if (data.paymentInstructionSent && !current.dateProcessed && !data.dateProcessed) {
       data.dateProcessed = new Date();
     }
+    // Stamped once, the first time the instruction goes out - later edits
+    // by other users don't overwrite who actually sent it.
+    let paymentInstructionSentBy: string | undefined;
+    if (data.paymentInstructionSent && !current.paymentInstructionSent) {
+      paymentInstructionSentBy = await currentUserName(req.user?.sub);
+    }
     if (data.isPaid && !current.dateIssued && !data.dateIssued) {
       data.dateIssued = new Date();
+    }
+    // Premium/PHP conversion keeps refreshing on every edit up through the
+    // moment the payment instruction is sent - after that it's locked, so a
+    // forex swing later can't change what the client already owes.
+    if (!current.paymentInstructionSent) {
+      data.fxRate = await getUsdToPhpRate();
+      data.premiumPhp = formatPhp(parseUsdPremium(data.premium ?? current.premium) * data.fxRate);
     }
 
     // Beneficiaries are a small, wholesale-replaced child collection (at
@@ -181,6 +214,7 @@ router.put(
       where: { id: req.params.id },
       data: {
         ...data,
+        ...(paymentInstructionSentBy ? { paymentInstructionSentBy } : {}),
         ...(beneficiaries ? { beneficiaries: { deleteMany: {}, create: beneficiaries } } : {}),
       },
       include: { beneficiaries: true },
