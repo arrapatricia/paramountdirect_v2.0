@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2, User, FileStack } from 'lucide-react';
 import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
-import { CTPL_POLICY_TYPES, CTPL_STATUSES, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
+import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
 import { PolicyDocumentsSection, type PolicyDocumentSpec } from './policy_documents';
 import { documentsApi, ApiError } from '../lib/api';
 import CtplPolicyEndorsements from './ctpl_policy_endorsements';
+import { Section, FieldGrid, Field } from './application_detail_ui';
 
 interface Props {
   data: CtplApplication[];
@@ -301,49 +302,81 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
       {/* Detail View Modal */}
       {viewingApp && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 my-8 dark:bg-slate-900 dark:border-slate-800">
-            <div className="flex justify-between items-center border-b pb-4 border-slate-100 dark:border-slate-800">
-              <h2 className="text-base font-bold uppercase text-slate-900 dark:text-white">Application {viewingApp.referenceNo ?? '(Reference No. pending payment)'}</h2>
-              <button onClick={closeModal} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 dark:bg-slate-900 dark:border-slate-800">
+            <div className="flex justify-between items-start gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-lg font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">Application {viewingApp.referenceNo ?? '(Reference No. pending payment)'}</h2>
+                <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{viewingApp.ownerFirstName} {viewingApp.ownerSurname} &middot; {viewingApp.plateNumber}</span>
+                  <span className="text-[10px] font-black text-[#002f6c] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30">
+                    {viewingApp.premium}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                    Paid
+                  </span>
+                  <span title={CTPL_STATUS_DESCRIPTIONS[viewingApp.status]} className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap ${getPolicyStatusBadgeStyle(getCtplPolicyStatus(viewingApp))}`}>
+                    {getCtplPolicyStatus(viewingApp)}
+                  </span>
+                </div>
+              </div>
+              <button onClick={closeModal} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0">
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Registered Owner</span><span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.ownerFirstName} {viewingApp.ownerMiddleName} {viewingApp.ownerSurname}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Client Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.clientType}</span></div>
-              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">Owner Address</span><span className="font-bold text-slate-800 dark:text-slate-200">{[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}</span></div>
+            <div className="space-y-4">
+              <Section icon={User} title="Owner & Applicant" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+                <FieldGrid>
+                  <Field label="Registered Owner" editing={false} edit={null} view={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+                  <Field label="Client Type" editing={false} edit={null} view={viewingApp.clientType} />
+                  <Field label="Email" editing={false} edit={null} view={viewingApp.email} />
+                  <Field label="Mobile" editing={false} edit={null} view={viewingApp.mobileNumber} />
+                  {!viewingApp.sameAsOwner && (
+                    <Field label="Applicant (if different from owner)" editing={false} edit={null} view={`${viewingApp.applicantFirstName} ${viewingApp.applicantSurname}`} />
+                  )}
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <Field
+                      label="Owner Address"
+                      editing={false}
+                      edit={null}
+                      view={[viewingApp.ownerAddress, viewingApp.ownerBarangay !== 'N/A' ? viewingApp.ownerBarangay : null, viewingApp.ownerCity, viewingApp.ownerRegion].filter(Boolean).join(', ')}
+                    />
+                  </div>
+                </FieldGrid>
+              </Section>
 
-              {!viewingApp.sameAsOwner && (
-                <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">Applicant (if different from owner)</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.applicantFirstName} {viewingApp.applicantSurname}</span></div>
-              )}
+              <Section icon={Car} title="Vehicle Details" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+                <FieldGrid>
+                  <Field label="Policy Type" editing={false} edit={null} view={`${viewingApp.policyType} (${viewingApp.renewalType})${viewingApp.forPublicUse ? ' — For Public Use' : ''}`} />
+                  <Field label="MV Type" editing={false} edit={null} view={viewingApp.mvType} />
+                  <Field label="Plate Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.plateNumber}</span>} />
+                  <Field label="MV File Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.mvFileNumber}</span>} />
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <Field label="Serial/Chassis Number" editing={false} edit={null} view={<span className="font-mono">{viewingApp.chassisNumber}</span>} />
+                  </div>
+                </FieldGrid>
+                {viewingApp.requiresCOV && (
+                  <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-center space-x-2 dark:bg-amber-950/30 dark:border-amber-800">
+                    <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI.</span>
+                  </div>
+                )}
+              </Section>
 
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Email</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.email}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Mobile</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.mobileNumber}</span></div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">Vehicle Details</div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Policy Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.policyType} ({viewingApp.renewalType}){viewingApp.forPublicUse ? ' — For Public Use' : ''}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">MV Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.mvType}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Plate Number</span><span className="font-mono font-bold text-slate-800 dark:text-slate-200">{viewingApp.plateNumber}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">MV File Number</span><span className="font-mono font-bold text-slate-800 dark:text-slate-200">{viewingApp.mvFileNumber}</span></div>
-              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">Serial/Chassis Number</span><span className="font-mono font-bold text-slate-800 dark:text-slate-200">{viewingApp.chassisNumber}</span></div>
-
-              {viewingApp.requiresCOV && (
-                <div className="sm:col-span-2 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-center space-x-2 dark:bg-amber-950/30 dark:border-amber-800">
-                  <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
-                  <span className="font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI.</span>
+              <Section icon={FileStack} title="Documents & Endorsements" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+                <PolicyDocumentsSection
+                  isPaid={viewingApp.isPaid}
+                  documents={CTPL_DOCUMENTS}
+                  onView={handleViewDoc}
+                  onSend={handleSendDoc}
+                  lockedMessage="Documents will be available once the client completes payment on the website."
+                />
+                <div className="mt-3">
+                  <CtplPolicyEndorsements app={viewingApp} connected={connected} onPolicyChanged={() => onPolicyChanged?.()} notify={notify} />
                 </div>
-              )}
-
-              <PolicyDocumentsSection
-                isPaid={viewingApp.isPaid}
-                documents={CTPL_DOCUMENTS}
-                onView={handleViewDoc}
-                onSend={handleSendDoc}
-                lockedMessage="Documents will be available once the client completes payment on the website."
-              />
-
-              <CtplPolicyEndorsements app={viewingApp} connected={connected} onPolicyChanged={() => onPolicyChanged?.()} notify={notify} />
+              </Section>
             </div>
 
             <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">

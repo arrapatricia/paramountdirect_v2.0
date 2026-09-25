@@ -62,6 +62,21 @@ router.post(
   })
 );
 
+// The policy/COI number is on the parent application row, not on
+// GeneratedDocument itself - looked up per applicationType so the download
+// filename reads as e.g. "ofw-application-80009923.pdf" instead of the raw
+// S3 key's docKey-timestamp name.
+async function findPolicyNumber(applicationType: DocumentApplicationType, applicationId: string): Promise<string | null> {
+  switch (applicationType) {
+    case 'CTPL':
+      return (await prisma.ctplApplication.findUnique({ where: { id: applicationId }, select: { policyNumber: true } }))?.policyNumber ?? null;
+    case 'OFW':
+      return (await prisma.ofwApplication.findUnique({ where: { id: applicationId }, select: { policyNumber: true } }))?.policyNumber ?? null;
+    default:
+      return null;
+  }
+}
+
 // Short-lived presigned URL to view/print/download the stored PDF - the
 // bucket itself is private, so this is the only way to reach the bytes.
 router.get(
@@ -70,7 +85,10 @@ router.get(
     const document = await prisma.generatedDocument.findUnique({ where: { id: req.params.id } });
     if (!document) throw new HttpError(404, 'Document not found');
 
-    const url = await getDocumentViewUrl(document.s3Key);
+    const policyNumber = await findPolicyNumber(document.applicationType, document.applicationId);
+    const filename = `${document.applicationType.toLowerCase()}-application-${policyNumber ?? document.applicationId}.pdf`;
+
+    const url = await getDocumentViewUrl(document.s3Key, filename);
     res.json({ url });
   })
 );

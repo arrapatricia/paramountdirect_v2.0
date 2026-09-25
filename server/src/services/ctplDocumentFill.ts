@@ -72,6 +72,10 @@ export async function fillFields(templateFile: string, values: Record<string, st
     }
   }
   form.updateFieldAppearances();
+  // Bake the values into the page content and drop the form fields - a
+  // generated document must not stay editable by whoever opens it (matches
+  // the legacy Rails app's `pdftk.fill_form(..., flatten: true)`).
+  form.flatten();
 
   const filled = await pdf.save();
   return Buffer.from(filled);
@@ -130,8 +134,11 @@ export async function fillCtplServiceInvoice(app: CtplApplication): Promise<{ bu
     effectivity_date: formatDate(app.effectiveDate),
     expiration_date: formatDate(app.expiryDate),
     quantity: '1',
-    unit_cost: fmt(breakdown.base),
-    total_cost: fmt(breakdown.base),
+    // Unit/Total Cost show the grand total, not the base premium - confirmed
+    // against both the CTPL and OFW real sample invoices (see
+    // ofwDocumentFill.ts and the legacy payment_transaction.rb#invoice_data).
+    unit_cost: fmt(breakdown.total),
+    total_cost: fmt(breakdown.total),
     unit: `${app.vehicleYear} ${app.vehicleMake} ${app.vehicleSeries}`.replace(/\s+/g, ' ').trim(),
     plate_number: app.plateNumber,
     serial_chassis: app.chassisNumber,
@@ -139,7 +146,7 @@ export async function fillCtplServiceInvoice(app: CtplApplication): Promise<{ bu
     coc_number: app.policyNumber ?? '',
     line_of_insurance: CTPL_POLICY_TYPE_LABEL[app.policyType] ?? app.policyType,
     vatable_sales: fmt(breakdown.base),
-    zero_rated_sales: fmt(0),
+    zero_rated_sales: '-',
     vat_exempt: fmt(breakdown.vatExempt),
     vat: fmt(breakdown.vat),
     ctpl_premium: fmt(breakdown.base),
@@ -147,8 +154,8 @@ export async function fillCtplServiceInvoice(app: CtplApplication): Promise<{ bu
     lgt: fmt(breakdown.lgt),
     verification_fee: fmt(breakdown.otherFees),
     total_sales: fmt(breakdown.total),
-    withholding_tax: fmt(0),
-    scpwd_discount: fmt(0),
+    withholding_tax: '-',
+    scpwd_discount: '-',
     total_amount_due: fmt(breakdown.total),
     // "curr_*" fields mirror a multi-year (Three_Years) policy's current-year
     // charge on the real form; per-year proration isn't implemented, so for
@@ -160,8 +167,8 @@ export async function fillCtplServiceInvoice(app: CtplApplication): Promise<{ bu
     curr_verification_fee: fmt(breakdown.otherFees),
     curr_vat: fmt(breakdown.vat),
     curr_total_sales: fmt(breakdown.total),
-    curr_withholding_tax: fmt(0),
-    curr_scpwd_discount: fmt(0),
+    curr_withholding_tax: '-',
+    curr_scpwd_discount: '-',
     curr_total_amount_due: fmt(breakdown.total),
     // Not tracked yet - left blank rather than guessed:
     insured_tin: '',

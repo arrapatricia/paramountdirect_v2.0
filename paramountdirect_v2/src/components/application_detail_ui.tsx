@@ -217,14 +217,18 @@ interface SectionProps {
   // Application Inquiry opens this same detail page as a read-only lookup -
   // hides the Edit control entirely rather than just disabling it.
   hideEditButton?: boolean;
+  // Non-Life products (OFW/CTPL/GTP) use navy (#002f6c) instead of PD Life's
+  // red brand color - defaults to Life's color so existing call sites don't
+  // need to change.
+  iconColorClass?: string;
 }
 
-export function Section({ icon: Icon, title, isEditing, onToggleEdit, children, hideEditButton }: SectionProps) {
+export function Section({ icon: Icon, title, isEditing, onToggleEdit, children, hideEditButton, iconColorClass = 'text-[#d0112b]' }: SectionProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
       <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3 dark:border-slate-800">
         <div className="flex items-center space-x-2">
-          <Icon className="w-4 h-4 text-[#d0112b]" />
+          <Icon className={`w-4 h-4 ${iconColorClass}`} />
           <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide dark:text-slate-100">{title}</h2>
         </div>
         {!hideEditButton && (

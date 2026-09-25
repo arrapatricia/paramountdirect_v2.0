@@ -360,7 +360,7 @@ const OFW_MOCK_APPLICANTS = [
 // backend (see ofwConnected below) - set the length back above 0 only for
 // local demoing without a backend, since it briefly flashes before the
 // real fetch resolves and overwrites it otherwise.
-const initialOfwMockData: OfwApplication[] = Array.from({ length: 10 }).map((_, i) => {
+const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i) => {
   const applicant = OFW_MOCK_APPLICANTS[i % OFW_MOCK_APPLICANTS.length];
   // Weighted so most applications sit in 'Received' (the common case), with
   // the terminal outcomes appearing occasionally - mirrors the CTPL cycle.

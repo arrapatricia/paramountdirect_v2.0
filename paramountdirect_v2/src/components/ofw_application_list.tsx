@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import {
   Search, Eye, X, ChevronLeft, ChevronRight, UserPlus,
-  FileCheck2, FileX2, ShieldAlert, Plane, CheckCircle2, Send, Pencil, ArrowLeft
+  FileCheck2, FileX2, ShieldAlert, Plane, CheckCircle2, Send, Pencil, ArrowLeft,
+  ClipboardList, User, Briefcase, FileStack, ShieldCheck, Lock
 } from 'lucide-react';
 import { OFW_STATUSES, OFW_STATUS_DESCRIPTIONS, getOfwPolicyStatus, type OfwApplication, type OfwPolicyStatus } from './ofw_types';
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
+import { Section, FieldGrid, Field } from './application_detail_ui';
+import { documentsApi, ApiError } from '../lib/api';
 
 interface Props {
   data: OfwApplication[];
@@ -180,10 +183,35 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
     setTimeout(() => setNotification(null), 2500);
   };
 
-  const handleViewDoc = (key: string) => setViewingDoc(key);
-  const handleSendDoc = (key: string) => {
-    const doc = OFW_DOCUMENTS.find((d) => d.key === key);
-    notify(`${doc?.label ?? 'Document'} emailed to ${viewingApp?.email}.`);
+  // Only the Service Invoice has a real generated PDF (ofwDocumentFill.ts) -
+  // fetch and open the actual file via a short-lived presigned S3 URL. COI
+  // and OR have no real template/service yet, so they still fall back to
+  // the in-app mock modal below.
+  const handleViewDoc = async (key: string) => {
+    if (key !== 'serviceInvoice' || !viewingApp) { setViewingDoc(key); return; }
+    const label = OFW_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    try {
+      const docs = await documentsApi.list('OFW', viewingApp.id);
+      const doc = docs.find((d) => d.docKey === 'ofw-service-invoice');
+      if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
+      const { url } = await documentsApi.getUrl(doc.id);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : `Failed to open ${label}.`);
+    }
+  };
+
+  const handleSendDoc = async (key: string) => {
+    const label = OFW_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    if (key !== 'serviceInvoice' || !viewingApp) { notify(`${label} emailed to ${viewingApp?.email}.`); return; }
+    try {
+      const docs = await documentsApi.list('OFW', viewingApp.id);
+      const doc = docs.find((d) => d.docKey === 'ofw-service-invoice');
+      if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
+      notify(`${label} emailed to ${viewingApp.email}.`);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : `Failed to send ${label}.`);
+    }
   };
 
   const tabCounts: Record<string, number> = {
@@ -220,30 +248,248 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
     </span>
   );
 
+  // Payment/Policy Status now live in the page header (see OfwDetailHeader
+  // below) rather than buried as plain text fields in the body - matches
+  // the PD Life application detail template's header badges.
+  const paymentStatusBadge = (app: OfwApplication) => (
+    <span className={`inline-flex items-center px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap ${app.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}>
+      {app.isPaid ? 'Paid' : 'Unpaid'}
+    </span>
+  );
+  const policyStatusBadge = (app: OfwApplication) => {
+    const policyStatus = getOfwPolicyStatus(app);
+    return (
+      <span title={OFW_STATUS_DESCRIPTIONS[app.status]} className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap ${getPolicyStatusBadgeStyle(policyStatus)}`}>
+        <span>{policyStatus}</span>
+        {app.isPaid && <Lock className="w-3 h-3" />}
+      </span>
+    );
+  };
+
+  const OfwDetailHeader = ({ app, onBack, right }: { app: OfwApplication; onBack: () => void; right?: React.ReactNode }) => (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
+      <div className="flex items-center space-x-4">
+        <button onClick={onBack} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300" title="Back">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">
+            Application {app.referenceNo ?? app.id}
+          </h1>
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{app.firstName} {app.lastName} &middot; {app.employerCountry}</span>
+            <span className="text-[10px] font-black text-[#002f6c] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30">
+              {app.premium}
+              {app.premiumPhp ? ` · ${app.premiumPhp}` : ''}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {right}
+        {paymentStatusBadge(app)}
+        {policyStatusBadge(app)}
+      </div>
+    </div>
+  );
+
+  // Shared read-only body for both the unpaid full page and the paid
+  // quick-preview modal, built from the same Section/FieldGrid/Field
+  // primitives as the PD Life application detail pages so labels and data
+  // are visually distinct instead of a flat two-column text dump.
+  const renderDetailSections = (app: OfwApplication) => (
+    <>
+      <Section icon={ClipboardList} title="Application Status" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+        <FieldGrid>
+          <Field label="Reference No." editing={false} edit={null} view={<span className="font-mono">{app.referenceNo ?? '—'}</span>} />
+          <Field label="COI No." editing={false} edit={null} view={<span className="font-mono">{app.policyNumber ?? '—'}</span>} />
+          <Field label="Date Received" editing={false} edit={null} view={app.dateReceived} />
+          <Field label="Date Processed" editing={false} edit={null} view={app.dateProcessed} />
+          <Field label="Payment Instruction Sent By" editing={false} edit={null} view={app.paymentInstructionSentBy} />
+          <Field label="Date Issued" editing={false} edit={null} view={app.dateIssued} />
+        </FieldGrid>
+      </Section>
+
+      <Section icon={User} title="Applicant Information" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+        <FieldGrid>
+          <Field label="Applicant" editing={false} edit={null} view={`${app.firstName} ${app.middleName} ${app.lastName}`} />
+          <Field label="Gender / Civil Status" editing={false} edit={null} view={`${app.gender} · ${app.civilStatus}`} />
+          <Field label="Birthdate" editing={false} edit={null} view={app.birthdate} />
+          <Field label="Place of Birth" editing={false} edit={null} view={app.placeOfBirth} />
+          <Field label="Mobile" editing={false} edit={null} view={app.phone} />
+          <Field label="Email" editing={false} edit={null} view={app.email} />
+          <div className="md:col-span-2 xl:col-span-3">
+            <Field
+              label="PH Address"
+              editing={false}
+              edit={null}
+              view={[app.phAddress, app.phBarangay !== 'N/A' ? app.phBarangay : null, app.phCity, app.phRegion].filter(Boolean).join(', ')}
+            />
+          </div>
+        </FieldGrid>
+      </Section>
+
+      <Section icon={Briefcase} title="Employment Information" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+        <FieldGrid>
+          <Field label="Nature of Employment" editing={false} edit={null} view={app.natureOfEmployment} />
+          <Field label="Coverage Type" editing={false} edit={null} view={app.coverageType} />
+          <Field label="Occupation" editing={false} edit={null} view={app.occupation} />
+          <Field label="Passport No." editing={false} edit={null} view={app.passportNumber} />
+          <Field label="Estimated Salary" editing={false} edit={null} view={`${app.salaryAmount.toLocaleString()} ${app.salaryCurrency}`} />
+          <Field label="Foreign Employer" editing={false} edit={null} view={app.employerName} />
+          <Field
+            label="Country of Employment"
+            editing={false}
+            edit={null}
+            view={
+              <span className="flex items-center space-x-1">
+                <span>{app.employerCountry}</span>
+                {app.isConflictZone && <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+              </span>
+            }
+          />
+          <Field label="Contract Period" editing={false} edit={null} view={`${app.contractStart} to ${app.contractEnd}`} />
+        </FieldGrid>
+      </Section>
+
+      <Section icon={FileStack} title="Uploaded Documents" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+        <div className="flex items-center flex-wrap gap-4">
+          {docBadge('Passport', app.documents.passport)}
+          {docBadge('Visa', app.documents.visa)}
+          {docBadge('Employment Contract', app.documents.employmentContract)}
+          {docBadge('Medical Certificate', app.documents.medicalCertificate)}
+        </div>
+      </Section>
+
+      <Section icon={ShieldCheck} title="Employment Verification & Payment" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-700">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Employment Contract Verification</span>
+            {app.employmentVerified === 'Yes' ? (
+              <div className="flex items-center space-x-2">
+                {app.dateVerified && <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{app.dateVerified}</span>}
+                <span className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5" /><span>Verified</span>
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => onUpdate?.(app.id, { employmentVerified: 'Yes' })}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdate?.(app.id, { employmentVerified: 'No' })}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+                    app.employmentVerified === 'No' ? 'bg-rose-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+            )}
+          </div>
+
+          {app.employmentVerified === 'Yes' && (
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-700">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {app.paymentInstructionSent ? 'Payment instruction sent to client' : 'Send payment instruction to client'}
+              </span>
+              {app.paymentInstructionSent ? (
+                <div className="flex items-center space-x-2">
+                  {app.dateProcessed && <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{app.dateProcessed}{app.paymentInstructionSentBy ? ` · ${app.paymentInstructionSentBy}` : ''}</span>}
+                  <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5" /><span>Sent</span>
+                  </span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { onUpdate?.(app.id, { paymentInstructionSent: true }); notify(`Payment instruction sent to ${app.email}.`); }}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#002f6c] text-white text-[11px] font-bold hover:bg-[#00224f] cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" /><span>Send Payment Instruction</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {app.paymentInstructionSent && !app.isPaid && (
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+              <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Awaiting client payment</span>
+              <button
+                type="button"
+                onClick={() => { onUpdate?.(app.id, { isPaid: true }); notify('Payment confirmed — documents are now available.'); }}
+                className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-[11px] font-bold hover:bg-amber-700 cursor-pointer"
+              >
+                Simulate Payment Received
+              </button>
+            </div>
+          )}
+
+          {/* Dev-only shortcut, local testing only (import.meta.env.DEV is
+              false in a production build). Only enabled once the real
+              prerequisites - employment verified Yes and payment instruction
+              sent - are already met, same gate as the button above; it just
+              skips having to also click through Verified/Sent to get there. */}
+          {import.meta.env.DEV && !app.isPaid && (
+            <div className={`flex items-center justify-between px-3 py-2 rounded-xl border border-dashed ${app.employmentVerified === 'Yes' && app.paymentInstructionSent ? 'border-purple-300 bg-purple-50 dark:bg-purple-950/20 dark:border-purple-800' : 'border-slate-200 bg-slate-50 dark:bg-slate-800/40 dark:border-slate-700'}`}>
+              <span className={`text-xs font-bold ${app.employmentVerified === 'Yes' && app.paymentInstructionSent ? 'text-purple-800 dark:text-purple-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                Dev only: simulate payment
+                {!(app.employmentVerified === 'Yes' && app.paymentInstructionSent) && ' (requires Verified + Sent above)'}
+              </span>
+              <button
+                type="button"
+                disabled={!(app.employmentVerified === 'Yes' && app.paymentInstructionSent)}
+                onClick={() => { onUpdate?.(app.id, { isPaid: true }); notify('Test payment simulated — application marked Paid.'); }}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-purple-600"
+              >
+                Simulate Payment (Test)
+              </button>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <PolicyDocumentsSection
+        isPaid={app.isPaid}
+        documents={OFW_DOCUMENTS}
+        onView={handleViewDoc}
+        onSend={handleSendDoc}
+        lockedMessage={
+          app.employmentVerified !== 'Yes'
+            ? 'Documents will be available once employment is verified, payment instructions are sent, and the client completes payment.'
+            : !app.paymentInstructionSent
+            ? 'Send the payment instruction to the client to proceed.'
+            : 'Awaiting confirmation that the client has completed payment.'
+        }
+      />
+    </>
+  );
+
   // An unpaid application gets its own full detail page (editable, with the
   // verify/payment workflow) instead of the list, matching the URL App.tsx
   // gave it - a paid one stays a quick-preview overlay, rendered further down.
   if (viewingApp && !viewingApp.isPaid) {
     return (
       <div className="p-4 md:p-8 space-y-6 max-w-[1000px] mx-auto font-sans text-slate-900 dark:text-slate-100">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center space-x-3">
-            <button onClick={closeModal} className="flex items-center space-x-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-              <ArrowLeft className="w-3.5 h-3.5" /><span>Back to Applications</span>
-            </button>
-            <div>
-              <h1 className="text-base font-bold uppercase text-slate-900 dark:text-white">Application {viewingApp.referenceNo ?? viewingApp.id}</h1>
-              <p className="text-xs text-slate-500 font-semibold dark:text-slate-500">{viewingApp.firstName} {viewingApp.lastName} &middot; {viewingApp.employerCountry}</p>
-            </div>
-          </div>
-          {!editForm && (
-            <button onClick={startEdit} className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-              <Pencil className="w-3.5 h-3.5" /><span>Edit</span>
-            </button>
-          )}
-        </div>
+        <OfwDetailHeader
+          app={viewingApp}
+          onBack={closeModal}
+          right={
+            !editForm && (
+              <button onClick={startEdit} className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">
+                <Pencil className="w-3.5 h-3.5" /><span>Edit</span>
+              </button>
+            )
+          }
+        />
 
-        <div className="p-6 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
+        <div className={editForm ? 'p-6 rounded-3xl border border-slate-200 bg-white shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800' : 'space-y-4'}>
           {editForm ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
               <div><label className={editLabelClass}>First Name</label><input className={editInputClass} value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} /></div>
@@ -278,158 +524,10 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Reference No.</span><span className="font-extrabold font-mono text-slate-900 dark:text-white">{viewingApp.referenceNo ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">COI No.</span><span className="font-extrabold font-mono text-slate-900 dark:text-white">{viewingApp.policyNumber ?? '—'}</span></div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Payment Status</span>
-                <span className={`inline-flex items-center mt-0.5 px-2 py-0.5 rounded-lg border text-[10px] font-bold ${viewingApp.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}>
-                  {viewingApp.isPaid ? 'Paid' : 'Unpaid'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Policy / Application Status</span>
-                <span className="inline-flex items-center gap-1.5 mt-0.5">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-bold ${getPolicyStatusBadgeStyle(getOfwPolicyStatus(viewingApp))}`}>{getOfwPolicyStatus(viewingApp)}</span>
-                  <span title={OFW_STATUS_DESCRIPTIONS[viewingApp.status]} className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{viewingApp.status}</span>
-                </span>
-              </div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Date Received</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.dateReceived}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Date Processed</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.dateProcessed ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Payment Instruction Sent By</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.paymentInstructionSentBy ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Date Issued</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.dateIssued ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Premium (USD)</span><span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.premium}</span></div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Premium (PHP)</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.premiumPhp ?? '—'}</span>
-                {viewingApp.fxRate && (
-                  <span className="ml-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                    @ ₱{Number(viewingApp.fxRate).toFixed(3)}/$ {viewingApp.paymentInstructionSent ? '(locked)' : ''}
-                  </span>
-                )}
-              </div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Applicant</span><span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.firstName} {viewingApp.middleName} {viewingApp.lastName}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Gender / Civil Status</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.gender} &middot; {viewingApp.civilStatus}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Birthdate</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.birthdate}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Place of Birth</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.placeOfBirth}</span></div>
-              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">PH Address</span><span className="font-bold text-slate-800 dark:text-slate-200">{[viewingApp.phAddress, viewingApp.phBarangay !== 'N/A' ? viewingApp.phBarangay : null, viewingApp.phCity, viewingApp.phRegion].filter(Boolean).join(', ')}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Mobile</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.phone}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Email</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.email}</span></div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">Employment</div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Nature of Employment</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.natureOfEmployment}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Coverage Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.coverageType}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Occupation</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.occupation}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Passport No.</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.passportNumber}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Estimated Salary</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.salaryAmount.toLocaleString()} {viewingApp.salaryCurrency}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Foreign Employer</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.employerName}</span></div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Country of Employment</span>
-                <span className="font-bold text-slate-800 flex items-center space-x-1 dark:text-slate-200">
-                  <span>{viewingApp.employerCountry}</span>
-                  {viewingApp.isConflictZone && <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
-                </span>
-              </div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Contract Period</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.contractStart} to {viewingApp.contractEnd}</span></div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">Uploaded Documents</div>
-              <div className="sm:col-span-2 flex items-center flex-wrap gap-4">
-                {docBadge('Passport', viewingApp.documents.passport)}
-                {docBadge('Visa', viewingApp.documents.visa)}
-                {docBadge('Employment Contract', viewingApp.documents.employmentContract)}
-                {docBadge('Medical Certificate', viewingApp.documents.medicalCertificate)}
-              </div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">
-                Employment Verification &amp; Payment
-              </div>
-              <div className="sm:col-span-2 space-y-3">
-                <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-700">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Employment Contract Verification</span>
-                  {viewingApp.employmentVerified === 'Yes' ? (
-                    <div className="flex items-center space-x-2">
-                      {viewingApp.dateVerified && <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{viewingApp.dateVerified}</span>}
-                      <span className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold">
-                        <CheckCircle2 className="w-3.5 h-3.5" /><span>Verified</span>
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => onUpdate?.(viewingApp.id, { employmentVerified: 'Yes' })}
-                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onUpdate?.(viewingApp.id, { employmentVerified: 'No' })}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
-                          viewingApp.employmentVerified === 'No' ? 'bg-rose-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {viewingApp.employmentVerified === 'Yes' && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-700">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {viewingApp.paymentInstructionSent ? 'Payment instruction sent to client' : 'Send payment instruction to client'}
-                    </span>
-                    {viewingApp.paymentInstructionSent ? (
-                      <div className="flex items-center space-x-2">
-                        {viewingApp.dateProcessed && <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{viewingApp.dateProcessed}{viewingApp.paymentInstructionSentBy ? ` · ${viewingApp.paymentInstructionSentBy}` : ''}</span>}
-                        <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /><span>Sent</span>
-                        </span>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => { onUpdate?.(viewingApp.id, { paymentInstructionSent: true }); notify(`Payment instruction sent to ${viewingApp.email}.`); }}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#002f6c] text-white text-[11px] font-bold hover:bg-[#00224f] cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5" /><span>Send Payment Instruction</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {viewingApp.paymentInstructionSent && !viewingApp.isPaid && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
-                    <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Awaiting client payment</span>
-                    <button
-                      type="button"
-                      onClick={() => { onUpdate?.(viewingApp.id, { isPaid: true }); notify('Payment confirmed — documents are now available.'); }}
-                      className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-[11px] font-bold hover:bg-amber-700 cursor-pointer"
-                    >
-                      Simulate Payment Received
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <PolicyDocumentsSection
-                isPaid={viewingApp.isPaid}
-                documents={OFW_DOCUMENTS}
-                onView={handleViewDoc}
-                onSend={handleSendDoc}
-                lockedMessage={
-                  viewingApp.employmentVerified !== 'Yes'
-                    ? 'Documents will be available once employment is verified, payment instructions are sent, and the client completes payment.'
-                    : !viewingApp.paymentInstructionSent
-                    ? 'Send the payment instruction to the client to proceed.'
-                    : 'Awaiting confirmation that the client has completed payment.'
-                }
-              />
-            </div>
+            renderDetailSections(viewingApp)
           )}
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className={`flex justify-end gap-2 pt-2 ${editForm ? 'border-t border-slate-100 dark:border-slate-800' : ''}`}>
             {editForm ? (
               <>
                 <button onClick={cancelEdit} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
@@ -652,162 +750,28 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
           its own full page instead (see the early return above). */}
       {viewingApp && viewingApp.isPaid && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-6 my-8 dark:bg-slate-900 dark:border-slate-800">
-            <div className="flex justify-between items-center border-b pb-4 border-slate-100 dark:border-slate-800">
-              <h2 className="text-base font-bold uppercase text-slate-900 dark:text-white">Application {viewingApp.referenceNo ?? viewingApp.id}</h2>
-              <button onClick={closeModal} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 dark:bg-slate-900 dark:border-slate-800">
+            <div className="flex justify-between items-start gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-lg font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">Application {viewingApp.referenceNo ?? viewingApp.id}</h2>
+                <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{viewingApp.firstName} {viewingApp.lastName} &middot; {viewingApp.employerCountry}</span>
+                  <span className="text-[10px] font-black text-[#002f6c] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30">
+                    {viewingApp.premium}{viewingApp.premiumPhp ? ` · ${viewingApp.premiumPhp}` : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  {paymentStatusBadge(viewingApp)}
+                  {policyStatusBadge(viewingApp)}
+                </div>
+              </div>
+              <button onClick={closeModal} className="cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0">
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs">
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Reference No.</span><span className="font-extrabold font-mono text-slate-900 dark:text-white">{viewingApp.referenceNo ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">COI No.</span><span className="font-extrabold font-mono text-slate-900 dark:text-white">{viewingApp.policyNumber ?? '—'}</span></div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Payment Status</span>
-                <span className={`inline-flex items-center mt-0.5 px-2 py-0.5 rounded-lg border text-[10px] font-bold ${viewingApp.isPaid ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' : 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}>
-                  {viewingApp.isPaid ? 'Paid' : 'Unpaid'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Policy / Application Status</span>
-                <span className="inline-flex items-center gap-1.5 mt-0.5">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-bold ${getPolicyStatusBadgeStyle(getOfwPolicyStatus(viewingApp))}`}>{getOfwPolicyStatus(viewingApp)}</span>
-                  <span title={OFW_STATUS_DESCRIPTIONS[viewingApp.status]} className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{viewingApp.status}</span>
-                </span>
-              </div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Date Received</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.dateReceived}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Date Processed</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.dateProcessed ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Payment Instruction Sent By</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.paymentInstructionSentBy ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Date Issued</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.dateIssued ?? '—'}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Premium (USD)</span><span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.premium}</span></div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Premium (PHP)</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.premiumPhp ?? '—'}</span>
-                {viewingApp.fxRate && (
-                  <span className="ml-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                    @ ₱{Number(viewingApp.fxRate).toFixed(3)}/$ {viewingApp.paymentInstructionSent ? '(locked)' : ''}
-                  </span>
-                )}
-              </div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Applicant</span><span className="font-extrabold text-slate-900 dark:text-white">{viewingApp.firstName} {viewingApp.middleName} {viewingApp.lastName}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Gender / Civil Status</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.gender} &middot; {viewingApp.civilStatus}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Birthdate</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.birthdate}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Place of Birth</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.placeOfBirth}</span></div>
-              <div className="sm:col-span-2"><span className="text-slate-400 font-bold block dark:text-slate-500">PH Address</span><span className="font-bold text-slate-800 dark:text-slate-200">{[viewingApp.phAddress, viewingApp.phBarangay !== 'N/A' ? viewingApp.phBarangay : null, viewingApp.phCity, viewingApp.phRegion].filter(Boolean).join(', ')}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Mobile</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.phone}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Email</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.email}</span></div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">Employment</div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Nature of Employment</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.natureOfEmployment}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Coverage Type</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.coverageType}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Occupation</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.occupation}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Passport No.</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.passportNumber}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Estimated Salary</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.salaryAmount.toLocaleString()} {viewingApp.salaryCurrency}</span></div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Foreign Employer</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.employerName}</span></div>
-              <div>
-                <span className="text-slate-400 font-bold block dark:text-slate-500">Country of Employment</span>
-                <span className="font-bold text-slate-800 flex items-center space-x-1 dark:text-slate-200">
-                  <span>{viewingApp.employerCountry}</span>
-                  {viewingApp.isConflictZone && <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
-                </span>
-              </div>
-              <div><span className="text-slate-400 font-bold block dark:text-slate-500">Contract Period</span><span className="font-bold text-slate-800 dark:text-slate-200">{viewingApp.contractStart} to {viewingApp.contractEnd}</span></div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">Uploaded Documents</div>
-              <div className="sm:col-span-2 flex items-center flex-wrap gap-4">
-                {docBadge('Passport', viewingApp.documents.passport)}
-                {docBadge('Visa', viewingApp.documents.visa)}
-                {docBadge('Employment Contract', viewingApp.documents.employmentContract)}
-                {docBadge('Medical Certificate', viewingApp.documents.medicalCertificate)}
-              </div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-3 font-extrabold text-slate-500 uppercase text-[10px] tracking-wide dark:border-slate-800 dark:text-slate-500">
-                Employment Verification &amp; Payment
-              </div>
-              <div className="sm:col-span-2 space-y-3">
-                <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-700">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Employment Contract Verification</span>
-                  {viewingApp.employmentVerified === 'Yes' ? (
-                    <div className="flex items-center space-x-2">
-                      {viewingApp.dateVerified && <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{viewingApp.dateVerified}</span>}
-                      <span className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold">
-                        <CheckCircle2 className="w-3.5 h-3.5" /><span>Verified</span>
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => onUpdate?.(viewingApp.id, { employmentVerified: 'Yes' })}
-                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onUpdate?.(viewingApp.id, { employmentVerified: 'No' })}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
-                          viewingApp.employmentVerified === 'No' ? 'bg-rose-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {viewingApp.employmentVerified === 'Yes' && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/60 dark:border-slate-700">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {viewingApp.paymentInstructionSent ? 'Payment instruction sent to client' : 'Send payment instruction to client'}
-                    </span>
-                    {viewingApp.paymentInstructionSent ? (
-                      <div className="flex items-center space-x-2">
-                        {viewingApp.dateProcessed && <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{viewingApp.dateProcessed}{viewingApp.paymentInstructionSentBy ? ` · ${viewingApp.paymentInstructionSentBy}` : ''}</span>}
-                        <span className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /><span>Sent</span>
-                        </span>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => { onUpdate?.(viewingApp.id, { paymentInstructionSent: true }); notify(`Payment instruction sent to ${viewingApp.email}.`); }}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#002f6c] text-white text-[11px] font-bold hover:bg-[#00224f] cursor-pointer"
-                      >
-                        <Send className="w-3.5 h-3.5" /><span>Send Payment Instruction</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {viewingApp.paymentInstructionSent && !viewingApp.isPaid && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
-                    <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Awaiting client payment</span>
-                    <button
-                      type="button"
-                      onClick={() => { onUpdate?.(viewingApp.id, { isPaid: true }); notify('Payment confirmed — documents are now available.'); }}
-                      className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-[11px] font-bold hover:bg-amber-700 cursor-pointer"
-                    >
-                      Simulate Payment Received
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <PolicyDocumentsSection
-                isPaid={viewingApp.isPaid}
-                documents={OFW_DOCUMENTS}
-                onView={handleViewDoc}
-                onSend={handleSendDoc}
-                lockedMessage={
-                  viewingApp.employmentVerified !== 'Yes'
-                    ? 'Documents will be available once employment is verified, payment instructions are sent, and the client completes payment.'
-                    : !viewingApp.paymentInstructionSent
-                    ? 'Send the payment instruction to the client to proceed.'
-                    : 'Awaiting confirmation that the client has completed payment.'
-                }
-              />
+            <div className="space-y-4">
+              {renderDetailSections(viewingApp)}
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">

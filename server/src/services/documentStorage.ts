@@ -41,8 +41,16 @@ export async function storeGeneratedDocument(params: {
   });
 }
 
-export async function getDocumentViewUrl(s3Key: string) {
-  return getSignedUrl(s3Client, new GetObjectCommand({ Bucket: s3Bucket, Key: s3Key }), {
-    expiresIn: PRESIGNED_URL_TTL_SECONDS,
-  });
+export async function getDocumentViewUrl(s3Key: string, downloadFilename?: string) {
+  return getSignedUrl(
+    s3Client,
+    new GetObjectCommand({
+      Bucket: s3Bucket,
+      Key: s3Key,
+      // The S3 key itself is an internal path (documents/OFW/<id>/...-<timestamp>.pdf) -
+      // this overrides just the filename the browser shows/saves, without renaming the object.
+      ...(downloadFilename ? { ResponseContentDisposition: `inline; filename="${downloadFilename}"` } : {}),
+    }),
+    { expiresIn: PRESIGNED_URL_TTL_SECONDS }
+  );
 }
