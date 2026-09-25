@@ -8,6 +8,7 @@ import { OFW_STATUSES, OFW_STATUS_DESCRIPTIONS, getOfwPolicyStatus, type OfwAppl
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
 import { Section, FieldGrid, Field } from './application_detail_ui';
 import { documentsApi, ApiError } from '../lib/api';
+import OfwPolicyEndorsements from './ofw_policy_endorsements';
 
 interface Props {
   data: OfwApplication[];
@@ -21,6 +22,9 @@ interface Props {
   viewingId?: string | null;
   onView?: (id: string) => void;
   onCloseView?: () => void;
+  // Live backend available (App.tsx's ofwConnected) - endorsements are
+  // server-only, so the Endorsements section needs it.
+  connected?: boolean;
 }
 
 const OFW_DOCUMENTS: PolicyDocumentSpec[] = [
@@ -153,7 +157,7 @@ const getRowTintStyle = (status: string) => {
   }
 };
 
-export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewingId = null, onView, onCloseView }: Props) {
+export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewingId = null, onView, onCloseView, connected = false }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof STATUS_TABS)[number]>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -455,19 +459,26 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
         </div>
       </Section>
 
-      <PolicyDocumentsSection
-        isPaid={app.isPaid}
-        documents={OFW_DOCUMENTS}
-        onView={handleViewDoc}
-        onSend={handleSendDoc}
-        lockedMessage={
-          app.employmentVerified !== 'Yes'
-            ? 'Documents will be available once employment is verified, payment instructions are sent, and the client completes payment.'
-            : !app.paymentInstructionSent
-            ? 'Send the payment instruction to the client to proceed.'
-            : 'Awaiting confirmation that the client has completed payment.'
-        }
-      />
+      <Section icon={FileStack} title="Documents & Endorsements" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
+        <PolicyDocumentsSection
+          isPaid={app.isPaid}
+          documents={OFW_DOCUMENTS}
+          onView={handleViewDoc}
+          onSend={handleSendDoc}
+          lockedMessage={
+            app.employmentVerified !== 'Yes'
+              ? 'Documents will be available once employment is verified, payment instructions are sent, and the client completes payment.'
+              : !app.paymentInstructionSent
+              ? 'Send the payment instruction to the client to proceed.'
+              : 'Awaiting confirmation that the client has completed payment.'
+          }
+        />
+        {app.isPaid && (
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <OfwPolicyEndorsements app={app} connected={connected} notify={notify} />
+          </div>
+        )}
+      </Section>
     </>
   );
 

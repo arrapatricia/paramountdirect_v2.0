@@ -1359,6 +1359,7 @@ export default function App() {
               viewingId={viewingOfwId}
               onView={setViewingOfwId}
               onCloseView={() => setViewingOfwId(null)}
+              connected={ofwConnected}
             />
           )
         )}
