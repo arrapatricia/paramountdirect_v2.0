@@ -39,6 +39,7 @@ import GtpPaymentTransactions from './components/gtp_payment_transactions';
 import Maintenance from './components/maintenance';
 import UserRoleManagement, { INITIAL_USERS, type UserAccount } from './components/user_role_management';
 import AuditLogs from './components/audit_logs';
+import { canManageUsers } from './lib/roles';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
 // import PremiumMaintenance from './components/premium_maintenance';
@@ -1486,10 +1487,11 @@ export default function App() {
         {activeTab === 'billing' && <Billing />}
         {activeTab === 'audit' && <AuditLogs />}
 
-        {/* Users & Role Management - System Admin only; the sidebar entry is
-            hidden for everyone else, but a direct link still needs guarding. */}
+        {/* Users & Role Management - System Admin (+ Main Developer / SysDev
+            Admin) only; the sidebar entry is hidden for everyone else, but a
+            direct link still needs guarding. */}
         {activeTab === 'users-roles' && (
-          currentUserRole === 'System Admin' ? (
+          canManageUsers(currentUserRole) ? (
             <UserRoleManagement
               users={users}
               setUsers={setUsers}

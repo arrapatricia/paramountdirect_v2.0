@@ -37,6 +37,7 @@ import {
 import logoImg from '../assets/PD Logo_full color.png';
 import logoImgWhite from '../assets/PD Logo_white.png';
 import { brandTheme } from '../lib/brand';
+import { canManageUsers } from '../lib/roles';
 
 export type ProductLine = 'PD Life' | 'OFW' | 'CTPL' | 'GTP';
 
@@ -490,8 +491,8 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* Users & Role Management - System Admin only */}
-            {currentUserRole === 'System Admin' && (
+            {/* Users & Role Management - System Admin (+ Main Developer / SysDev Admin) only */}
+            {canManageUsers(currentUserRole) && (
               <button
                 onClick={() => {
                   setActiveTab('users-roles');
