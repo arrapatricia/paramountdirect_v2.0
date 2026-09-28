@@ -10,6 +10,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { CtplApplication } from '@prisma/client';
 import { generateUniqueInvoiceNumber } from '../lib/invoiceNumbering';
 import { ctplPolicyPrefix } from '../lib/ctplNumbering';
+import { computeCtplBreakdown } from '../lib/premiumCalc';
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates', 'ctpl');
 
@@ -31,18 +32,6 @@ export function formatDate(date: Date | null): string {
 function parsePremium(premium: string): number {
   const n = parseFloat(premium.replace(/[^0-9.]/g, ''));
   return Number.isFinite(n) ? n : 0;
-}
-
-// Reconciled against real Service Invoices - see premium_rates.ts:82-87.
-// `base` is the Premium line itself; everything else is derived from it.
-function computeCtplBreakdown(base: number) {
-  const dst = Math.ceil(base / 4) * 0.5;
-  const lgt = Math.round(base * 0.0075 * 100) / 100;
-  const vat = Math.round(base * 0.12 * 100) / 100;
-  const otherFees = 46;
-  const vatExempt = Math.round((dst + lgt + otherFees) * 100) / 100;
-  const total = Math.round((base + dst + lgt + otherFees + vat) * 100) / 100;
-  return { base, dst, lgt, otherFees, vat, vatExempt, total };
 }
 
 // The templates' fields use the standard Helvetica font, which can only
@@ -91,7 +80,7 @@ export function insuredNameAndAddress(app: CtplApplication) {
 
 export async function fillCtplCoc(app: CtplApplication): Promise<Buffer> {
   const { name, address } = insuredNameAndAddress(app);
-  const breakdown = computeCtplBreakdown(parsePremium(app.premium));
+  const breakdown = await computeCtplBreakdown(parsePremium(app.premium));
 
   return fillFields('ctpl-coc.pdf', {
     policy_number: app.policyNumber ?? '',
@@ -120,7 +109,7 @@ export async function fillCtplCoc(app: CtplApplication): Promise<Buffer> {
 
 export async function fillCtplPolicySchedule(app: CtplApplication): Promise<Buffer> {
   const { name, address } = insuredNameAndAddress(app);
-  const breakdown = computeCtplBreakdown(parsePremium(app.premium));
+  const breakdown = await computeCtplBreakdown(parsePremium(app.premium));
 
   return fillFields('ctpl-policy-schedule.pdf', {
     policy_number: app.policyNumber ?? '',
@@ -238,7 +227,7 @@ export async function fillCtplPolicyJacket(app: CtplApplication): Promise<Buffer
 
 export async function fillCtplServiceInvoice(app: CtplApplication): Promise<{ buffer: Buffer; invoiceNumber: string }> {
   const { name, address } = insuredNameAndAddress(app);
-  const breakdown = computeCtplBreakdown(parsePremium(app.premium));
+  const breakdown = await computeCtplBreakdown(parsePremium(app.premium));
   const invoiceNumber = await generateUniqueInvoiceNumber();
 
   const fmt = (n: number) => formatCurrency(n);

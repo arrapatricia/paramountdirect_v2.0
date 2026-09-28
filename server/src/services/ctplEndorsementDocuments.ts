@@ -8,6 +8,7 @@ import { CTPL_POLICY_TYPE_LABEL, fillFields, formatCurrency, formatDate, insured
 import { ctplBreakdownFromGross, parsePremium } from './ctplEndorsementCalc';
 import { storeGeneratedDocument } from './documentStorage';
 import { prisma } from '../lib/prisma';
+import { getCtplTaxParams } from '../lib/premiumCalc';
 
 // CTPL's bodily injury/death limit per victim, printed as the policy's Sum
 // Insured on the financial endorsement forms (the legacy system's
@@ -143,7 +144,8 @@ async function fillExtensionServiceInvoice(app: CtplApplication, e: Endorsement)
 
 async function fillCancellation(app: CtplApplication, e: Endorsement) {
   const isFlat = e.type === 'Cancellation_Flat';
-  const b = ctplBreakdownFromGross(parsePremium(app.premium), app.requiresCOV);
+  const params = await getCtplTaxParams();
+  const b = ctplBreakdownFromGross(parsePremium(app.premium), app.requiresCOV, params);
   const refundPremium = Math.abs(e.premium ?? 0);
   const common = {
     ...headerFields(app, e),

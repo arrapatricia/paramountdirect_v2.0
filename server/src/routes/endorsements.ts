@@ -42,9 +42,9 @@ function assertApprover(req: Request, product: NonLifeProduct) {
 const actor = (req: Request) => req.user?.email ?? 'Unknown';
 
 // Calculation input errors (bad dates) are the caller's mistake - surface as 400.
-function calc<T>(fn: () => T): T {
+async function calc<T>(fn: () => Promise<T>): Promise<T> {
   try {
-    return fn();
+    return await fn();
   } catch (err) {
     if (err instanceof EndorsementCalcError) throw new HttpError(400, err.message);
     throw err;
@@ -195,10 +195,10 @@ router.post(
     const input = previewSchema.parse(req.body);
     const app = await loadEndorsableCtplPolicy(req, req.params.applicationId);
     if (input.kind === 'Term_Extension') {
-      const r = calc(() => computeCtplExtension(app, input.newExpiryDate));
+      const r = await calc(() => computeCtplExtension(app, input.newExpiryDate));
       return res.json({ type: 'Term_Extension', ...r });
     }
-    const r = calc(() => computeCtplCancellation(app, input.effectiveDate));
+    const r = await calc(() => computeCtplCancellation(app, input.effectiveDate));
     res.json(r);
   })
 );
@@ -280,10 +280,10 @@ router.post(
 
     let data: Prisma.EndorsementUncheckedCreateInput;
     if (input.kind === 'Term_Extension') {
-      const { amounts } = calc(() => computeCtplExtension(app, input.newExpiryDate));
+      const { amounts } = await calc(() => computeCtplExtension(app, input.newExpiryDate));
       data = { ...base, type: 'Term_Extension', previousExpiryDate: app.expiryDate, newExpiryDate: input.newExpiryDate, ...amounts };
     } else {
-      const { type, amounts } = calc(() => computeCtplCancellation(app, input.effectiveDate));
+      const { type, amounts } = await calc(() => computeCtplCancellation(app, input.effectiveDate));
       data = { ...base, type, ...amounts };
     }
 

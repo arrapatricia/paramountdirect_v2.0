@@ -8,6 +8,7 @@ import type { CtplApplication, CtplStatus } from '@prisma/client';
 import { generateUniqueCtplPolicyNumber, generateUniqueCtplReferenceNo } from '../lib/ctplNumbering';
 import { fillCtplCoc, fillCtplServiceInvoice, fillCtplPolicySchedule, fillCtplPolicyJacket } from '../services/ctplDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
+import { computeCtplPremium } from '../lib/premiumCalc';
 
 const CTPL_TERM_YEARS: Record<string, number> = { One_Year: 1, Three_Years: 3 };
 
@@ -143,6 +144,11 @@ router.post(
   asyncHandler(async (req, res) => {
     const data = createApplicationSchema.parse(req.body);
 
+    // The premium is always recomputed from the PremiumRate table here,
+    // never trusted from the client - CTPL endorsements are priced off this
+    // application's base premium, so it has to be right.
+    data.premium = `₱${(await computeCtplPremium(data.policyType, data.mvType, data.renewalType, data.requiresCOV)).toFixed(2)}`;
+
     // Reference No. identifies the application from the moment it exists,
     // paid or not. Policy Number is only assigned once the policy is
     // actually issued (isPaid) - which, for CTPL's straight-through website
@@ -176,6 +182,18 @@ router.put(
     const data = updateApplicationSchema.parse(req.body);
     const current = await prisma.ctplApplication.findUnique({ where: { id: req.params.id } });
     if (!current) throw new HttpError(404, 'Application not found');
+
+    // Same as POST - recompute from the PremiumRate table using the merged
+    // current+incoming fields, rather than trusting whatever premium (if
+    // any) the client sent.
+    data.premium = `₱${(
+      await computeCtplPremium(
+        data.policyType ?? current.policyType,
+        data.mvType ?? current.mvType,
+        data.renewalType ?? current.renewalType,
+        data.requiresCOV ?? current.requiresCOV
+      )
+    ).toFixed(2)}`;
 
     // Backfills a Reference No. for any pre-existing row that predates this
     // always-assigned rule (see POST above).

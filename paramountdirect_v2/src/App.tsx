@@ -71,6 +71,7 @@ import {
   usersApi,
   rolesApi,
   paymentsApi,
+  premiumRatesApi,
   type PdLifeApplicationApi,
   type OfwApplicationApi,
   type CtplApplicationApi,
@@ -78,6 +79,7 @@ import {
   type UserApi,
   type RoleApi,
   type LifePaymentTransactionApi,
+  type PremiumRateApi,
 } from './lib/api';
 import logoImg from './assets/PD Logo_full color.png';
 import logoImgWhite from './assets/PD Logo_white.png';
@@ -261,6 +263,26 @@ function mapApiToCtplApplication(api: CtplApplicationApi): CtplApplication {
     referenceNo: api.referenceNo ?? undefined,
     effectiveDate: api.effectiveDate ?? undefined,
     expiryDate: api.expiryDate ?? undefined,
+  };
+}
+
+const PREMIUM_UNIT_FROM_API: Record<PremiumRateApi['unit'], PremiumRate['unit']> = {
+  Flat: 'flat',
+  PerDay: 'per day',
+  PerMonth: 'per month',
+  AddOn: 'add-on',
+  Percent: 'percent',
+};
+
+function mapApiToPremiumRate(api: PremiumRateApi): PremiumRate {
+  return {
+    id: api.id,
+    product: api.product as PremiumRate['product'],
+    key: api.key,
+    label: api.label,
+    amount: api.amount,
+    currency: api.currency as PremiumRate['currency'],
+    unit: PREMIUM_UNIT_FROM_API[api.unit],
   };
 }
 
@@ -732,7 +754,14 @@ export default function App() {
   const [lifePaymentTransactions, setLifePaymentTransactions] = useState<LifePaymentTransactionApi[]>([]);
   const [lifePaymentsLoadError, setLifePaymentsLoadError] = useState<string | null>(null);
   const [isCreatingPdLifeApp, setIsCreatingPdLifeApp] = useState(false);
-  const [premiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
+  // Fetched from the backend (see premium_rates.ts's INITIAL_PREMIUM_RATES
+  // comment history - that hardcoded table has been replaced by a real
+  // PremiumRate DB table). Starts as the same seed values so a form isn't
+  // briefly blank while the fetch is in flight; overwritten as soon as it
+  // resolves, and CTPL/OFW/GTP applications no longer trust the frontend's
+  // number anyway (the server recomputes it independently - see
+  // server/src/lib/premiumCalc.ts).
+  const [premiumRates, setPremiumRates] = useState<PremiumRate[]>(INITIAL_PREMIUM_RATES);
   const [annualTargets, setAnnualTargets] = useState<AnnualTargets>(readStoredAnnualTargets);
   const handleUpdateAnnualTargets = (targets: AnnualTargets) => {
     setAnnualTargets(targets);
@@ -912,6 +941,26 @@ export default function App() {
       .catch((err) => {
         if (cancelled) return;
         setCtplLoadError(err instanceof Error ? err.message : 'Failed to load CTPL applications.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !getAuthToken()) return;
+    let cancelled = false;
+    premiumRatesApi
+      .list()
+      .then((rates) => {
+        if (cancelled) return;
+        setPremiumRates(rates.map(mapApiToPremiumRate));
+      })
+      .catch(() => {
+        // Keep the seed defaults on failure - each product's server-side
+        // route recomputes the authoritative premium anyway, so a stale
+        // display-only rate here just means Premium Maintenance's numbers
+        // may be a beat behind until the next successful fetch.
       });
     return () => {
       cancelled = true;

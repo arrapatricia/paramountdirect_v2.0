@@ -7,6 +7,7 @@ import { recordAudit } from '../utils/audit';
 import type { GtpApplication, GtpStatus } from '@prisma/client';
 import { fillGtpServiceInvoice } from '../services/gtpDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
+import { computeGtpPremium } from '../lib/premiumCalc';
 
 async function generateAndStoreGtpDocuments(application: GtpApplication, generatedBy?: string) {
   try {
@@ -86,6 +87,10 @@ router.post(
     const data = createApplicationSchema.parse(req.body);
     const isIssuedOnCreate = Boolean(data.isPaid);
 
+    // Always recomputed from the PremiumRate table, never trusted from the
+    // client - see computeGtpPremium.
+    data.premium = `₱${(await computeGtpPremium(data)).toFixed(2)}`;
+
     const application = await prisma.gtpApplication.create({ data });
 
     await recordAudit(req, { action: 'CREATE', module: 'GTP Applications', details: `Created GTP application ${application.id} (${application.travelerSurname})` });
@@ -105,6 +110,20 @@ router.put(
     const current = await prisma.gtpApplication.findUnique({ where: { id: req.params.id } });
     if (!current) throw new HttpError(404, 'Application not found');
     const isNewlyIssued = Boolean(data.isPaid && !current.isPaid);
+
+    // Same as POST - recompute from the PremiumRate table using the merged
+    // current+incoming fields.
+    data.premium = `₱${(
+      await computeGtpPremium({
+        travelType: data.travelType ?? current.travelType,
+        destinations: data.destinations ?? current.destinations,
+        planVariant: data.planVariant ?? current.planVariant,
+        applicationType: data.applicationType ?? current.applicationType,
+        daysOfTravel: data.daysOfTravel ?? current.daysOfTravel,
+        cruiseCoverage: data.cruiseCoverage ?? current.cruiseCoverage,
+        hazardousSportsCoverage: data.hazardousSportsCoverage ?? current.hazardousSportsCoverage,
+      })
+    ).toFixed(2)}`;
 
     const application = await prisma.gtpApplication.update({ where: { id: req.params.id }, data });
 

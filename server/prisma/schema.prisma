@@ -706,6 +706,42 @@ model NonLifePaymentTransaction {
 }
 
 // ---------------------------------------------------------------------------
+// Premium rate tables (see premium_rates.ts / premium_maintenance.tsx)
+// ---------------------------------------------------------------------------
+
+enum PremiumRateUnit {
+  Flat
+  PerDay
+  PerMonth
+  AddOn
+  Percent
+}
+
+// Single source of truth for every product's premium lookup table - each
+// create-application form (and, server-side, applications.ctpl/ofw/gtp.ts)
+// only computes which key(s) apply and how they combine; the number itself
+// always comes from here now, never a hardcoded constant, since CTPL
+// endorsements are priced off the resulting application's base premium.
+model PremiumRate {
+  id      String @id @default(cuid())
+  // "PD Life" / "OFW" / "CTPL" / "GTP" - plain string, not an enum, for the
+  // same reason noted at the top of this file (the "PD Life" literal has a
+  // space a Prisma enum can't represent).
+  product String
+  key     String
+  label   String
+  amount  Float
+
+  currency  String
+  unit      PremiumRateUnit
+  updatedAt DateTime        @updatedAt
+  updatedBy String?
+
+  @@unique([product, key])
+  @@map("premium_rates")
+}
+
+// ---------------------------------------------------------------------------
 // Generated policy documents (Policy Schedule, COC, OR, Service Invoice, ...)
 // ---------------------------------------------------------------------------
 

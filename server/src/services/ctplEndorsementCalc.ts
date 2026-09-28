@@ -7,11 +7,8 @@
 // they work the same for 1-year and 3-year policies - unlike the legacy
 // system's hard-coded 365-day divisor.
 import type { CtplApplication } from '@prisma/client';
+import { getCtplTaxParams, type CtplTaxParams } from '../lib/premiumCalc';
 
-const VERIFICATION_FEE = 46;
-// Certificate of Validation fee (COV_FEE in ctpl_types.ts), included in the
-// gross premium when requiresCOV is set.
-const COV_FEE = 60;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000;
 
@@ -43,23 +40,31 @@ export interface CtplPremiumBreakdown {
   total: number;
 }
 
-// Inverse of premium_rates.ts's Base + ceil(Base/4)*0.50 + 0.75% + 12% + fees.
-// DST steps every ₱4 of base, so iterate to a fixed point, then put the
-// last-centavo rounding into base so the parts add up to the gross exactly.
-export function ctplBreakdownFromGross(gross: number, requiresCOV: boolean): CtplPremiumBreakdown {
-  const certificationFee = requiresCOV ? COV_FEE : 0;
-  const taxable = gross - VERIFICATION_FEE - certificationFee;
+// Inverse of premiumCalc.ts's computeCtplBreakdown: Base + ceil(Base/4)*rate
+// + lgtPercent% + vatPercent% + fees. DST steps every ₱4 of base, so iterate
+// to a fixed point, then put the last-centavo rounding into base so the
+// parts add up to the gross exactly. Takes the same tax params
+// computeCtplBreakdown reads from the PremiumRate table (passed in rather
+// than fetched here) so a caller pricing several endorsements in one request
+// only fetches them once.
+export function ctplBreakdownFromGross(gross: number, requiresCOV: boolean, params: CtplTaxParams): CtplPremiumBreakdown {
+  const { dstAmountPerUnit, lgtPercent, vatPercent, otherFees, covFee } = params;
+  const lgtRate = lgtPercent / 100;
+  const vatRate = vatPercent / 100;
+  const certificationFee = requiresCOV ? covFee : 0;
+  const taxable = gross - otherFees - certificationFee;
 
-  let base = taxable / 1.2525;
-  for (let i = 0; i < 5; i++) base = (taxable - Math.ceil(base / 4) * 0.5) / 1.1275;
+  const dstFractionGuess = dstAmountPerUnit / 4;
+  let base = taxable / (1 + dstFractionGuess + lgtRate + vatRate);
+  for (let i = 0; i < 5; i++) base = (taxable - Math.ceil(base / 4) * dstAmountPerUnit) / (1 + lgtRate + vatRate);
   base = round2(base);
 
-  const dst = Math.ceil(base / 4) * 0.5;
-  const lgt = round2(base * 0.0075);
-  const vat = round2(base * 0.12);
+  const dst = Math.ceil(base / 4) * dstAmountPerUnit;
+  const lgt = round2(base * lgtRate);
+  const vat = round2(base * vatRate);
   base = round2(taxable - dst - lgt - vat);
 
-  return { base, dst, lgt, vat, verificationFee: VERIFICATION_FEE, certificationFee, total: round2(gross) };
+  return { base, dst, lgt, vat, verificationFee: otherFees, certificationFee, total: round2(gross) };
 }
 
 export interface FinancialAmounts {
@@ -83,12 +88,13 @@ export class EndorsementCalcError extends Error {}
 // Additional premium for the added days, at the policy's own daily rate -
 // each tax component prorated the same way (as the legacy system did). The
 // one-off verification/COV fees aren't charged again.
-export function computeCtplExtension(app: CtplApplication, newExpiryDate: Date) {
+export async function computeCtplExtension(app: CtplApplication, newExpiryDate: Date) {
   const { expiry, termDays } = requireTerm(app);
   const addedDays = daysBetween(expiry, newExpiryDate);
   if (addedDays <= 0) throw new EndorsementCalcError('New expiry date must be after the current expiry date');
 
-  const b = ctplBreakdownFromGross(parsePremium(app.premium), app.requiresCOV);
+  const params = await getCtplTaxParams();
+  const b = ctplBreakdownFromGross(parsePremium(app.premium), app.requiresCOV, params);
   const factor = addedDays / termDays;
   const premium = round2(b.base * factor);
   const dst = round2(b.dst * factor);
@@ -105,9 +111,10 @@ export function computeCtplExtension(app: CtplApplication, newExpiryDate: Date) 
 //
 // Amounts are returned negative (premium returned to the client), matching
 // how they're stored on Endorsement.
-export function computeCtplCancellation(app: CtplApplication, cancellationDate: Date) {
+export async function computeCtplCancellation(app: CtplApplication, cancellationDate: Date) {
   const { effective, expiry, termDays } = requireTerm(app);
-  const b = ctplBreakdownFromGross(parsePremium(app.premium), app.requiresCOV);
+  const params = await getCtplTaxParams();
+  const b = ctplBreakdownFromGross(parsePremium(app.premium), app.requiresCOV, params);
   const daysUsed = daysBetween(effective, cancellationDate);
 
   if (daysUsed <= 0) {

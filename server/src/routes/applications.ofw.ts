@@ -9,6 +9,7 @@ import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib
 import { formatPhp, getUsdToPhpRate, parseUsdPremium } from '../lib/forex';
 import { fillOfwServiceInvoice, fillOfwCoi } from '../services/ofwDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
+import { computeOfwPremium } from '../lib/premiumCalc';
 
 async function generateAndStoreOfwDocuments(application: OfwApplication, generatedBy?: string) {
   try {
@@ -146,6 +147,10 @@ router.post(
   asyncHandler(async (req, res) => {
     const { beneficiaries, ...data } = createApplicationSchema.parse(req.body);
 
+    // Always recomputed from the PremiumRate table, never trusted from the
+    // client - see computeOfwPremium.
+    data.premium = `$${(await computeOfwPremium(data.contractStart, data.contractEnd)).toFixed(2)}`;
+
     // Reference No. identifies the application from the moment it exists,
     // paid or not. COI Number is only assigned once the policy is actually
     // issued (isPaid).
@@ -188,6 +193,12 @@ router.put(
     const { beneficiaries, ...data } = updateApplicationSchema.parse(req.body);
     const current = await prisma.ofwApplication.findUnique({ where: { id: req.params.id } });
     if (!current) throw new HttpError(404, 'Application not found');
+
+    // Same as POST - recompute from the PremiumRate table using the merged
+    // current+incoming contract dates.
+    data.premium = `$${(
+      await computeOfwPremium(data.contractStart ?? current.contractStart, data.contractEnd ?? current.contractEnd)
+    ).toFixed(2)}`;
 
     // Backfills a Reference No. for any pre-existing row that predates this
     // always-assigned rule (see POST above).

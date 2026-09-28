@@ -490,6 +490,27 @@ export const documentsApi = {
   getUrl: (id: string) => apiFetch<{ url: string }>(`/api/documents/${id}/url`),
 };
 
+// Premium rate table - the single source of truth every product's
+// create-application form and the server both read from (see
+// server/src/lib/premiumCalc.ts). Backs premium_maintenance.tsx.
+export interface PremiumRateApi {
+  id: string;
+  product: string;
+  key: string;
+  label: string;
+  amount: number;
+  currency: string;
+  unit: 'Flat' | 'PerDay' | 'PerMonth' | 'AddOn' | 'Percent';
+  updatedAt: string;
+  updatedBy: string | null;
+}
+
+export const premiumRatesApi = {
+  list: () => apiFetch<PremiumRateApi[]>('/api/premium-rates'),
+  updateAmount: (id: string, amount: number) =>
+    apiFetch<PremiumRateApi>(`/api/premium-rates/${id}`, { method: 'PUT', body: JSON.stringify({ amount }) }),
+};
+
 // Policy endorsements (CTPL so far) - see server/src/routes/endorsements.ts.
 // Non-financial ones come back already Approved; financial ones start
 // Pending and move through review -> approve/deny.
