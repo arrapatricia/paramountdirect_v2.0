@@ -81,23 +81,23 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   // CTPL - flat premium by policy type + vehicle type + term (1 Year / 3
   // Years). Each amount is Base + DST(ceil(Base/4)*0.50) + LGT(0.75% of
   // Base) + VAT(12% of Base) + Other Fees (₱46 flat) - reconciled to the
-  // peso against the legacy system's own rate table for the 1-year Private
-  // Car/Jeep/SUV/UV (₱447.01 base -> ₱606.00 gross - NOT 666, which had the
-  // ₱60 COV fee baked in by mistake) and Motorcycle/Tricycle/Trailer
-  // (₱199.55 base) classes, and against Paramount's official 3-year rate
-  // card (same formula, e.g. ₱1,285.14 base -> ₱1,656.00 gross for Private
-  // Car) for every 3-year row. NOTE: this file is a fallback seed only -
-  // premium_rates now live in the PremiumRate DB table (see
-  // server/src/lib/premiumCalc.ts); edit rates there, not here.
+  // peso against Paramount's official "PREMIUM RATES ON CTPL COVER" rate
+  // card (Basic Premium/VAT/DST/LGT/Total columns per vehicle class), e.g.
+  // ₱447.01 base -> ₱606.00 gross for Private Car/Jeep/SUV/UV, 1 Year (NOT
+  // 666, which had the ₱60 COV fee baked into the base by mistake) and
+  // ₱1,285.14 base -> ₱1,656.00 gross for the same classes, 3 Years. NOTE:
+  // this file is a fallback seed only - premium_rates now live in the
+  // PremiumRate DB table (see server/src/lib/premiumCalc.ts); edit rates
+  // there, not here.
   { id: 'ctpl-car-1y', product: 'CTPL', key: 'Private Car|Car|1 Year', label: 'Private Car - Car (1 Year)', amount: 606, currency: 'PHP', unit: 'flat' },
   { id: 'ctpl-jeep-1y', product: 'CTPL', key: 'Private Car|Jeep|1 Year', label: 'Private Car - Jeep (1 Year)', amount: 606, currency: 'PHP', unit: 'flat' },
   { id: 'ctpl-suv-1y', product: 'CTPL', key: 'Private Car|Sports Utility Vehicle|1 Year', label: 'Private Car - Sports Utility Vehicle (1 Year)', amount: 606, currency: 'PHP', unit: 'flat' },
   { id: 'ctpl-utility-1y', product: 'CTPL', key: 'Private Car|Utility Vehicle|1 Year', label: 'Private Car - Utility Vehicle (1 Year)', amount: 606, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-ac-tourist-1y', product: 'CTPL', key: 'Private Car|AC / Tourist Car|1 Year', label: 'Private Car - AC / Tourist Car (1 Year)', amount: 785.96, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-ac-tourist-1y', product: 'CTPL', key: 'Private Car|AC / Tourist Car|1 Year', label: 'Private Car - AC / Tourist Car (1 Year)', amount: 786, currency: 'PHP', unit: 'flat' },
 
   { id: 'ctpl-light-truck-1y', product: 'CTPL', key: 'Commercial Vehicle|Light/Medium Truck (Own Goods, ≤ 3,930kg)|1 Year', label: 'Commercial Vehicle - Light/Medium Truck ≤ 3,930kg (1 Year)', amount: 656, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-heavy-truck-1y', product: 'CTPL', key: 'Commercial Vehicle|Heavy Truck (Own Goods) / Private Bus (> 3,930kg)|1 Year', label: 'Commercial Vehicle - Heavy Truck / Private Bus > 3,930kg (1 Year)', amount: 1246.01, currency: 'PHP', unit: 'flat' },
-  { id: 'ctpl-taxi-puj-1y', product: 'CTPL', key: 'Commercial Vehicle|Taxi / PUJ / Mini Bus|1 Year', label: 'Commercial Vehicle - Taxi / PUJ / Mini Bus (1 Year)', amount: 1146.01, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-heavy-truck-1y', product: 'CTPL', key: 'Commercial Vehicle|Heavy Truck (Own Goods) / Private Bus (> 3,930kg)|1 Year', label: 'Commercial Vehicle - Heavy Truck / Private Bus > 3,930kg (1 Year)', amount: 1246, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-taxi-puj-1y', product: 'CTPL', key: 'Commercial Vehicle|Taxi / PUJ / Mini Bus|1 Year', label: 'Commercial Vehicle - Taxi / PUJ / Mini Bus (1 Year)', amount: 1146, currency: 'PHP', unit: 'flat' },
   { id: 'ctpl-pub-tourist-bus-1y', product: 'CTPL', key: 'Commercial Vehicle|PUB / Tourist Bus|1 Year', label: 'Commercial Vehicle - PUB / Tourist Bus (1 Year)', amount: 1496, currency: 'PHP', unit: 'flat' },
 
   { id: 'ctpl-mc-1y', product: 'CTPL', key: 'Motorcycle|Motorcycle|1 Year', label: 'Motorcycle - Motorcycle (1 Year)', amount: 296, currency: 'PHP', unit: 'flat' },
