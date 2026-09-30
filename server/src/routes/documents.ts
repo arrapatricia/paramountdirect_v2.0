@@ -6,6 +6,7 @@ import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import { getDocumentViewUrl, storeGeneratedDocument } from '../services/documentStorage';
+import { emailGeneratedDocument } from '../services/documentEmail';
 import type { DocumentApplicationType } from '@prisma/client';
 
 const router = Router();
@@ -104,6 +105,18 @@ router.get(
 
     const url = await getDocumentViewUrl(document.s3Key, filename);
     res.json({ url });
+  })
+);
+
+// "Send to Client": emails the stored PDF to the application's client address.
+router.post(
+  '/:id/send',
+  asyncHandler(async (req, res) => {
+    const document = await prisma.generatedDocument.findUnique({ where: { id: req.params.id } });
+    if (!document) throw new HttpError(404, 'Document not found');
+    const { to } = await emailGeneratedDocument(document);
+    await recordAudit(req, { action: 'UPDATE', module: 'Generated Documents', details: `Emailed ${document.docKey} for ${document.applicationType} application ${document.applicationId} to ${to}` });
+    res.json({ sentTo: to });
   })
 );
 

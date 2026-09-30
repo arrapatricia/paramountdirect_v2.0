@@ -6,12 +6,15 @@ import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
 import type { GtpApplication, GtpStatus } from '@prisma/client';
 import { fillGtpServiceInvoice } from '../services/gtpDocumentFill';
+import { fillGtpOfficialReceipt } from '../services/officialReceiptFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 import { computeGtpPremium } from '../lib/premiumCalc';
 
 async function generateAndStoreGtpDocuments(application: GtpApplication, generatedBy?: string) {
+  let invoiceNumber: string | undefined;
   try {
     const invoice = await fillGtpServiceInvoice(application);
+    invoiceNumber = invoice.invoiceNumber;
     await storeGeneratedDocument({
       applicationType: 'GTP',
       applicationId: application.id,
@@ -25,6 +28,24 @@ async function generateAndStoreGtpDocuments(application: GtpApplication, generat
     // Payment/issuance already succeeded before this runs - don't fail the
     // request over document generation; surface it in the logs for follow-up.
     console.error(`Failed to generate GTP documents for ${application.id}:`, err);
+  }
+
+  // The OR's number is derived from the Service Invoice's own number (see
+  // officialReceiptFill.ts) - skipped if that failed to generate.
+  if (invoiceNumber) {
+    try {
+      const or = await fillGtpOfficialReceipt(application, invoiceNumber);
+      await storeGeneratedDocument({
+        applicationType: 'GTP',
+        applicationId: application.id,
+        docKey: 'gtp-or',
+        contentType: 'application/pdf',
+        body: or,
+        generatedBy,
+      });
+    } catch (err) {
+      console.error(`Failed to generate GTP Official Receipt for ${application.id}:`, err);
+    }
   }
 }
 

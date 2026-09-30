@@ -493,6 +493,8 @@ export const documentsApi = {
   list: (applicationType: string, applicationId: string) =>
     apiFetch<GeneratedDocumentApi[]>(`/api/documents?applicationType=${encodeURIComponent(applicationType)}&applicationId=${encodeURIComponent(applicationId)}`),
   getUrl: (id: string) => apiFetch<{ url: string }>(`/api/documents/${id}/url`),
+  // Emails the stored PDF to the application's client address.
+  send: (id: string) => apiFetch<{ sentTo: string }>(`/api/documents/${id}/send`, { method: 'POST' }),
 };
 
 // Premium rate table - the single source of truth every product's

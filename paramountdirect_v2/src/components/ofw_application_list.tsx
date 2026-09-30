@@ -60,9 +60,9 @@ const editLabelClass = 'text-slate-400 font-bold block mb-1 dark:text-slate-500'
 // Issued column has room for a full time-of-day without wrapping.
 const shortDateTime = (s?: string) => s ? s.replace(/\/\d{4}(?=\s|$)/, '') : s;
 
-// Only used for the OR fallback now - COI and Service Invoice both have real
-// generated PDFs (see fillOfwCoi/fillOfwServiceInvoice in ofwDocumentFill.ts,
-// opened directly by handleViewDoc), so this mock is never reached for them.
+// Dead code now that COI, Service Invoice, and OR all have real generated
+// PDFs (opened directly by handleViewDoc) - kept only as a fallback for any
+// future doc key that doesn't have a real template yet.
 function printableDocBody(app: OfwApplication, viewingDoc: string) {
   return (
     <>
@@ -128,11 +128,10 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
     setTimeout(() => setNotification(null), 2500);
   };
 
-  // Service Invoice and COI both have real generated PDFs (ofwDocumentFill.ts)
-  // - fetch and open the actual file via a short-lived presigned S3 URL. OR
-  // has no real template/service yet, so it still falls back to the in-app
-  // mock modal below.
-  const REAL_DOC_KEYS: Record<string, string> = { serviceInvoice: 'ofw-service-invoice', coi: 'ofw-coi' };
+  // Service Invoice, COI, and OR all have real generated PDFs
+  // (ofwDocumentFill.ts / officialReceiptFill.ts) - fetch and open the
+  // actual file via a short-lived presigned S3 URL.
+  const REAL_DOC_KEYS: Record<string, string> = { serviceInvoice: 'ofw-service-invoice', coi: 'ofw-coi', or: 'ofw-or' };
 
   const handleViewDoc = async (key: string) => {
     const docKey = REAL_DOC_KEYS[key];
@@ -157,7 +156,8 @@ export default function OfwApplicationList({ data, onCreateNew, onUpdate, viewin
       const docs = await documentsApi.list('OFW', viewingApp.id);
       const doc = docs.find((d) => d.docKey === docKey);
       if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
-      notify(`${label} emailed to ${viewingApp.email}.`);
+      const { sentTo } = await documentsApi.send(doc.id);
+      notify(`${label} emailed to ${sentTo}.`);
     } catch (err) {
       notify(err instanceof ApiError ? err.message : `Failed to send ${label}.`);
     }

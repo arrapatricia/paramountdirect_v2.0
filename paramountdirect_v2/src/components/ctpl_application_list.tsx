@@ -119,7 +119,8 @@ export default function CtplApplicationList({ data, rates, onCreateNew, viewingI
     try {
       const doc = await findGeneratedDoc(key);
       if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
-      notify(`${label} emailed to ${viewingApp?.email}.`);
+      const { sentTo } = await documentsApi.send(doc.id);
+      notify(`${label} emailed to ${sentTo}.`);
     } catch (err) {
       notify(err instanceof ApiError ? err.message : `Failed to send ${label}.`);
     }

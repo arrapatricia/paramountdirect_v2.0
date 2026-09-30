@@ -3,6 +3,7 @@ import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Plane, ShieldAlert
 import { GTP_STATUSES, GTP_STATUS_DESCRIPTIONS, type GtpApplication } from './gtp_types';
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
 import { Section, FieldGrid, Field } from './application_detail_ui';
+import { documentsApi, ApiError } from '../lib/api';
 
 const NAVY_ICON = 'text-[#002f6c] dark:text-[#49b1ea]';
 
@@ -59,10 +60,40 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
     setTimeout(() => setNotification(null), 2500);
   };
 
-  const handleViewDoc = (key: string) => setViewingDoc(key);
-  const handleSendDoc = (key: string) => {
-    const doc = GTP_DOCUMENTS.find((d) => d.key === key);
-    notify(`${doc?.label ?? 'Document'} emailed to ${viewingApp?.email}.`);
+  // Service Invoice and OR both have real generated PDFs
+  // (gtpDocumentFill.ts / officialReceiptFill.ts) - fetch and open the
+  // actual file via a short-lived presigned S3 URL. Policy Document has no
+  // real template yet, so it still falls back to the in-app mock modal.
+  const REAL_DOC_KEYS: Record<string, string> = { serviceInvoice: 'gtp-service-invoice', or: 'gtp-or' };
+
+  const handleViewDoc = async (key: string) => {
+    const docKey = REAL_DOC_KEYS[key];
+    if (!docKey || !viewingApp) { setViewingDoc(key); return; }
+    const label = GTP_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    try {
+      const docs = await documentsApi.list('GTP', viewingApp.id);
+      const doc = docs.find((d) => d.docKey === docKey);
+      if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
+      const { url } = await documentsApi.getUrl(doc.id);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : `Failed to open ${label}.`);
+    }
+  };
+
+  const handleSendDoc = async (key: string) => {
+    const docKey = REAL_DOC_KEYS[key];
+    const label = GTP_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    if (!docKey || !viewingApp) { notify(`${label} can't be emailed yet.`); return; }
+    try {
+      const docs = await documentsApi.list('GTP', viewingApp.id);
+      const doc = docs.find((d) => d.docKey === docKey);
+      if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
+      const { sentTo } = await documentsApi.send(doc.id);
+      notify(`${label} emailed to ${sentTo}.`);
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : `Failed to send ${label}.`);
+    }
   };
 
   const tabCounts: Record<string, number> = {

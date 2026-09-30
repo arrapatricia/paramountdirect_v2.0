@@ -8,12 +8,15 @@ import type { OfwApplication, OfwBeneficiary, OfwStatus } from '@prisma/client';
 import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
 import { formatPhp, getUsdToPhpRate, parseUsdPremium } from '../lib/forex';
 import { fillOfwServiceInvoice, fillOfwCoi } from '../services/ofwDocumentFill';
+import { fillOfwOfficialReceipt } from '../services/officialReceiptFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 import { computeOfwPremium } from '../lib/premiumCalc';
 
 async function generateAndStoreOfwDocuments(application: OfwApplication & { beneficiaries?: OfwBeneficiary[] }, generatedBy?: string) {
+  let invoiceNumber: string | undefined;
   try {
     const invoice = await fillOfwServiceInvoice(application);
+    invoiceNumber = invoice.invoiceNumber;
     await storeGeneratedDocument({
       applicationType: 'OFW',
       applicationId: application.id,
@@ -41,6 +44,24 @@ async function generateAndStoreOfwDocuments(application: OfwApplication & { bene
     });
   } catch (err) {
     console.error(`Failed to generate OFW COI for ${application.id}:`, err);
+  }
+
+  // The OR's number is derived from the Service Invoice's own number (see
+  // officialReceiptFill.ts) - skipped if that failed to generate.
+  if (invoiceNumber) {
+    try {
+      const or = await fillOfwOfficialReceipt(application, invoiceNumber);
+      await storeGeneratedDocument({
+        applicationType: 'OFW',
+        applicationId: application.id,
+        docKey: 'ofw-or',
+        contentType: 'application/pdf',
+        body: or,
+        generatedBy,
+      });
+    } catch (err) {
+      console.error(`Failed to generate OFW Official Receipt for ${application.id}:`, err);
+    }
   }
 }
 
