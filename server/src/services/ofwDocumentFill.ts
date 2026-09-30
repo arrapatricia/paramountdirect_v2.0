@@ -12,8 +12,8 @@
 // Called once, from applications.ofw.ts, the moment isPaid first flips true.
 import { readFileSync } from 'fs';
 import path from 'path';
-import { PDFDocument } from 'pdf-lib';
-import type { OfwApplication } from '@prisma/client';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
+import type { OfwApplication, OfwBeneficiary } from '@prisma/client';
 import { generateUniqueInvoiceNumber } from '../lib/invoiceNumbering';
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates', 'ofw');
@@ -71,10 +71,16 @@ const FIXED_FONT_SIZE_FIELDS: Record<string, number> = {
   EffectiveDate_SVI: 10, // matches this template's other fields' own default appearance (/Helv 10 Tf)
 };
 
+// The Total Amount row (currency + amount) on the Service Invoice should
+// stand out from the rest of the breakdown table - rendered bold rather
+// than the template's default regular weight.
+const BOLD_FIELDS = new Set(['Curr_SVI', 'Total_AmtDue_SVI']);
+
 export async function fillFields(templateFile: string, values: Record<string, string>): Promise<Buffer> {
   const bytes = readFileSync(path.join(TEMPLATES_DIR, templateFile));
   const pdf = await PDFDocument.load(bytes);
   const form = pdf.getForm();
+  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   for (const [name, value] of Object.entries(values)) {
     const field = form.getFieldMaybe(name);
@@ -83,6 +89,7 @@ export async function fillFields(templateFile: string, values: Record<string, st
       const textField = form.getTextField(name);
       if (FIXED_FONT_SIZE_FIELDS[name]) textField.setFontSize(FIXED_FONT_SIZE_FIELDS[name]);
       textField.setText(value);
+      if (BOLD_FIELDS.has(name)) textField.updateAppearances(boldFont);
     } catch {
       // Not a text field (or otherwise unsettable) - leave it untouched.
     }
@@ -155,20 +162,66 @@ export async function fillOfwServiceInvoice(app: OfwApplication): Promise<{ buff
 // same for both the BM and DH variants - confirmed by the business side.
 const OFW_MASTER_POLICY_NUMBER = 'G-3083';
 
+// BM_Fullname ships with an auto-size (0pt) default appearance, the same
+// class of bug noted on FIXED_FONT_SIZE_FIELDS above - without a fixed size
+// pdf-lib renders it far larger than the rest of the certificate's text.
+const COI_FULLNAME_FONT_SIZE = 11;
+
+// BM_Term is a single AcroForm field with *two* widgets on the page: a small
+// single-line box next to "TERM OF INSURANCE" and a much taller box further
+// down that's actually positioned under "Name of Dependents/Beneficiaries".
+// Since one field can only ever hold one value, whatever text is set shows
+// up (or overflows) in both places - that's the real cause of the "wrong
+// data" the beneficiaries line was showing. Fixed by leaving the AcroForm
+// field itself blank and drawing the term (in months, not a date range -
+// this is what belongs next to "TERM OF INSURANCE") and the beneficiary
+// names directly onto the page at each widget's own rect instead.
+const COI_TERM_RECT = { x: 101, y: 526, size: 9 };
+const COI_BENEFICIARIES_RECT = { x: 20, y: 467, lineHeight: 13, size: 8, maxLines: 3 };
+
 // Fills the real Certificate of Insurance template - two variants of the
 // same 5-field form (DM_Certificate of Insurance BM/DH_withFields.pdf),
 // selected by natureOfEmployment. Field names are identical between the two
 // ("BM_..." even on the DH template - not a typo, that's how the template
 // was built).
-export async function fillOfwCoi(app: OfwApplication): Promise<Buffer> {
+export async function fillOfwCoi(app: OfwApplication & { beneficiaries?: OfwBeneficiary[] }): Promise<Buffer> {
   const name = `${app.firstName} ${app.middleName} ${app.lastName}`.replace(/\s+/g, ' ').trim();
   const template = app.natureOfEmployment === 'Direct_hired' ? 'ofw-coi-dh.pdf' : 'ofw-coi-bm.pdf';
 
-  return fillFields(template, {
-    BM_Fullname: name.toUpperCase(),
-    BM_COIno: app.policyNumber ?? '',
-    BM_MasterPolNo: OFW_MASTER_POLICY_NUMBER,
-    BM_DateIssued: formatDate(app.dateIssued ?? new Date()),
-    BM_Term: `${formatDate(app.insuranceStart)} to ${formatDate(app.contractEnd)}`,
+  const bytes = readFileSync(path.join(TEMPLATES_DIR, template));
+  const pdf = await PDFDocument.load(bytes);
+  const form = pdf.getForm();
+
+  form.getTextField('BM_Fullname').setFontSize(COI_FULLNAME_FONT_SIZE);
+  form.getTextField('BM_Fullname').setText(name.toUpperCase());
+  form.getTextField('BM_COIno').setText(app.policyNumber ?? '');
+  form.getTextField('BM_MasterPolNo').setText(OFW_MASTER_POLICY_NUMBER);
+  form.getTextField('BM_DateIssued').setText(formatDate(app.dateIssued ?? new Date()));
+  // BM_Term deliberately left unset - see COI_TERM_RECT/COI_BENEFICIARIES_RECT above.
+  form.updateFieldAppearances();
+  form.flatten();
+
+  const helvetica = await pdf.embedFont(StandardFonts.Helvetica);
+  const page = pdf.getPage(0);
+  const months = computeMonths(app);
+  page.drawText(`${months} Month${months === 1 ? '' : 's'}`, {
+    x: COI_TERM_RECT.x,
+    y: COI_TERM_RECT.y,
+    size: COI_TERM_RECT.size,
+    font: helvetica,
   });
+
+  const beneficiaryLines = (app.beneficiaries ?? [])
+    .slice(0, COI_BENEFICIARIES_RECT.maxLines)
+    .map((b) => `${b.fullName} (${b.relationship})`);
+  beneficiaryLines.forEach((line, i) => {
+    page.drawText(line, {
+      x: COI_BENEFICIARIES_RECT.x,
+      y: COI_BENEFICIARIES_RECT.y - i * COI_BENEFICIARIES_RECT.lineHeight,
+      size: COI_BENEFICIARIES_RECT.size,
+      font: helvetica,
+    });
+  });
+
+  return Buffer.from(await pdf.save());
 }

@@ -50,7 +50,7 @@ External integrations:
 - **Stack:** Node.js + Express + TypeScript, one Express router per resource under `server/src/routes/` (`applications.pdlife.ts`, `applications.ofw.ts`, `applications.ctpl.ts`, `applications.gtp.ts`, `ingest.*.ts`, `auth.ts`, `users.ts`, `roles.ts`, `auditLogs.ts`, `documents.ts`, `payments.nonlife.ts`, etc.).
 - **ORM/DB:** Prisma against PostgreSQL. `server/prisma/schema.prisma` is the schema source of truth; `DATABASE_SCHEMA.md` documents it field-by-field. Every table is `@@map`ped to a snake_case plural Postgres name.
 - **Middleware:** `middleware/auth.ts` (JWT verification), `middleware/errorHandler.ts` (centralized error responses).
-- **Services:** `services/ipeak/` (PD Life's outbound iPeak client — see `docs/life/HANDOVER.md`), `services/ctplDocumentFill.ts` / `ofwDocumentFill.ts` (PDF template fill via `pdf-lib`), `services/documentStorage.ts` (S3 upload + presigned URL retrieval), `services/invoiceNumbering.ts` (the shared OFW/CTPL/GTP invoice sequence), `utils/audit.ts` (writes an `AuditLog` row for every create/update/delete).
+- **Services:** `services/ipeak/` (PD Life's outbound iPeak client — see `docs/life/HANDOVER.md`), `services/ctplDocumentFill.ts` / `ofwDocumentFill.ts` (PDF template fill via `pdf-lib`), `services/documentStorage.ts` (S3 upload + presigned URL retrieval — each generated PDF's S3 key ends in a `randomUUID()`, not a raw timestamp, so a viewer glancing at the presigned URL doesn't see what looks like a meaningless epoch number; still unique per generation, so older `GeneratedDocument` rows are never overwritten), `services/invoiceNumbering.ts` (the shared OFW/CTPL/GTP invoice sequence), `utils/audit.ts` (writes an `AuditLog` row for every create/update/delete).
 
 ## Data flow
 

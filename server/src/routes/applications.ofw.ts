@@ -4,14 +4,14 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
-import type { OfwApplication, OfwStatus } from '@prisma/client';
+import type { OfwApplication, OfwBeneficiary, OfwStatus } from '@prisma/client';
 import { generateUniqueOfwCoiNumber, generateUniqueOfwReferenceNo } from '../lib/ofwNumbering';
 import { formatPhp, getUsdToPhpRate, parseUsdPremium } from '../lib/forex';
 import { fillOfwServiceInvoice, fillOfwCoi } from '../services/ofwDocumentFill';
 import { storeGeneratedDocument } from '../services/documentStorage';
 import { computeOfwPremium } from '../lib/premiumCalc';
 
-async function generateAndStoreOfwDocuments(application: OfwApplication, generatedBy?: string) {
+async function generateAndStoreOfwDocuments(application: OfwApplication & { beneficiaries?: OfwBeneficiary[] }, generatedBy?: string) {
   try {
     const invoice = await fillOfwServiceInvoice(application);
     await storeGeneratedDocument({

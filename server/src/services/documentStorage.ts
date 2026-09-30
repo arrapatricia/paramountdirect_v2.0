@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Bucket, s3Client } from '../lib/s3';
@@ -16,7 +17,11 @@ export async function storeGeneratedDocument(params: {
   invoiceNumber?: string;
   endorsementId?: string;
 }) {
-  const s3Key = `documents/${params.applicationType}/${params.applicationId}/${params.docKey}-${Date.now()}.pdf`;
+  // A UUID rather than Date.now() - still guarantees no two generations ever
+  // collide/overwrite each other (see the "never overwritten" contract on
+  // GeneratedDocument), but doesn't read as a raw, meaningless epoch number
+  // when a viewer notices it in the presigned URL's path.
+  const s3Key = `documents/${params.applicationType}/${params.applicationId}/${params.docKey}-${randomUUID()}.pdf`;
 
   await s3Client.send(
     new PutObjectCommand({

@@ -164,6 +164,13 @@ to a fixed 10pt font (`FIXED_FONT_SIZE_FIELDS`); this isn't applied to every fie
 couple (e.g. the multi-line `ItemDesc_SVI`) rely on auto-sizing to fit their box. If a future
 sample invoice comes back with another field blank, this is the first place to check.
 
+**Total Amount row is bold:** `Curr_SVI` and `Total_AmtDue_SVI` (the "USD" currency label and
+the amount on the invoice's final Total Amount row) are re-rendered with an embedded
+`Helvetica-Bold` font (`BOLD_FIELDS` set, applied via `textField.updateAppearances(boldFont)`
+after `setText()`) so the grand total stands out from the rest of the breakdown table, which
+stays the template's default regular weight. `fillFields()` is shared with `fillOfwCoi()`
+(§6), so this applies to any future template that happens to reuse either field name too.
+
 The filled form is **flattened** (`form.flatten()`) before saving — a generated invoice must
 not stay editable by whoever opens it, matching the legacy Rails app's
 `pdftk.fill_form(..., flatten: true)`.
@@ -197,17 +204,34 @@ template's fields are also named `BM_*` — not a typo, that's how the template 
 
 | Field | Filled with |
 |---|---|
-| `BM_Fullname` | `firstName middleName lastName`, uppercased |
+| `BM_Fullname` | `firstName middleName lastName`, uppercased. Forced to a fixed 11pt (`COI_FULLNAME_FONT_SIZE`) — the field ships with an auto-size (`0pt`) default appearance pdf-lib can't recompute correctly, which otherwise renders the name far larger than the rest of the certificate (same class of bug as `EffectiveDate_SVI` on the Service Invoice, see §4). |
 | `BM_COIno` | `policyNumber` (the COI Number, §7) |
 | `BM_MasterPolNo` | `G-3083` (DM/OFW Compulsory Insurance master policy number, same for both BM and DH — `OFW_MASTER_POLICY_NUMBER` constant in `ofwDocumentFill.ts`) |
 | `BM_DateIssued` | `dateIssued` (falls back to "now" if unset) |
-| `BM_Term` | `insuranceStart` to `contractEnd` |
+| `BM_Term` | **Left unset in the AcroForm** — see below |
 | `QRCode_ofwCOI` (`PDFButton`) | Left untouched — no QR-code generation exists in this system; the template's own placeholder renders as blank |
+
+**`BM_Term` is a template quirk, not a normal field:** it has *two* separate widgets on the
+page sharing one AcroForm field — a small single-line box next to "TERM OF INSURANCE" and a
+much taller box actually positioned under "Name of Dependents/Beneficiaries". Since one
+field can only hold one value, anything set on it shows up (or overflows) in *both* places at
+once — this is exactly why an early version that set `BM_Term` to a date range rendered as
+garbled/duplicated text bleeding into the beneficiaries line. Fixed by leaving the field
+itself blank and drawing directly onto the page instead, bypassing the AcroForm for this one
+field: the term (in whole months, computed the same way as the Service Invoice's
+`computeMonths()`, e.g. `"24 Months"`) at the small widget's rect, and each beneficiary's
+`fullName (relationship)` — up to 3 lines, matching `MAX_BENEFICIARIES` — at the tall
+widget's rect (`COI_TERM_RECT`/`COI_BENEFICIARIES_RECT` constants in `ofwDocumentFill.ts`,
+coordinates read directly off the template's own widget rectangles via pdf-lib). Requires
+`app.beneficiaries` to be loaded (`include: { beneficiaries: true }`) — both
+`applications.ofw.ts` create/update handlers already do this for other reasons, so
+`generateAndStoreOfwDocuments()`'s `application` parameter is typed
+`OfwApplication & { beneficiaries?: OfwBeneficiary[] }` to carry it through.
 
 The benefit table, legal wording, head-office/OFW-Ortigas-office letterhead, and Term of
 Insurance clause are all baked into the template PDF itself (this is a real filled document,
 not an HTML re-creation), so there is nothing to keep in sync with the real product on our
-side beyond these 6 fields.
+side beyond these fields.
 
 Generation is wired into `generateAndStoreOfwDocuments()` in `applications.ofw.ts`, right
 alongside the Service Invoice call, in its own try/catch (a COI-generation failure doesn't
