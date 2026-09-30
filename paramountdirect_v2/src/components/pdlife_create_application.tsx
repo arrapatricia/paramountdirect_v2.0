@@ -16,7 +16,7 @@ import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { getHcpPremium, getHcpAvailableTiers, type HcpInsuredOption } from './pdlife_rates_hcp';
 import { getHipPremium, type HipInsuredOption } from './pdlife_rates_hip';
 import { getGlaPremium, GLA_UNITS } from './pdlife_rates_gla';
-import { PH_REGION_NAMES, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
+import { PH_REGION_NAMES, citiesForRegion, barangaysForCity } from './ph_geography';
 
 interface Props {
   onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
@@ -142,7 +142,7 @@ function PdLifeCategoryForm({
   });
   const [contact, setContact] = useState<ContactInfo>({
     houseNumber: '', street: '', building: '',
-    region: PH_REGION_NAMES[0], city: citiesForRegion(PH_REGION_NAMES[0])[0], barangay: GENERIC_BARANGAYS[0], zipcode: '',
+    region: PH_REGION_NAMES[0], city: citiesForRegion(PH_REGION_NAMES[0])[0], barangay: barangaysForCity(citiesForRegion(PH_REGION_NAMES[0])[0])[0], zipcode: '',
     mobileNumber: '', telephoneNumber: '', email: '',
   });
   const [payorInfo, setPayorInfo] = useState<PayorInfo>({
@@ -530,7 +530,8 @@ function PdLifeCategoryForm({
                 value={contact.region}
                 onChange={(e) => {
                   const nextRegion = e.target.value;
-                  setContact((c) => ({ ...c, region: nextRegion, city: citiesForRegion(nextRegion)[0] ?? '' }));
+                  const nextCity = citiesForRegion(nextRegion)[0] ?? '';
+                  setContact((c) => ({ ...c, region: nextRegion, city: nextCity, barangay: barangaysForCity(nextCity)[0] }));
                 }}
                 className={inputClass}
               >
@@ -539,14 +540,18 @@ function PdLifeCategoryForm({
             </div>
             <div>
               <label className={labelClass}>City/Municipality</label>
-              <select value={contact.city} onChange={(e) => setContact((c) => ({ ...c, city: e.target.value }))} className={inputClass}>
+              <select
+                value={contact.city}
+                onChange={(e) => { const nextCity = e.target.value; setContact((c) => ({ ...c, city: nextCity, barangay: barangaysForCity(nextCity)[0] })); }}
+                className={inputClass}
+              >
                 {citiesForRegion(contact.region).map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>Barangay</label>
               <select value={contact.barangay} onChange={(e) => setContact((c) => ({ ...c, barangay: e.target.value }))} className={inputClass}>
-                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
+                {barangaysForCity(contact.city).map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
 

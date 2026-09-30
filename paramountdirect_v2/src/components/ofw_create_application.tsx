@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, UploadCloud, FileCheck2, CheckCircle2, ShieldAlert, Plus, Trash2 } from 'lucide-react';
 import { CONFLICT_ZONE_COUNTRIES, OFW_OCCUPATIONS, type OfwApplication } from './ofw_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
+import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 
 interface Props {
   onCreate: (app: OfwApplication) => void;
@@ -70,7 +70,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const [phAddress, setPhAddress] = useState('');
   const [phRegion, setPhRegion] = useState(PH_REGIONS[0].name);
   const [phCity, setPhCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
-  const [phBarangay, setPhBarangay] = useState(GENERIC_BARANGAYS[0]);
+  const [phBarangay, setPhBarangay] = useState(() => barangaysForCity(citiesForRegion(PH_REGIONS[0].name)[0])[0]);
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
   const [civilStatus, setCivilStatus] = useState<'Single' | 'Married' | 'Widower' | 'Separated'>('Single');
   const [birthdate, setBirthdate] = useState('');
@@ -309,7 +309,13 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
               <label className={labelClass}>Region</label>
               <select
                 value={phRegion}
-                onChange={(e) => { const r = e.target.value; setPhRegion(r); setPhCity(citiesForRegion(r)[0]); }}
+                onChange={(e) => {
+                  const r = e.target.value;
+                  const c = citiesForRegion(r)[0];
+                  setPhRegion(r);
+                  setPhCity(c);
+                  setPhBarangay(barangaysForCity(c)[0]);
+                }}
                 className={inputClass}
               >
                 {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
@@ -317,14 +323,18 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
             </div>
             <div>
               <label className={labelClass}>City/Municipality</label>
-              <select value={phCity} onChange={(e) => setPhCity(e.target.value)} className={inputClass}>
+              <select
+                value={phCity}
+                onChange={(e) => { const c = e.target.value; setPhCity(c); setPhBarangay(barangaysForCity(c)[0]); }}
+                className={inputClass}
+              >
                 {citiesForRegion(phRegion).map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>Barangay</label>
               <select value={phBarangay} onChange={(e) => setPhBarangay(e.target.value)} className={inputClass}>
-                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
+                {barangaysForCity(phCity).map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
 

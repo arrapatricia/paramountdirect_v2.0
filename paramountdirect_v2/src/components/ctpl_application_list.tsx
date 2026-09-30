@@ -36,6 +36,17 @@ const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
   { key: 'ctpl-service-invoice', label: 'Service Invoice' },
 ];
 
+// A cancelled policy also has a cancellation letter and a credit memo for
+// the refund - generated on the Cancellation endorsement's approval (see
+// ctplEndorsementDocuments.ts's fillCancellation/fillCreditMemo), on top of
+// the 4 issuance documents above rather than in place of them. Previously
+// only visible buried inside the Endorsements accordion below, not here
+// where staff actually look for "the policy's documents".
+const CTPL_CANCELLATION_DOCUMENTS: PolicyDocumentSpec[] = [
+  { key: 'ctpl-endorsement', label: 'Endorsement (Cancellation Letter)' },
+  { key: 'ctpl-credit-memo', label: 'Credit Memo' },
+];
+
 const ITEMS_PER_PAGE = 20;
 const STATUS_TABS = ['All', ...CTPL_STATUSES] as const;
 
@@ -90,7 +101,7 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
   };
 
   const handleViewDoc = async (key: string) => {
-    const label = CTPL_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    const label = [...CTPL_DOCUMENTS, ...CTPL_CANCELLATION_DOCUMENTS].find((d) => d.key === key)?.label ?? 'Document';
     try {
       const doc = await findGeneratedDoc(key);
       if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
@@ -102,7 +113,7 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
   };
 
   const handleSendDoc = async (key: string) => {
-    const label = CTPL_DOCUMENTS.find((d) => d.key === key)?.label ?? 'Document';
+    const label = [...CTPL_DOCUMENTS, ...CTPL_CANCELLATION_DOCUMENTS].find((d) => d.key === key)?.label ?? 'Document';
     try {
       const doc = await findGeneratedDoc(key);
       if (!doc) { notify(`${label} hasn't been generated for this application yet.`); return; }
@@ -379,7 +390,11 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
               <Section icon={FileStack} title="Documents & Endorsements" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
                 <PolicyDocumentsSection
                   isPaid={viewingApp.isPaid}
-                  documents={CTPL_DOCUMENTS}
+                  documents={
+                    getCtplPolicyStatus(viewingApp) === 'Cancelled'
+                      ? [...CTPL_DOCUMENTS, ...CTPL_CANCELLATION_DOCUMENTS]
+                      : CTPL_DOCUMENTS
+                  }
                   onView={handleViewDoc}
                   onSend={handleSendDoc}
                   lockedMessage="Documents will be available once the client completes payment on the website."

@@ -52,9 +52,11 @@ export async function fillGtpServiceInvoice(app: GtpApplication): Promise<{ buff
 
   const fmt = (n: number) => formatCurrency(n);
 
+  const address = [app.phAddress, app.phBarangay !== 'N/A' ? app.phBarangay : null, app.phCity, app.phRegion].filter(Boolean).join(', ');
+
   const buffer = await fillFields('gtp-service-invoice.pdf', {
     insured_name: name,
-    insured_address: app.destinations.join(', '),
+    insured_address: address,
     invoice_number: invoiceNumber,
     payment_ref: app.referenceNo ?? '',
     invoice_date: formatDate(new Date()),

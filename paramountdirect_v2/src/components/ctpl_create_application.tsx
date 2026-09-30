@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
 import { CTPL_MV_TYPES_BY_POLICY, CTPL_POLICY_TYPES, COV_FEE, type CtplApplication } from './ctpl_types';
 import { CTPL_VEHICLE_YEARS, CTPL_VEHICLE_MAKERS } from './ctpl_vehicle_reference';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
+import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 
 interface Props {
   onCreate: (app: CtplApplication) => void | Promise<void>;
@@ -32,7 +32,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [ownerAddress, setOwnerAddress] = useState('');
   const [ownerRegion, setOwnerRegion] = useState(PH_REGIONS[0].name);
   const [ownerCity, setOwnerCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
-  const [ownerBarangay, setOwnerBarangay] = useState(GENERIC_BARANGAYS[0]);
+  const [ownerBarangay, setOwnerBarangay] = useState(() => barangaysForCity(citiesForRegion(PH_REGIONS[0].name)[0])[0]);
   const [sameAsOwner, setSameAsOwner] = useState(true);
   const [applicantFirstName, setApplicantFirstName] = useState('');
   const [applicantSurname, setApplicantSurname] = useState('');
@@ -266,7 +266,13 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
               <label className={labelClass}>Region</label>
               <select
                 value={ownerRegion}
-                onChange={(e) => { const r = e.target.value; setOwnerRegion(r); setOwnerCity(citiesForRegion(r)[0]); }}
+                onChange={(e) => {
+                  const r = e.target.value;
+                  const c = citiesForRegion(r)[0];
+                  setOwnerRegion(r);
+                  setOwnerCity(c);
+                  setOwnerBarangay(barangaysForCity(c)[0]);
+                }}
                 className={inputClass}
               >
                 {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
@@ -274,14 +280,18 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             </div>
             <div>
               <label className={labelClass}>City/Municipality</label>
-              <select value={ownerCity} onChange={(e) => setOwnerCity(e.target.value)} className={inputClass}>
+              <select
+                value={ownerCity}
+                onChange={(e) => { const c = e.target.value; setOwnerCity(c); setOwnerBarangay(barangaysForCity(c)[0]); }}
+                className={inputClass}
+              >
                 {citiesForRegion(ownerRegion).map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>Barangay</label>
               <select value={ownerBarangay} onChange={(e) => setOwnerBarangay(e.target.value)} className={inputClass}>
-                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
+                {barangaysForCity(ownerCity).map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
 

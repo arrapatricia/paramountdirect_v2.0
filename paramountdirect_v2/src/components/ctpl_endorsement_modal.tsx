@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { X, FilePen, CalendarPlus, Ban, ArrowLeft, AlertTriangle } from 'lucide-react';
 import type { CtplApplication } from './ctpl_types';
 import { endorsementsApi, toApiCtplClientType, ApiError, type EndorsementApi, type EndorsementPreviewApi } from '../lib/api';
-import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
+import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 import { CTPL_VEHICLE_YEARS, CTPL_VEHICLE_MAKERS } from './ctpl_vehicle_reference';
 import { AmountsTable, ENDORSEMENT_TYPE_LABEL, inputClass, labelClass, peso, displayDate, toDateInput } from './endorsement_shared';
 
@@ -236,10 +236,15 @@ export default function CtplEndorsementModal({ app, onClose, onSubmitted }: Prop
                     {textInput('ownerSurname')}
                     {textInput('ownerAddress', { span: 'md:col-span-3' })}
                     {selectInput('ownerRegion', PH_REGIONS.map((r) => r.name), {
-                      onChange: (r) => setForm((prev) => ({ ...prev, ownerRegion: r, ownerCity: citiesForRegion(r)[0] ?? '' })),
+                      onChange: (r) => {
+                        const c = citiesForRegion(r)[0] ?? '';
+                        setForm((prev) => ({ ...prev, ownerRegion: r, ownerCity: c, ownerBarangay: barangaysForCity(c)[0] }));
+                      },
                     })}
-                    {selectInput('ownerCity', citiesForRegion(form.ownerRegion))}
-                    {selectInput('ownerBarangay', GENERIC_BARANGAYS)}
+                    {selectInput('ownerCity', citiesForRegion(form.ownerRegion), {
+                      onChange: (c) => setForm((prev) => ({ ...prev, ownerCity: c, ownerBarangay: barangaysForCity(c)[0] })),
+                    })}
+                    {selectInput('ownerBarangay', barangaysForCity(form.ownerCity))}
                     {!app.sameAsOwner && textInput('applicantFirstName')}
                     {!app.sameAsOwner && textInput('applicantSurname')}
                   </div>
