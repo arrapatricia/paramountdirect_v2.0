@@ -11,6 +11,7 @@
 // the ZeptoMail integration that will let each person receive their own
 // credentials directly. Kept in sync manually with the role catalog in
 // paramountdirect_v2/src/lib/roles.ts.
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 

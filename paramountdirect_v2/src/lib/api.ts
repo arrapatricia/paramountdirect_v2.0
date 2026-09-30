@@ -376,8 +376,16 @@ export interface RoleApi {
   permissions: RolePermissionApi[];
 }
 
+export interface RoleCreatePayload {
+  name: string;
+  productScope: string;
+  isDirectMarketing: boolean;
+}
+
 export const rolesApi = {
   list: () => apiFetch<RoleApi[]>('/api/roles'),
+  create: (payload: RoleCreatePayload) =>
+    apiFetch<RoleApi>('/api/roles', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
 export interface UserApi {

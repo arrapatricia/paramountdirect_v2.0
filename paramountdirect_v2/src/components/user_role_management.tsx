@@ -27,7 +27,7 @@ import {
   MODULES_NOT_YET_BUILT,
   type ProductScope,
 } from '../lib/roles';
-import { usersApi, ApiError } from '../lib/api';
+import { usersApi, rolesApi, ApiError } from '../lib/api';
 
 export interface UserAccount {
   id: string;
@@ -144,6 +144,38 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
   const [formData, setFormData] = useState<Partial<UserAccount>>({});
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  // Role rows created mid-session (e.g. the first time someone is assigned a
+  // role added to ROLE_DEFINITIONS but not yet provisioned in the backend).
+  // Merged with the `backendRoles` prop so a lookup never has to wait for
+  // the parent to refetch before the id it just created becomes usable.
+  const [extraRoles, setExtraRoles] = useState<{ id: string; name: string }[]>([]);
+  const roleCatalog = [...backendRoles, ...extraRoles.filter((r) => !backendRoles.some((b) => b.name === r.name))];
+
+  // Resolves a role name to its backend Role id, creating the Role row on
+  // the fly if this is the first time anyone's been assigned it - the
+  // catalog in lib/roles.ts is the frontend's source of truth for what
+  // roles exist, but the backend only learns about one once it's used.
+  const resolveRoleId = async (roleName: string): Promise<string | undefined> => {
+    const existing = roleCatalog.find((r) => r.name === roleName);
+    if (existing) return existing.id;
+    if (!usersConnected) return undefined;
+
+    const def = getRoleDefinition(roleName);
+    try {
+      const created = await rolesApi.create({
+        name: roleName,
+        productScope: def?.products[0] ?? 'PD Life',
+        isDirectMarketing: def?.group === 'Direct Marketing',
+      });
+      setExtraRoles((prev) => [...prev, { id: created.id, name: created.name }]);
+      return created.id;
+    } catch {
+      // Most likely another session created the same role row at the same
+      // moment (unique name+productScope) - proceed without a roleId rather
+      // than blocking the save; it'll resolve next time backendRoles refreshes.
+      return undefined;
+    }
+  };
 
   const filteredUsers = users.filter((u) => {
     const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
@@ -234,7 +266,7 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
             lastName: newUser.lastName,
             email: newUser.email,
             password: newUser.password!,
-            roleId: backendRoles.find((r) => r.name === newUser.role)?.id,
+            roleId: await resolveRoleId(newUser.role),
             assignedProducts: newUser.assignedProducts,
             status: newUser.status,
           });
@@ -276,7 +308,7 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
             lastName: patch.lastName,
             email: patch.email,
             password: patch.password,
-            roleId: patch.role ? backendRoles.find((r) => r.name === patch.role)?.id : undefined,
+            roleId: patch.role ? await resolveRoleId(patch.role) : undefined,
             assignedProducts: patch.assignedProducts,
             status: patch.status,
           });
