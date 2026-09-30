@@ -204,7 +204,7 @@ template's fields are also named `BM_*` — not a typo, that's how the template 
 
 | Field | Filled with |
 |---|---|
-| `BM_Fullname` | `firstName middleName lastName`, uppercased. Forced to a fixed 11pt (`COI_FULLNAME_FONT_SIZE`) — the field ships with an auto-size (`0pt`) default appearance pdf-lib can't recompute correctly, which otherwise renders the name far larger than the rest of the certificate (same class of bug as `EffectiveDate_SVI` on the Service Invoice, see §4). |
+| `BM_Fullname` | `firstName middleName lastName`, uppercased. Forced to a fixed 9pt (`COI_FULLNAME_FONT_SIZE`) — the field ships with an auto-size (`0pt`) default appearance pdf-lib can't recompute correctly, which otherwise renders the name far larger than the rest of the certificate (same class of bug as `EffectiveDate_SVI` on the Service Invoice, see §4). Matches every other field on this template, all 9pt by the template's own design — an earlier attempt at 11pt still read as oversized next to them. |
 | `BM_COIno` | `policyNumber` (the COI Number, §7) |
 | `BM_MasterPolNo` | `G-3083` (DM/OFW Compulsory Insurance master policy number, same for both BM and DH — `OFW_MASTER_POLICY_NUMBER` constant in `ofwDocumentFill.ts`) |
 | `BM_DateIssued` | `dateIssued` (falls back to "now" if unset) |

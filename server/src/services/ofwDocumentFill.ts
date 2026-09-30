@@ -165,7 +165,10 @@ const OFW_MASTER_POLICY_NUMBER = 'G-3083';
 // BM_Fullname ships with an auto-size (0pt) default appearance, the same
 // class of bug noted on FIXED_FONT_SIZE_FIELDS above - without a fixed size
 // pdf-lib renders it far larger than the rest of the certificate's text.
-const COI_FULLNAME_FONT_SIZE = 11;
+// Matches every other field on this template (COI No., Date Issued, Master
+// Policy No., Term), all of which are 9pt by the template's own design - an
+// earlier attempt at 11pt still read as oversized next to them.
+const COI_FULLNAME_FONT_SIZE = 9;
 
 // BM_Term is a single AcroForm field with *two* widgets on the page: a small
 // single-line box next to "TERM OF INSURANCE" and a much taller box further
