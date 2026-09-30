@@ -12,9 +12,10 @@ interface Props {
   onUpdate?: (id: string, patch: Partial<GtpApplication>) => void;
 }
 
+// GTP only issues a single combined policy document (unlike OFW/CTPL, which
+// have separate Policy Schedule and Policy Jacket documents).
 const GTP_DOCUMENTS: PolicyDocumentSpec[] = [
-  { key: 'policySchedule', label: 'Policy Schedule' },
-  { key: 'policyJacket', label: 'Policy Jacket' },
+  { key: 'policyDocument', label: 'Policy Document' },
   { key: 'or', label: 'Official Receipt (OR)' },
   { key: 'serviceInvoice', label: 'Service Invoice' },
 ];
@@ -282,6 +283,30 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
                   <Field label="Plan" editing={false} edit={null} view={viewingApp.planVariant} />
                   <Field label="Email" editing={false} edit={null} view={viewingApp.email} />
                   <Field label="Mobile" editing={false} edit={null} view={viewingApp.mobileNumber} />
+                  {viewingApp.travelType === 'International' && (
+                    <Field label="Passport Number" editing={false} edit={null} view={viewingApp.passportNumber || '-'} />
+                  )}
+                  {viewingApp.guardianName && (
+                    <Field label="Guardian Name" editing={false} edit={null} view={viewingApp.guardianName} />
+                  )}
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <Field
+                      label="Address"
+                      editing={false}
+                      edit={null}
+                      view={[viewingApp.phAddress, viewingApp.phBarangay !== 'N/A' ? viewingApp.phBarangay : null, viewingApp.phCity, viewingApp.phRegion].filter(Boolean).join(', ') || '-'}
+                    />
+                  </div>
+                  {viewingApp.applicationType === 'Family' && (
+                    <div className="md:col-span-2 xl:col-span-3">
+                      <Field
+                        label="Companion(s)"
+                        editing={false}
+                        edit={null}
+                        view={viewingApp.companions && viewingApp.companions.length > 0 ? viewingApp.companions.map((c) => `${c.name} (${c.relationship}, ${c.age})`).join(', ') : 'None'}
+                      />
+                    </div>
+                  )}
                 </FieldGrid>
               </Section>
 

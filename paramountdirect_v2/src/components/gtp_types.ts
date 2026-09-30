@@ -1,6 +1,17 @@
 // Shared GTP (Global Travel Protect Premium) application data model, based
 // on the real form at yourtravelinsurance.ph/online-applications.
 
+// Eligible Family Plan relationships per the product's Tips & Guidelines
+// (max 5 covered persons: 2 adults incl. the main insured, 3 children).
+export type GtpCompanionRelationship = 'Spouse' | 'Child' | 'Parent' | 'Fiancé' | 'Guardian';
+export const GTP_ADULT_COMPANION_RELATIONSHIPS: GtpCompanionRelationship[] = ['Spouse', 'Parent', 'Fiancé', 'Guardian'];
+
+export interface GtpCompanion {
+  name: string;
+  relationship: GtpCompanionRelationship;
+  age: number;
+}
+
 export interface GtpApplication {
   id: string;
   travelType: 'International' | 'Domestic';
@@ -15,6 +26,21 @@ export interface GtpApplication {
   birthdate: string;
   email: string;
   mobileNumber: string;
+  // Only collected for International travel - Domestic trips don't need a
+  // passport.
+  passportNumber?: string;
+  // Required when the traveler is 17 or younger at time of application.
+  guardianName?: string;
+  // Philippine mailing address, same Region/City/Barangay cascade as
+  // OFW/CTPL - the real form collects this for policy delivery.
+  phAddress: string;
+  phRegion: string;
+  phCity: string;
+  phBarangay: string;
+
+  // Family applications must include at least one Child companion (matches
+  // the real form's "Companion must include at least 1 Child" rule).
+  companions?: GtpCompanion[];
 
   planVariant: 'Single Trip' | 'Multi-Trip 90' | 'Multi-Trip 180';
   cruiseCoverage: boolean;

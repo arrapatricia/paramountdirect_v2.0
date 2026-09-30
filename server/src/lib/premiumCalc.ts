@@ -126,8 +126,8 @@ function gtpSingleTripRate(rates: Map<string, number>, category: string, applica
 // (Domestic travel type, else Including if a high-cost destination was
 // picked, else Excluding), Single Trip prices off day brackets while
 // Multi-Trip is one flat premium per category, then cruise/hazardous-sports
-// add-ons (each a flat peso amount, not literally "% of premium" despite the
-// PremiumRate label/unit - matches the existing frontend behavior exactly).
+// add-ons priced as a % of the base premium (PremiumRate's amount is the
+// percentage, e.g. 21.9 means 21.9%) - matches the frontend exactly.
 export async function computeGtpPremium(params: {
   travelType: 'International' | 'Domestic';
   destinations: string[];
@@ -146,9 +146,10 @@ export async function computeGtpPremium(params: {
       ? gtpSingleTripRate(rates, category, params.applicationType, params.daysOfTravel)
       : rate(rates, `${params.planVariant === 'Multi_Trip_90' ? 'Multi-Trip 90' : 'Multi-Trip 180'}|${category}`);
 
-  const addOnFee =
+  const addOnFee = basePremium * (
     (params.cruiseCoverage ? rate(rates, 'cruiseCoveragePercent', 21.9) : 0) +
-    (params.hazardousSportsCoverage ? rate(rates, 'hazardousSportsCoveragePercent', 126.3) : 0);
+    (params.hazardousSportsCoverage ? rate(rates, 'hazardousSportsCoveragePercent', 126.3) : 0)
+  ) / 100;
 
   return Number((basePremium + addOnFee).toFixed(2));
 }

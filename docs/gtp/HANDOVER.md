@@ -71,6 +71,30 @@ Cruise Coverage and Hazardous Non-Professional & Non-Competition Sports Coverage
 
 Applicants 66 and older (`age > 65`, `calculateAge` off `birthdate`) cannot submit through the form at all — `canSubmit` is forced false and the UI shows a message directing them to email `yourtravelinsurance@paramount.com.ph` for manual assistance. This is a hard client-side gate, not a premium loading — no seniors' surcharge exists in the rate table.
 
+### 2.7 Multi-Trip has no manual return date
+
+Multi-Trip 90/180 are annual policies with a fixed 365-day coverage period (per the product's Tips & Guidelines sheet), not a specific round-trip — the form no longer collects a Return Date for them. `gtp_create_application.tsx` derives `isMultiTrip = planVariant !== 'Single Trip'` and computes `effectiveReturnDate = addDays(departureDate, 365)` and `daysOfTravel = 365` instead, showing a read-only "Coverage Ends" field. `hasTravelDates`/`canSubmit` only require `departureDate` in this case. Single Trip is unaffected — it still collects a manual Return Date and computes `daysOfTravel` from the two dates.
+
+### 2.8 Single Trip 180-day cap
+
+The Tips & Guidelines sheet caps the "Short Term Period" (International Trip / Domestic Plan via Air) at 180 consecutive days. `exceedsSingleTripMaxDays = !isMultiTrip && daysOfTravel > 180` blocks `canSubmit` and shows an inline warning suggesting a Multi-Trip plan instead. This is applied uniformly to both International and Domestic Single Trip — the guidelines' separate, stricter Domestic **Land & Sea** caps (15 days Individual / 5 days Group, 10-person minimum) are **not modeled**, since this form has no Air vs. Land & Sea "mode" selector or group/bulk-manifest flow; see §2.10.
+
+### 2.9 Domestic destinations: Region/City, not country
+
+For `travelType === 'Domestic'`, the Country Destination(s) picker (flags/full country `<select>`) is replaced by a Region → City cascade reusing the same `PH_REGIONS`/`citiesForRegion` data as the Traveler Information mailing address (`ph_geography.ts`) — there's no separate province-level dataset in this codebase, so "Region" (e.g. "Region I - Ilocos Region") stands in for "Province" here. Picking a Region/City and clicking "+ Add Destination" appends a `"{City}, {Region}"` string into the same `destinations: string[]` array International uses, so downstream code (`destinations.join(', ')` in the list/detail views, premium category detection) needs no changes. Switching Travel Type clears `destinations` so a stale country/domestic-place mix can't linger.
+
+### 2.10 Passport, Guardian, and Family Companions
+
+- **Passport Number** (`passportNumber`, optional on `GtpApplication`) is required only when `travelType === 'International'` — Domestic trips don't ask for it.
+- **Guardian Name** (`guardianName`, optional) is required when the traveler is 17 or younger (`isMinorApplicant = age <= 17`).
+- **Companions** (`companions: GtpCompanion[]`, optional, `gtp_types.ts`) appear only for `applicationType === 'Family'`. Per the Family Plan guideline (max 5 covered persons: 2 adults incl. the insured, 3 children; eligible relationships Spouse/Child/Parent/Fiancé/Guardian), the form enforces: at most 1 additional adult-relationship companion (`GTP_ADULT_COMPANION_RELATIONSHIPS`), at most 3 Child companions, and a companion's age must fall in 18–65 (adult relationships) or 0–21 (Child) — validated in `addCompanion()`, with errors surfaced inline rather than silently dropping the entry. A **minimum** of 1 Child companion is also required for any Family application (`familyCompanionRequirementMet`) — this was an explicit product ask, not from the Tips & Guidelines sheet itself.
+
+None of `passportNumber`/`guardianName`/`companions` have a matching Prisma column yet (`GtpApplication` model, `schema.prisma`) — they're frontend-only fields today, same pattern as several other optional UI fields on this form. Persisting them is a schema migration, deliberately not done as part of this change (see the root handover's DB-safety notes).
+
+### 2.11 Tips & Guidelines reference panel
+
+`GtpTipsAndGuidelines` (bottom of `gtp_create_application.tsx`) is a collapsed-by-default card reproducing the product's official Tips & Guidelines sheet verbatim (Period of Insurance, Insured/eligibility, Hazardous Sports, Cruise Coverage, Family Plan, Domestic Travel via Land & Sea, COVID Coverage, 24/7 assistance number) so issuers can reference the source language while screening an application. Its Domestic Land & Sea and COVID Coverage sections are explicitly flagged in the panel's own text as **informational only** — see §2.8 for why Land & Sea's Group/Individual caps aren't enforced, and note COVID Coverage isn't modeled as a selectable benefit anywhere in this form (no COVID-specific coverage toggle, no One-way Trip package concept). The reminder "name cannot be endorsed once issued — check spelling" from that sheet is additionally surfaced as its own inline banner in Traveler Information and again just before the Review step's "Confirm & Submit" button, since that's the point where a typo actually becomes costly.
+
 ---
 
 ## 3. Document Generation — Mixed State, Correcting the Root Handover
@@ -79,7 +103,7 @@ The root `DEVELOPER_HANDOVER.md` (§3, "Generated policy documents" row, as of i
 
 - **Backend (`applications.gtp.ts`):** the moment a GTP application's `isPaid` first flips true (at `POST` creation — GTP's website flow is already-paid on arrival, same as CTPL — or a staff `PUT`), the server calls `fillGtpServiceInvoice()`, which fills the same shared invoice template used by CTPL/OFW (`pdf-lib`, named AcroForm fields), pulls a number from the shared `invoiceNumbering.ts` series, and stores the result via `storeGeneratedDocument()` into the real `GeneratedDocument` table / S3, exactly like CTPL's Service Invoice.
 - **Frontend (`gtp_application_list.tsx`):** the GTP document section still renders through the **old mock modal** (`PolicyDocumentsSection` / `PrintableDocumentModal` from `policy_documents.tsx`) — "View/Print" opens an in-app printable `<div>` built from a handful of application fields, not a fetch against `/api/documents` and a real PDF. Nothing in the GTP frontend calls the list/presign endpoints CTPL's list page now uses. So the real Service Invoice PDF the backend already generates and stores is currently unreachable from the GTP UI.
-- **Policy Schedule, Policy Jacket, and OR** (the other three entries in `GTP_DOCUMENTS`, `gtp_application_list.tsx`) have **no fill service and no template at all** — these remain genuinely mock, same as the handover's framing implies.
+- **Policy Document and OR** (the other two entries in `GTP_DOCUMENTS`, `gtp_application_list.tsx`) have **no fill service and no template at all** — these remain genuinely mock, same as the handover's framing implies. Unlike OFW/CTPL, GTP issues a single combined Policy Document rather than separate Policy Schedule and Policy Jacket documents, so `GTP_DOCUMENTS` only has one entry for it.
 
 Net: GTP is not "no real templates" across the board — it has one real, generated, stored artifact (Service Invoice) that the UI simply isn't wired to yet, plus three documents with no template on hand. Contrast with CTPL, which has two real templates (COC + Service Invoice) *and* a frontend wired to fetch/display them (`ctpl_application_list.tsx`'s "View/Print"/"Send to Client" call the real `/api/documents` endpoints).
 
