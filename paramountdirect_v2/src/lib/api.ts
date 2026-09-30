@@ -328,6 +328,10 @@ export interface GtpApplicationApi {
   birthdate: string;
   email: string;
   mobileNumber: string;
+  phAddress: string;
+  phRegion: string;
+  phCity: string;
+  phBarangay: string;
   planVariant: string;
   cruiseCoverage: boolean;
   hazardousSportsCoverage: boolean;

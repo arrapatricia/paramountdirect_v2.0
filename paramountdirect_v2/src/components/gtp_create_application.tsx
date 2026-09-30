@@ -6,7 +6,7 @@ import {
   type GtpApplication, type GtpCompanion, type GtpCompanionRelationship,
 } from './gtp_types';
 import { getPremiumRate, getGtpSingleTripRate, getGtpMultiTripRate, type PremiumRate, type GtpDestinationCategory } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
+import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
 
 interface Props {
   onCreate: (app: GtpApplication) => void;
@@ -80,7 +80,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   const [phAddress, setPhAddress] = useState('');
   const [phRegion, setPhRegion] = useState(PH_REGIONS[0].name);
   const [phCity, setPhCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
-  const [phBarangay, setPhBarangay] = useState(() => barangaysForCity(citiesForRegion(PH_REGIONS[0].name)[0])[0]);
+  const [phBarangay, setPhBarangay] = useState(GENERIC_BARANGAYS[0]);
 
   const [planVariant, setPlanVariant] = useState<typeof GTP_PLAN_VARIANTS[number]>('Single Trip');
   const [cruiseCoverage, setCruiseCoverage] = useState(false);
@@ -478,7 +478,6 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
                   const c = citiesForRegion(r)[0];
                   setPhRegion(r);
                   setPhCity(c);
-                  setPhBarangay(barangaysForCity(c)[0]);
                 }}
                 className={inputClass}
               >
@@ -489,7 +488,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
               <label className={labelClass}>City/Municipality</label>
               <select
                 value={phCity}
-                onChange={(e) => { const c = e.target.value; setPhCity(c); setPhBarangay(barangaysForCity(c)[0]); }}
+                onChange={(e) => setPhCity(e.target.value)}
                 className={inputClass}
               >
                 {citiesForRegion(phRegion).map((c) => <option key={c}>{c}</option>)}
@@ -498,7 +497,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
             <div>
               <label className={labelClass}>Barangay</label>
               <select value={phBarangay} onChange={(e) => setPhBarangay(e.target.value)} className={inputClass}>
-                {barangaysForCity(phCity).map((b) => <option key={b}>{b}</option>)}
+                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
               </select>
             </div>
           </div>

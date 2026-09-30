@@ -65,6 +65,10 @@ const createApplicationSchema = z.object({
   birthdate: z.coerce.date(),
   email: z.string().email(),
   mobileNumber: z.string().min(1),
+  phAddress: z.string().min(1),
+  phRegion: z.string().min(1),
+  phCity: z.string().min(1),
+  phBarangay: z.string().min(1),
 
   planVariant: z.enum(['Single_Trip', 'Multi_Trip_90', 'Multi_Trip_180']),
   cruiseCoverage: z.boolean().default(false),

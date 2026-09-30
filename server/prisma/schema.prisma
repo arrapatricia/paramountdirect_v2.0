@@ -561,6 +561,14 @@ model GtpApplication {
   email             String
   mobileNumber      String
 
+  // Philippine mailing address, same Region/City/Barangay cascade as
+  // OFW/CTPL - defaulted to "" (not required) since existing rows predate
+  // this field.
+  phAddress  String @default("")
+  phRegion   String @default("")
+  phCity     String @default("")
+  phBarangay String @default("")
+
   planVariant             GtpPlanVariant
   cruiseCoverage          Boolean        @default(false)
   hazardousSportsCoverage Boolean        @default(false)
