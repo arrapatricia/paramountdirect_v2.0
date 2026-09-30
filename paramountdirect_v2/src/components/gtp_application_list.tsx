@@ -104,7 +104,7 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
   const filteredData = data.filter((item) => {
     const fullName = `${item.travelerFirstName} ${item.travelerSurname}`.toLowerCase();
     const matchesTab = activeTab === 'All' || item.status === activeTab;
-    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || item.id.includes(searchTerm);
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || (item.referenceNo ?? item.id).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTravelType = travelTypeFilter === 'All' || item.travelType === travelTypeFilter;
     return matchesTab && matchesSearch && matchesTravelType;
   });
@@ -210,7 +210,7 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
               ) : (
                 paginatedData.map((row) => (
                   <tr key={row.id} className={`transition-colors ${getRowTintStyle(row.status)}`}>
-                    <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.id}</td>
+                    <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.referenceNo ?? row.id}</td>
                     <td className="py-3.5 px-2">
                       <div className="font-bold text-slate-900 dark:text-white">{row.travelerFirstName} {row.travelerSurname}</div>
                       <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-500">{row.applicationType}</span>
@@ -284,7 +284,7 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 dark:bg-slate-900 dark:border-slate-800">
             <div className="flex justify-between items-start gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
               <div>
-                <h2 className="text-lg font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">Application {viewingApp.id}</h2>
+                <h2 className="text-lg font-bold uppercase tracking-wider text-[#002f6c] dark:text-[#49b1ea] font-['Montserrat']">Application {viewingApp.referenceNo ?? viewingApp.id}</h2>
                 <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
                   <span className="text-xs font-semibold text-slate-500 dark:text-slate-500">{viewingApp.travelerFirstName} {viewingApp.travelerSurname} &middot; {viewingApp.destinations.join(', ')}</span>
                   <span className="text-[10px] font-black text-[#002f6c] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md dark:bg-[#49b1ea]/10 dark:text-[#49b1ea] dark:border-[#49b1ea]/30">
@@ -409,7 +409,7 @@ export default function GtpApplicationList({ data, onCreateNew, onUpdate }: Prop
           title={GTP_DOCUMENTS.find((d) => d.key === viewingDoc)?.label ?? 'Document'}
           onClose={() => setViewingDoc(null)}
         >
-          <DocRow label="Reference No." value={viewingApp.id} />
+          <DocRow label="Reference No." value={viewingApp.referenceNo ?? viewingApp.id} />
           <DocRow label="Traveler" value={`${viewingApp.travelerFirstName} ${viewingApp.travelerSurname}`} />
           <DocRow label="Destination(s)" value={viewingApp.destinations.join(', ')} />
           <DocRow label="Travel Dates" value={`${viewingApp.departureDate} to ${viewingApp.returnDate}`} />
