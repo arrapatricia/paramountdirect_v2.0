@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { ArrowLeft, Pencil, ShieldCheck, ShieldAlert, CheckCircle2, ClipboardList, User, Car } from 'lucide-react';
 import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
-import { CTPL_POLICY_TYPES, CTPL_MV_TYPES_BY_POLICY, CTPL_STATUS_DESCRIPTIONS, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
+import { CTPL_POLICY_TYPES, CTPL_MV_TYPES_BY_POLICY, CTPL_STATUS_DESCRIPTIONS, getCtplPolicyStatus } from './ctpl_types';
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
-import { getPremiumRate, type PremiumRate } from './premium_rates';
+import { getPremiumRate, getCtplCovFee, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 import { Section, FieldGrid, Field } from './application_detail_ui';
 import { ConsentSection, RemarksSection, UploadedDocumentsSection } from './ctpl_vvip_sections';
@@ -23,7 +23,7 @@ interface Props {
 }
 
 const getPremium = (rates: PremiumRate[], policyType: string, mvType: string, renewalType: string) =>
-  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
+  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`);
 
 const CTPL_DOCUMENTS: PolicyDocumentSpec[] = [
   { key: 'ctpl-policy-schedule', label: 'Policy Schedule' },
@@ -51,7 +51,7 @@ const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-
 export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState(() => ({
-    clientType: app.clientType, ownerFirstName: app.ownerFirstName, ownerMiddleName: app.ownerMiddleName, ownerSurname: app.ownerSurname,
+    clientType: app.clientType, corporateName: app.corporateName ?? '', ownerFirstName: app.ownerFirstName, ownerMiddleName: app.ownerMiddleName, ownerSurname: app.ownerSurname,
     ownerAddress: app.ownerAddress, ownerRegion: app.ownerRegion, ownerCity: app.ownerCity, ownerBarangay: app.ownerBarangay,
     sameAsOwner: app.sameAsOwner, applicantFirstName: app.applicantFirstName, applicantSurname: app.applicantSurname,
     email: app.email, mobileNumber: app.mobileNumber,
@@ -67,13 +67,14 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
   };
 
   const premiumValue = getPremium(rates, form.policyType, form.mvType, form.renewalType);
-  const totalDue = premiumValue + (form.requiresCOV ? COV_FEE : 0);
+  const covFee = getCtplCovFee(rates);
+  const totalDue = premiumValue + (form.requiresCOV ? covFee : 0);
   const policyStatus = getCtplPolicyStatus(app);
 
   const startEdit = () => setIsEditing(true);
   const cancelEdit = () => {
     setForm({
-      clientType: app.clientType, ownerFirstName: app.ownerFirstName, ownerMiddleName: app.ownerMiddleName, ownerSurname: app.ownerSurname,
+      clientType: app.clientType, corporateName: app.corporateName ?? '', ownerFirstName: app.ownerFirstName, ownerMiddleName: app.ownerMiddleName, ownerSurname: app.ownerSurname,
       ownerAddress: app.ownerAddress, ownerRegion: app.ownerRegion, ownerCity: app.ownerCity, ownerBarangay: app.ownerBarangay,
       sameAsOwner: app.sameAsOwner, applicantFirstName: app.applicantFirstName, applicantSurname: app.applicantSurname,
       email: app.email, mobileNumber: app.mobileNumber,
@@ -149,9 +150,16 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
             <div><label className={labelClass}>Mobile Number</label><input value={form.mobileNumber} onChange={(e) => setForm({ ...form, mobileNumber: e.target.value })} className={inputClass} /></div>
 
             <div className="sm:col-span-2 text-xs font-extrabold text-slate-500 uppercase tracking-wide pt-2 dark:text-slate-400">Registered Owner's Information</div>
-            <div><label className={labelClass}>First Name</label><input value={form.ownerFirstName} onChange={(e) => setForm({ ...form, ownerFirstName: e.target.value })} className={inputClass} /></div>
-            <div><label className={labelClass}>Middle Name</label><input value={form.ownerMiddleName} onChange={(e) => setForm({ ...form, ownerMiddleName: e.target.value })} className={inputClass} /></div>
-            <div><label className={labelClass}>Surname</label><input value={form.ownerSurname} onChange={(e) => setForm({ ...form, ownerSurname: e.target.value })} className={inputClass} /></div>
+            {form.clientType !== 'Individual' && (
+              <div className="sm:col-span-2"><label className={labelClass}>Corporate Name</label><input value={form.corporateName} onChange={(e) => setForm({ ...form, corporateName: e.target.value })} className={inputClass} /></div>
+            )}
+            {form.clientType !== 'Corporate without assignee' && (
+              <>
+                <div><label className={labelClass}>First Name</label><input value={form.ownerFirstName} onChange={(e) => setForm({ ...form, ownerFirstName: e.target.value })} className={inputClass} /></div>
+                <div><label className={labelClass}>Middle Name</label><input value={form.ownerMiddleName} onChange={(e) => setForm({ ...form, ownerMiddleName: e.target.value })} className={inputClass} /></div>
+                <div><label className={labelClass}>Surname</label><input value={form.ownerSurname} onChange={(e) => setForm({ ...form, ownerSurname: e.target.value })} className={inputClass} /></div>
+              </>
+            )}
             <div className="sm:col-span-2"><label className={labelClass}>Address (House No., Street)</label><input value={form.ownerAddress} onChange={(e) => setForm({ ...form, ownerAddress: e.target.value })} className={inputClass} /></div>
             <div>
               <label className={labelClass}>Region</label>
@@ -239,7 +247,7 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
 
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" checked={form.requiresCOV} onChange={(e) => setForm({ ...form, requiresCOV: e.target.checked })} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Requires COV (+₱{COV_FEE.toFixed(2)})</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Requires COV (+₱{covFee.toFixed(2)})</span>
             </label>
             {form.policyType === 'Motorcycle' && (
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -270,7 +278,10 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
           <Section icon={User} title="Personal Information" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
             <FieldGrid>
               <Field label="Client Type" editing={false} edit={null} view={app.clientType} />
-              <Field label="Registered Owner" editing={false} edit={null} view={`${app.ownerFirstName} ${app.ownerMiddleName} ${app.ownerSurname}`} />
+              {app.corporateName && <Field label="Corporate Name" editing={false} edit={null} view={app.corporateName} />}
+              {app.clientType !== 'Corporate without assignee' && (
+                <Field label="Registered Owner" editing={false} edit={null} view={`${app.ownerFirstName} ${app.ownerMiddleName} ${app.ownerSurname}`} />
+              )}
               <Field label="Email" editing={false} edit={null} view={app.email} />
               <Field label="Mobile" editing={false} edit={null} view={app.mobileNumber} />
               {!app.sameAsOwner && (
@@ -301,7 +312,7 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
                 view={
                   app.requiresCOV ? (
                     <span className="flex items-center space-x-1 text-amber-700 dark:text-amber-400">
-                      <ShieldAlert className="w-3.5 h-3.5" /><span>Yes (+₱{COV_FEE.toFixed(2)})</span>
+                      <ShieldAlert className="w-3.5 h-3.5" /><span>Yes (+₱{covFee.toFixed(2)})</span>
                     </span>
                   ) : 'No'
                 }

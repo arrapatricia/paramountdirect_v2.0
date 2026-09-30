@@ -10,6 +10,7 @@ export const ENDORSEMENT_TYPE_LABEL: Record<EndorsementTypeApi, string> = {
   Term_Extension: 'Term Extension',
   Cancellation_Flat: 'Flat Cancellation',
   Cancellation_Pro_Rata: 'Pro Rata Cancellation',
+  Cancellation: 'Cancellation',
 };
 
 export const isFinancialType = (type: EndorsementTypeApi) => type !== 'Non_Financial';
@@ -31,6 +32,8 @@ const DOC_LABEL: Record<string, string> = {
   'ctpl-endorsement': 'Endorsement',
   'ctpl-endorsement-service-invoice': 'Service Invoice',
   'ctpl-credit-memo': 'Credit Memo',
+  'ofw-cancellation': 'Cancellation Letter',
+  'ofw-credit-memo': 'Credit Memo',
 };
 
 export const peso = (n: number | null | undefined) =>

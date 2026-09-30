@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Search, Eye, X, ChevronLeft, ChevronRight, UserPlus, Car, ShieldCheck, CheckCircle2, User, FileStack } from 'lucide-react';
 import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
-import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS, COV_FEE, getCtplPolicyStatus } from './ctpl_types';
+import { CTPL_POLICY_TYPES, CTPL_STATUSES, CTPL_STATUS_DESCRIPTIONS, getCtplPolicyStatus } from './ctpl_types';
+import { getCtplCovFee, type PremiumRate } from './premium_rates';
 import { PolicyDocumentsSection, type PolicyDocumentSpec } from './policy_documents';
 import { ConsentSection, RemarksSection, UploadedDocumentsSection } from './ctpl_vvip_sections';
 import { documentsApi, ApiError } from '../lib/api';
@@ -10,6 +11,7 @@ import { Section, FieldGrid, Field } from './application_detail_ui';
 
 interface Props {
   data: CtplApplication[];
+  rates: PremiumRate[];
   onCreateNew?: () => void;
   // Controlled from App.tsx so the browser URL reflects which application is
   // open (see ctpl_application_detail.tsx for the unpaid/full-page half of
@@ -70,7 +72,7 @@ const getRowTintStyle = (status: string) => {
   }
 };
 
-export default function CtplApplicationList({ data, onCreateNew, viewingId = null, onView, onCloseView, connected = false, onPolicyChanged }: Props) {
+export default function CtplApplicationList({ data, rates, onCreateNew, viewingId = null, onView, onCloseView, connected = false, onPolicyChanged }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof STATUS_TABS)[number]>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [policyTypeFilter, setPolicyTypeFilter] = useState('All');
@@ -351,7 +353,10 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
             <div className="space-y-4">
               <Section icon={User} title="Owner & Applicant" isEditing={false} onToggleEdit={() => {}} hideEditButton iconColorClass="text-[#002f6c] dark:text-[#49b1ea]">
                 <FieldGrid>
-                  <Field label="Registered Owner" editing={false} edit={null} view={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+                  {viewingApp.corporateName && <Field label="Corporate Name" editing={false} edit={null} view={viewingApp.corporateName} />}
+                  {viewingApp.clientType !== 'Corporate without assignee' && (
+                    <Field label="Registered Owner" editing={false} edit={null} view={`${viewingApp.ownerFirstName} ${viewingApp.ownerMiddleName} ${viewingApp.ownerSurname}`} />
+                  )}
                   <Field label="Client Type" editing={false} edit={null} view={viewingApp.clientType} />
                   <Field label="Email" editing={false} edit={null} view={viewingApp.email} />
                   <Field label="Mobile" editing={false} edit={null} view={viewingApp.mobileNumber} />
@@ -382,7 +387,7 @@ export default function CtplApplicationList({ data, onCreateNew, viewingId = nul
                 {viewingApp.requiresCOV && (
                   <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-center space-x-2 dark:bg-amber-950/30 dark:border-amber-800">
                     <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
-                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI.</span>
+                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Certificate of Validation (COV) required — additional ₱{getCtplCovFee(rates).toFixed(2)} verification fee via DBP-DCI.</span>
                   </div>
                 )}
               </Section>

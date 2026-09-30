@@ -1,14 +1,15 @@
-// Policy endorsements for the non-life products - CTPL only so far (OFW/GTP
-// reuse the same Endorsement model once built).
+// Policy endorsements for the non-life products - CTPL (Non-Financial, Term
+// Extension, Cancellation) and OFW (Cancellation only so far; GTP reuses the
+// same Endorsement model once built).
 //
 //   Non-Financial (name/address/vehicle corrections, no premium effect) -
 //     auto-approved on submit: numbered, applied and documented at once.
-//   Financial (Term Extension, Flat / Pro Rata Cancellation) -
+//   Financial (Term Extension, Flat / Pro Rata Cancellation, OFW Cancellation) -
 //     Pending -> Reviewed -> Approved | Denied. The policy itself is only
 //     touched on Approve; a Denied request leaves it exactly as it was.
 import { Router, type Request } from 'express';
 import { z } from 'zod';
-import type { CtplApplication, Endorsement, EndorsementStatus, NonLifeProduct, Prisma } from '@prisma/client';
+import type { CtplApplication, Endorsement, EndorsementStatus, NonLifeProduct, OfwApplication, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
@@ -17,6 +18,8 @@ import { nextCreditMemoNumber, nextEndorsementNumber } from '../lib/endorsementN
 import { generateUniqueInvoiceNumber } from '../lib/invoiceNumbering';
 import { computeCtplCancellation, computeCtplExtension, EndorsementCalcError } from '../services/ctplEndorsementCalc';
 import { generateCtplEndorsementDocuments, type EndorsementChange } from '../services/ctplEndorsementDocuments';
+import { computeOfwCancellation } from '../services/ofwEndorsementCalc';
+import { generateOfwEndorsementDocuments } from '../services/ofwEndorsementDocuments';
 
 const router = Router();
 router.use(requireAuth);
@@ -121,8 +124,13 @@ const ctplApplicationSummary = {
   select: { id: true, referenceNo: true, policyNumber: true, ownerFirstName: true, ownerMiddleName: true, ownerSurname: true, plateNumber: true, effectiveDate: true, expiryDate: true, premium: true, status: true },
 } as const;
 
+const ofwApplicationSummary = {
+  select: { id: true, referenceNo: true, policyNumber: true, firstName: true, middleName: true, lastName: true, insuranceStart: true, contractEnd: true, premium: true, status: true },
+} as const;
+
 const listInclude = {
   ctplApplication: ctplApplicationSummary,
+  ofwApplication: ofwApplicationSummary,
   documents: { orderBy: { generatedAt: 'desc' } },
 } satisfies Prisma.EndorsementInclude;
 
@@ -177,9 +185,9 @@ async function loadEndorsableCtplPolicy(req: Request, applicationId: string) {
   return app;
 }
 
-async function assertNoOpenFinancialEndorsement(applicationId: string) {
+async function assertNoOpenFinancialEndorsement(fk: 'ctplApplicationId' | 'ofwApplicationId', applicationId: string) {
   const open = await prisma.endorsement.findFirst({
-    where: { ctplApplicationId: applicationId, status: { in: ['Pending', 'Reviewed'] } },
+    where: { [fk]: applicationId, status: { in: ['Pending', 'Reviewed'] } },
   });
   if (open) throw new HttpError(409, 'This policy already has a financial endorsement awaiting approval');
 }
@@ -272,11 +280,11 @@ router.post(
         module: 'CTPL Endorsements',
         details: `Endorsed ${app.policyNumber} (${endorsement.endorsementNumber}): ${changes.map((c) => `${c.label} "${c.from}" -> "${c.to}"`).join('; ')}`,
       });
-      await generateDocumentsSafely(updated, endorsement, actor(req));
+      await generateDocumentsSafely(() => generateCtplEndorsementDocuments(updated, endorsement, actor(req)), endorsement);
       return res.status(201).json(await loadEndorsement(req, endorsement.id));
     }
 
-    await assertNoOpenFinancialEndorsement(app.id);
+    await assertNoOpenFinancialEndorsement('ctplApplicationId', app.id);
 
     let data: Prisma.EndorsementUncheckedCreateInput;
     if (input.kind === 'Term_Extension') {
@@ -292,6 +300,66 @@ router.post(
       action: 'CREATE',
       module: 'CTPL Endorsements',
       details: `Requested ${endorsement.type.replace(/_/g, ' ')} for ${app.policyNumber} (total ${endorsement.total})`,
+    });
+    res.status(201).json(await loadEndorsement(req, endorsement.id));
+  })
+);
+
+// ---------------------------------------------------------------------------
+// OFW: preview + submit (Cancellation only, so far)
+// ---------------------------------------------------------------------------
+
+async function loadEndorsableOfwPolicy(req: Request, applicationId: string) {
+  assertProductAccess(req, 'OFW');
+  const app = await prisma.ofwApplication.findUnique({ where: { id: applicationId } });
+  if (!app) throw new HttpError(404, 'Application not found');
+  if (!app.isPaid || !app.policyNumber) throw new HttpError(400, 'Only issued (paid) policies can be endorsed');
+  if (app.status === 'Reversed') throw new HttpError(400, 'This policy has already been cancelled');
+  return app;
+}
+
+const ofwPreviewSchema = z.object({ kind: z.literal('Cancellation'), effectiveDate: z.coerce.date() });
+
+router.post(
+  '/ofw/:applicationId/preview',
+  asyncHandler(async (req, res) => {
+    const input = ofwPreviewSchema.parse(req.body);
+    const app = await loadEndorsableOfwPolicy(req, req.params.applicationId);
+    const r = await calc(() => computeOfwCancellation(app, input.effectiveDate));
+    res.json(r);
+  })
+);
+
+const ofwSubmitSchema = z.object({
+  kind: z.literal('Cancellation'),
+  effectiveDate: z.coerce.date(),
+  reason: z.string().trim().min(1),
+});
+
+router.post(
+  '/ofw/:applicationId',
+  asyncHandler(async (req, res) => {
+    const input = ofwSubmitSchema.parse(req.body);
+    const app = await loadEndorsableOfwPolicy(req, req.params.applicationId);
+    await assertNoOpenFinancialEndorsement('ofwApplicationId', app.id);
+
+    const { type, amounts } = await calc(() => computeOfwCancellation(app, input.effectiveDate));
+    const data: Prisma.EndorsementUncheckedCreateInput = {
+      product: 'OFW',
+      ofwApplicationId: app.id,
+      policyNumber: app.policyNumber!,
+      effectiveDate: input.effectiveDate,
+      reason: input.reason,
+      requestedBy: actor(req),
+      type,
+      ...amounts,
+    };
+
+    const endorsement = await prisma.endorsement.create({ data });
+    await recordAudit(req, {
+      action: 'CREATE',
+      module: 'OFW Endorsements',
+      details: `Requested Cancellation for ${endorsement.policyNumber} (total ${endorsement.total})`,
     });
     res.status(201).json(await loadEndorsement(req, endorsement.id));
   })
@@ -346,43 +414,76 @@ router.post(
   asyncHandler(async (req, res) => {
     const { remarks } = remarksSchema.parse(req.body);
     const e = await loadForDecision(req, ['Reviewed']);
-    if (e.product !== 'CTPL' || !e.ctplApplicationId) throw new HttpError(501, `${e.product} endorsements aren't supported yet`);
 
-    const isExtension = e.type === 'Term_Extension';
-    // Drawn from the shared non-life invoice series (see invoiceNumbering.ts).
-    const invoiceNumber = isExtension ? await generateUniqueInvoiceNumber() : null;
+    if (e.product === 'CTPL' && e.ctplApplicationId) {
+      const isExtension = e.type === 'Term_Extension';
+      // Drawn from the shared non-life invoice series (see invoiceNumbering.ts).
+      const invoiceNumber = isExtension ? await generateUniqueInvoiceNumber() : null;
 
-    const { endorsement, app } = await prisma.$transaction(async (tx) => {
-      const endorsementNumber = await nextEndorsementNumber(tx, 'CTPL');
-      const creditMemoNumber = isExtension ? null : await nextCreditMemoNumber(tx);
-      const app = await tx.ctplApplication.update({
-        where: { id: e.ctplApplicationId! },
+      const { endorsement, app } = await prisma.$transaction(async (tx) => {
+        const endorsementNumber = await nextEndorsementNumber(tx, 'CTPL');
+        const creditMemoNumber = isExtension ? null : await nextCreditMemoNumber(tx);
+        const app = await tx.ctplApplication.update({
+          where: { id: e.ctplApplicationId! },
+          // A cancelled policy is "Reversed" - paid, then refunded (see
+          // getCtplPolicyStatus in ctpl_types.ts).
+          data: isExtension ? { expiryDate: e.newExpiryDate } : { status: 'Reversed' },
+        });
+        const endorsement = await tx.endorsement.update({
+          where: { id: e.id },
+          data: {
+            status: 'Approved',
+            endorsementNumber,
+            invoiceNumber,
+            creditMemoNumber,
+            decidedBy: actor(req),
+            decidedAt: new Date(),
+            decisionRemarks: remarks || null,
+          },
+        });
+        return { endorsement, app };
+      });
+
+      await recordAudit(req, {
+        action: 'UPDATE',
+        module: 'CTPL Endorsements',
+        details: `Approved ${e.type.replace(/_/g, ' ')} for ${e.policyNumber} (${endorsement.endorsementNumber})`,
+      });
+      await generateDocumentsSafely(() => generateCtplEndorsementDocuments(app, endorsement, actor(req)), endorsement);
+      return res.json(await loadEndorsement(req, e.id));
+    }
+
+    if (e.product === 'OFW' && e.ofwApplicationId) {
+      const { endorsement, app } = await prisma.$transaction(async (tx) => {
+        const endorsementNumber = await nextEndorsementNumber(tx, 'OFW');
+        const creditMemoNumber = await nextCreditMemoNumber(tx);
         // A cancelled policy is "Reversed" - paid, then refunded (see
-        // getCtplPolicyStatus in ctpl_types.ts).
-        data: isExtension ? { expiryDate: e.newExpiryDate } : { status: 'Reversed' },
+        // getOfwPolicyStatus in ofw_types.ts).
+        const app = await tx.ofwApplication.update({ where: { id: e.ofwApplicationId! }, data: { status: 'Reversed' } });
+        const endorsement = await tx.endorsement.update({
+          where: { id: e.id },
+          data: {
+            status: 'Approved',
+            endorsementNumber,
+            creditMemoNumber,
+            decidedBy: actor(req),
+            decidedAt: new Date(),
+            decisionRemarks: remarks || null,
+          },
+        });
+        return { endorsement, app };
       });
-      const endorsement = await tx.endorsement.update({
-        where: { id: e.id },
-        data: {
-          status: 'Approved',
-          endorsementNumber,
-          invoiceNumber,
-          creditMemoNumber,
-          decidedBy: actor(req),
-          decidedAt: new Date(),
-          decisionRemarks: remarks || null,
-        },
-      });
-      return { endorsement, app };
-    });
 
-    await recordAudit(req, {
-      action: 'UPDATE',
-      module: 'CTPL Endorsements',
-      details: `Approved ${e.type.replace(/_/g, ' ')} for ${e.policyNumber} (${endorsement.endorsementNumber})`,
-    });
-    await generateDocumentsSafely(app, endorsement, actor(req));
-    res.json(await loadEndorsement(req, e.id));
+      await recordAudit(req, {
+        action: 'UPDATE',
+        module: 'OFW Endorsements',
+        details: `Approved Cancellation for ${e.policyNumber} (${endorsement.endorsementNumber})`,
+      });
+      await generateDocumentsSafely(() => generateOfwEndorsementDocuments(app, endorsement, actor(req)), endorsement);
+      return res.json(await loadEndorsement(req, e.id));
+    }
+
+    throw new HttpError(501, `${e.product} endorsements aren't supported yet`);
   })
 );
 
@@ -393,16 +494,24 @@ router.post(
   asyncHandler(async (req, res) => {
     const e = await loadEndorsement(req, req.params.id);
     if (e.status !== 'Approved') throw new HttpError(400, 'Only approved endorsements have documents');
-    if (!e.ctplApplicationId) throw new HttpError(501, `${e.product} endorsements aren't supported yet`);
-    const app = await prisma.ctplApplication.findUniqueOrThrow({ where: { id: e.ctplApplicationId } });
-    await generateCtplEndorsementDocuments(app, e, actor(req));
-    res.json(await loadEndorsement(req, e.id));
+
+    if (e.ctplApplicationId) {
+      const app = await prisma.ctplApplication.findUniqueOrThrow({ where: { id: e.ctplApplicationId } });
+      await generateCtplEndorsementDocuments(app, e, actor(req));
+      return res.json(await loadEndorsement(req, e.id));
+    }
+    if (e.ofwApplicationId) {
+      const app = await prisma.ofwApplication.findUniqueOrThrow({ where: { id: e.ofwApplicationId } });
+      await generateOfwEndorsementDocuments(app, e, actor(req));
+      return res.json(await loadEndorsement(req, e.id));
+    }
+    throw new HttpError(501, `${e.product} endorsements aren't supported yet`);
   })
 );
 
-async function generateDocumentsSafely(app: CtplApplication, e: Endorsement, generatedBy: string) {
+async function generateDocumentsSafely(generate: () => Promise<void>, e: Endorsement) {
   try {
-    await generateCtplEndorsementDocuments(app, e, generatedBy);
+    await generate();
   } catch (err) {
     console.error(`Failed to generate documents for endorsement ${e.id}:`, err);
   }

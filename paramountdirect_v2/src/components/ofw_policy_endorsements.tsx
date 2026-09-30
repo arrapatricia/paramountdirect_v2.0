@@ -3,13 +3,12 @@ import { ChevronDown, Plus } from 'lucide-react';
 import type { OfwApplication } from './ofw_types';
 import { endorsementsApi, ApiError, type EndorsementApi } from '../lib/api';
 import { EndorsementDetail, EndorsementStatusBadge, ENDORSEMENT_TYPE_LABEL, displayDate, peso, isFinancialType } from './endorsement_shared';
+import OfwEndorsementModal from './ofw_endorsement_modal';
 
 // Endorsement history for one issued OFW policy - shown inside the policy
 // quick-preview modal in ofw_application_list.tsx, same UI shape as CTPL's
-// (see ctpl_policy_endorsements.tsx). Endorsement records themselves are
-// product-agnostic server-side (GET /api/endorsements already supports OFW),
-// but requesting a new one isn't wired up on the server yet - "New
-// Endorsement" is a placeholder until that lands.
+// (see ctpl_policy_endorsements.tsx). "New Endorsement" opens
+// OfwEndorsementModal (Cancellation only, so far).
 
 interface Props {
   app: OfwApplication;
@@ -23,6 +22,7 @@ export default function OfwPolicyEndorsements({ app, connected, notify }: Props)
   const [endorsements, setEndorsements] = useState<EndorsementApi[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
   // Callers pass a fresh notify each render - keep it out of load's deps.
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
@@ -50,7 +50,7 @@ export default function OfwPolicyEndorsements({ app, connected, notify }: Props)
         {connected && !isCancelled && (
           <button
             type="button"
-            onClick={() => notify('OFW endorsement requests are coming soon.')}
+            onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#002f6c] hover:bg-[#00224f] text-white text-[11px] font-bold cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> New Endorsement
@@ -89,6 +89,18 @@ export default function OfwPolicyEndorsements({ app, connected, notify }: Props)
           </div>
         ))}
       </div>
+
+      {showModal && (
+        <OfwEndorsementModal
+          app={app}
+          onClose={() => setShowModal(false)}
+          onSubmitted={(created) => {
+            setShowModal(false);
+            setEndorsements((prev) => [created, ...prev]);
+            notify(`Cancellation requested (${created.endorsementNumber ?? 'pending review'}).`);
+          }}
+        />
+      )}
     </div>
   );
 }

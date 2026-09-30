@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
-import { CTPL_MV_TYPES_BY_POLICY, CTPL_POLICY_TYPES, COV_FEE, type CtplApplication } from './ctpl_types';
+import { CTPL_MV_TYPES_BY_POLICY, CTPL_POLICY_TYPES, type CtplApplication } from './ctpl_types';
 import { CTPL_VEHICLE_YEARS, CTPL_VEHICLE_MAKERS } from './ctpl_vehicle_reference';
-import { getPremiumRate, type PremiumRate } from './premium_rates';
+import { getPremiumRate, getCtplCovFee, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 }
 
 const getPremium = (rates: PremiumRate[], policyType: string, mvType: string, renewalType: string) =>
-  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`, getPremiumRate(rates, 'CTPL', 'default', 606));
+  !policyType || !mvType ? 0 : getPremiumRate(rates, 'CTPL', `${policyType}|${mvType}|${renewalType}`);
 
 const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#49b1ea] focus:border-transparent dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-300';
@@ -26,6 +26,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [mvType, setMvType] = useState('');
 
   const [clientType, setClientType] = useState<'Individual' | 'Corporate without assignee' | 'Corporate with assignee'>('Individual');
+  const [corporateName, setCorporateName] = useState('');
   const [ownerFirstName, setOwnerFirstName] = useState('');
   const [ownerMiddleName, setOwnerMiddleName] = useState('');
   const [ownerSurname, setOwnerSurname] = useState('');
@@ -54,16 +55,25 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [forPublicUse, setForPublicUse] = useState(false);
 
   const premiumValue = getPremium(rates, policyType, mvType, renewalType);
-  const totalDue = premiumValue + (requiresCOV ? COV_FEE : 0);
+  const covFee = getCtplCovFee(rates);
+  const totalDue = premiumValue + (requiresCOV ? covFee : 0);
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<CtplApplication | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // "Corporate without assignee" has no individual owner name on file at all
+  // (just the corporate entity) - only "Individual" and "Corporate with
+  // assignee" need First/Surname; both Corporate variants need a corporate name.
+  const showCorporateName = clientType !== 'Individual';
+  const showOwnerName = clientType !== 'Corporate without assignee';
+
   const canSubmit =
     policyType && mvType &&
-    ownerFirstName && ownerSurname && ownerAddress && email && mobileNumber &&
+    (!showCorporateName || corporateName) &&
+    (!showOwnerName || (ownerFirstName && ownerSurname)) &&
+    ownerAddress && email && mobileNumber &&
     plateNumber && mvFileNumber && chassisNumber &&
     vehicleYear && vehicleMake && vehicleSeries &&
     (sameAsOwner || (applicantFirstName && applicantSurname));
@@ -71,7 +81,11 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const buildApplication = (): CtplApplication => ({
     id: `MCOC${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`,
     policyType: policyType as typeof CTPL_POLICY_TYPES[number], mvType, renewalType,
-    clientType, ownerFirstName, ownerMiddleName, ownerSurname,
+    clientType,
+    corporateName: showCorporateName ? corporateName : undefined,
+    ownerFirstName: showOwnerName ? ownerFirstName : '',
+    ownerMiddleName: showOwnerName ? ownerMiddleName : '',
+    ownerSurname: showOwnerName ? ownerSurname : '',
     ownerAddress, ownerRegion, ownerCity, ownerBarangay,
     sameAsOwner,
     applicantFirstName: sameAsOwner ? ownerFirstName : applicantFirstName,
@@ -163,10 +177,12 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 
       {step === 'review' ? (
         <CtplReviewSummary
+          covFee={covFee}
           renewalType={renewalType}
           policyType={policyType}
           mvType={mvType}
           clientType={clientType}
+          corporateName={showCorporateName ? corporateName : ''}
           ownerFirstName={ownerFirstName}
           ownerMiddleName={ownerMiddleName}
           ownerSurname={ownerSurname}
@@ -257,9 +273,16 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             <div><label className={labelClass}>Mobile Number</label><input required value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} className={inputClass} placeholder="09XXXXXXXXX" /></div>
 
             <div className="md:col-span-3 text-xs font-extrabold text-slate-500 uppercase tracking-wide pt-2 dark:text-slate-400">Registered Owner's Information</div>
-            <div><label className={labelClass}>First Name</label><input required value={ownerFirstName} onChange={(e) => setOwnerFirstName(e.target.value)} className={inputClass} /></div>
-            <div><label className={labelClass}>Middle Name</label><input value={ownerMiddleName} onChange={(e) => setOwnerMiddleName(e.target.value)} className={inputClass} /></div>
-            <div><label className={labelClass}>Surname</label><input required value={ownerSurname} onChange={(e) => setOwnerSurname(e.target.value)} className={inputClass} /></div>
+            {showCorporateName && (
+              <div className="md:col-span-3"><label className={labelClass}>Corporate Name</label><input required value={corporateName} onChange={(e) => setCorporateName(e.target.value)} className={inputClass} /></div>
+            )}
+            {showOwnerName && (
+              <>
+                <div><label className={labelClass}>First Name</label><input required value={ownerFirstName} onChange={(e) => setOwnerFirstName(e.target.value)} className={inputClass} /></div>
+                <div><label className={labelClass}>Middle Name</label><input value={ownerMiddleName} onChange={(e) => setOwnerMiddleName(e.target.value)} className={inputClass} /></div>
+                <div><label className={labelClass}>Surname</label><input required value={ownerSurname} onChange={(e) => setOwnerSurname(e.target.value)} className={inputClass} /></div>
+              </>
+            )}
 
             <div className="md:col-span-3"><label className={labelClass}>Address (House No., Street)</label><input required value={ownerAddress} onChange={(e) => setOwnerAddress(e.target.value)} className={inputClass} /></div>
             <div>
@@ -370,7 +393,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 
           <label className="flex items-center space-x-2 mt-4 cursor-pointer">
             <input type="checkbox" checked={requiresCOV} onChange={(e) => setRequiresCOV(e.target.checked)} className="accent-[#002f6c] dark:accent-[#49b1ea]" />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱{COV_FEE.toFixed(2)} verification fee via DBP-DCI</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Requires Certificate of Validation (COV) &mdash; adds a ₱{covFee.toFixed(2)} verification fee via DBP-DCI</span>
           </label>
         </div>
 
@@ -399,17 +422,18 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
 // ---------------------------------------------------------------------------
 
 function CtplReviewSummary({
-  renewalType, policyType, mvType, clientType, ownerFirstName, ownerMiddleName, ownerSurname,
+  renewalType, policyType, mvType, clientType, corporateName, ownerFirstName, ownerMiddleName, ownerSurname,
   ownerAddress, ownerRegion, ownerCity, ownerBarangay,
   sameAsOwner, applicantFirstName, applicantSurname, email, mobileNumber,
   plateNumber, mvFileNumber, chassisNumber,
   vehicleYear, vehicleMake, vehicleSeries, vehicleColor, vehicleBodyType, motorNumber, authorizedCapacity, unladenWeight,
-  requiresCOV, forPublicUse, premiumValue, totalDue, onEdit, onConfirm, isSubmitting, submitError,
+  requiresCOV, forPublicUse, covFee, premiumValue, totalDue, onEdit, onConfirm, isSubmitting, submitError,
 }: {
   renewalType: '1 Year' | '3 Years';
   policyType: typeof CTPL_POLICY_TYPES[number] | '';
   mvType: string;
   clientType: 'Individual' | 'Corporate without assignee' | 'Corporate with assignee';
+  corporateName: string;
   ownerFirstName: string;
   ownerMiddleName: string;
   ownerSurname: string;
@@ -434,6 +458,7 @@ function CtplReviewSummary({
   authorizedCapacity: string;
   unladenWeight: string;
   requiresCOV: boolean;
+  covFee: number;
   forPublicUse: boolean;
   premiumValue: number;
   totalDue: number;
@@ -459,7 +484,7 @@ function CtplReviewSummary({
           {row('LTO MV Type', mvType)}
           {policyType === 'Motorcycle' && row('For Public Use', forPublicUse ? 'Yes (LCOC series)' : 'No')}
           {row('Base Premium', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{premiumValue.toFixed(2)}</span>)}
-          {requiresCOV && row('COV Fee', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{COV_FEE.toFixed(2)}</span>)}
+          {requiresCOV && row('COV Fee', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{covFee.toFixed(2)}</span>)}
           {row('Total Amount Due', <span className="text-[#002f6c] dark:text-[#49b1ea]">₱{totalDue.toFixed(2)}</span>)}
         </div>
       </div>
@@ -468,7 +493,8 @@ function CtplReviewSummary({
         <h2 className={sectionHeadingClass}>Personal Information</h2>
         <div className="text-xs">
           {row('Client Type', clientType)}
-          {row('Registered Owner', `${ownerFirstName} ${ownerMiddleName} ${ownerSurname}`.replace(/\s+/g, ' ').trim())}
+          {corporateName && row('Corporate Name', corporateName)}
+          {(ownerFirstName || ownerSurname) && row('Registered Owner', `${ownerFirstName} ${ownerMiddleName} ${ownerSurname}`.replace(/\s+/g, ' ').trim())}
           {row('Owner Address', [ownerAddress, ownerBarangay !== 'N/A' ? ownerBarangay : null, ownerCity, ownerRegion].filter(Boolean).join(', ') || '-')}
           {row('Applicant', sameAsOwner ? 'Same as Registered Owner' : `${applicantFirstName} ${applicantSurname}`.trim())}
           {row('Email', email || '-')}
@@ -486,7 +512,7 @@ function CtplReviewSummary({
           {row('Color / Body Type', [vehicleColor, vehicleBodyType].filter(Boolean).join(' / ') || '-')}
           {row('Motor Number', motorNumber ? motorNumber.toUpperCase() : '-')}
           {row('Authorized Capacity / Unladen Weight', [authorizedCapacity, unladenWeight ? `${unladenWeight} kg` : ''].filter(Boolean).join(' / ') || '-')}
-          {row('Requires COV', requiresCOV ? `Yes (+₱${COV_FEE.toFixed(2)})` : 'No')}
+          {row('Requires COV', requiresCOV ? `Yes (+₱${covFee.toFixed(2)})` : 'No')}
         </div>
       </div>
 

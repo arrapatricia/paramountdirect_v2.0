@@ -23,6 +23,8 @@ export function getPremiumRate(rates: PremiumRate[], product: PremiumProduct, ke
   return rates.find((r) => r.product === product && r.key === key)?.amount ?? fallback;
 }
 
+export const getCtplCovFee = (rates: PremiumRate[]) => getPremiumRate(rates, 'CTPL', 'covFee');
+
 export type GtpDestinationCategory = 'Including' | 'Excluding' | 'Domestic';
 
 const GTP_DAY_BRACKETS = [4, 8, 15, 24, 31, 45, 60];
@@ -121,7 +123,13 @@ export const INITIAL_PREMIUM_RATES: PremiumRate[] = [
   { id: 'ctpl-tricycle-3y', product: 'CTPL', key: 'Motorcycle|Tricycle|3 Years', label: 'Motorcycle - Tricycle (3 Years)', amount: 766, currency: 'PHP', unit: 'flat' },
   { id: 'ctpl-mc-trailer-3y', product: 'CTPL', key: 'Motorcycle|Trailer|3 Years', label: 'Motorcycle - Trailer (3 Years)', amount: 766, currency: 'PHP', unit: 'flat' },
 
-  { id: 'ctpl-default', product: 'CTPL', key: 'default', label: 'Default (any combination not listed above)', amount: 666, currency: 'PHP', unit: 'flat' },
+  // Fee/tax parameters (also read server-side by premiumCalc.ts) - editable
+  // in Premium Maintenance, never hardcoded in a component.
+  { id: 'ctpl-cov-fee', product: 'CTPL', key: 'covFee', label: 'Certificate of Validation (COV) fee', amount: 60, currency: 'PHP', unit: 'add-on' },
+  { id: 'ctpl-dst-per-unit', product: 'CTPL', key: 'dstAmountPerUnit', label: 'Documentary Stamp Tax per P4 of premium', amount: 0.5, currency: 'PHP', unit: 'flat' },
+  { id: 'ctpl-lgt-percent', product: 'CTPL', key: 'lgtPercent', label: 'Local Government Tax (% of premium)', amount: 0.75, currency: '%', unit: 'percent' },
+  { id: 'ctpl-vat-percent', product: 'CTPL', key: 'vatPercent', label: 'VAT (% of premium)', amount: 12, currency: '%', unit: 'percent' },
+  { id: 'ctpl-other-fees', product: 'CTPL', key: 'otherFees', label: 'Other Fees/Charges (flat)', amount: 46, currency: 'PHP', unit: 'flat' },
 
   // GTP - Single Trip prices off two factors: destination category
   // (Including USA/Canada/HK vs Excluding vs Domestic, auto-detected from

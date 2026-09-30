@@ -98,9 +98,14 @@ const createApplicationSchema = z.object({
   renewalType: z.enum(['One_Year', 'Three_Years']),
 
   clientType: z.enum(['Individual', 'Corporate_without_assignee', 'Corporate_with_assignee']),
-  ownerFirstName: z.string().min(1),
-  ownerMiddleName: z.string().min(1),
-  ownerSurname: z.string().min(1),
+  // Only present for the two Corporate client types. Owner name fields are
+  // left un-required here (rather than .min(1)) since "Corporate without
+  // assignee" has no individual name on file at all - the frontend enforces
+  // which of corporateName/owner-name is actually required per clientType.
+  corporateName: z.string().optional(),
+  ownerFirstName: z.string(),
+  ownerMiddleName: z.string(),
+  ownerSurname: z.string(),
   ownerAddress: z.string().min(1),
   ownerRegion: z.string().min(1),
   ownerCity: z.string().min(1),

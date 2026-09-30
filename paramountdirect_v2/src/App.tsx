@@ -43,7 +43,7 @@ import { canManageUsers } from './lib/roles';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
 // import PremiumMaintenance from './components/premium_maintenance';
-import { INITIAL_PREMIUM_RATES, type PremiumRate } from './components/premium_rates';
+import { INITIAL_PREMIUM_RATES, getPremiumRate, getCtplCovFee, type PremiumRate } from './components/premium_rates';
 import {
   pdLifeApi,
   ofwApi,
@@ -229,6 +229,7 @@ function mapApiToCtplApplication(api: CtplApplicationApi): CtplApplication {
     mvType: api.mvType,
     renewalType: fromApiCtplRenewalType(api.renewalType) as CtplApplication['renewalType'],
     clientType: fromApiCtplClientType(api.clientType) as CtplApplication['clientType'],
+    corporateName: api.corporateName ?? undefined,
     ownerFirstName: api.ownerFirstName,
     ownerMiddleName: api.ownerMiddleName,
     ownerSurname: api.ownerSurname,
@@ -454,13 +455,20 @@ const initialOfwMockData: OfwApplication[] = Array.from({ length: 0 }).map((_, i
   };
 });
 
+// Base premiums are looked up from the rate card (premium_rates.ts's CTPL
+// keys) per row by policyType|mvType|renewalType - the COV fee is applied on top per row, from `requiresCOV`,
+// the same way the real create-application form and the server's
+// computeCtplPremium do. Keeping a base+add-on shape here (rather than a
+// precomputed gross number) is what keeps the mock premium, term, and COV
+// badge all in sync for every row instead of just whichever ones happened
+// to be authored with a matching figure.
 const CTPL_MOCK_OWNERS = [
-  { firstName: 'Ricardo', surname: 'Santos', policyType: 'Private Car' as const, mvType: 'Car', premium: 666 },
-  { firstName: 'Ligaya', surname: 'Fernandez', policyType: 'Private Car' as const, mvType: 'Sports Utility Vehicle', premium: 666 },
-  { firstName: 'Bayani', surname: 'Cruz', policyType: 'Motorcycle' as const, mvType: 'Motorcycle', premium: 296 },
-  { firstName: 'Corazon', surname: 'Aquino', policyType: 'Commercial Vehicle' as const, mvType: 'Light/Medium Truck (Own Goods, ≤ 3,930kg)', premium: 656 },
-  { firstName: 'Emmanuel', surname: 'Bautista', policyType: 'Private Car' as const, mvType: 'Car', premium: 666 },
-  { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Heavy Truck (Own Goods) / Private Bus (> 3,930kg)', premium: 1246.01 },
+  { firstName: 'Ricardo', surname: 'Santos', policyType: 'Private Car' as const, mvType: 'Car' },
+  { firstName: 'Ligaya', surname: 'Fernandez', policyType: 'Private Car' as const, mvType: 'Sports Utility Vehicle' },
+  { firstName: 'Bayani', surname: 'Cruz', policyType: 'Motorcycle' as const, mvType: 'Motorcycle' },
+  { firstName: 'Corazon', surname: 'Aquino', policyType: 'Commercial Vehicle' as const, mvType: 'Light/Medium Truck (Own Goods, ≤ 3,930kg)' },
+  { firstName: 'Emmanuel', surname: 'Bautista', policyType: 'Private Car' as const, mvType: 'Car' },
+  { firstName: 'Divina', surname: 'Ramos', policyType: 'Commercial Vehicle' as const, mvType: 'Heavy Truck (Own Goods) / Private Bus (> 3,930kg)' },
 ];
 
 const CTPL_POLICY_PREFIX: Record<CtplApplication['policyType'], string> = {
@@ -479,6 +487,9 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 10 }).map((_
   // refunded) rows are ever paid - Cancelled/Duplicate/Spoiled never reach payment.
   const isPaid = status === 'Reversed' || (status === 'Completed' && i % 3 !== 0);
   const day = 27 - (i % 5);
+  const renewalType = (i % 4 === 0 ? '3 Years' : '1 Year') as '1 Year' | '3 Years';
+  const requiresCOV = i % 5 === 0;
+  const basePremium = getPremiumRate(INITIAL_PREMIUM_RATES, 'CTPL', `${owner.policyType}|${owner.mvType}|${renewalType}`);
 
   return {
     id: `MCOC${(1000000 + i).toString()}`,
@@ -488,7 +499,7 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 10 }).map((_
     policyNumber: isPaid ? `${CTPL_POLICY_PREFIX[owner.policyType]}COC-${(1000000000 + i).toString().padStart(10, '0')}` : undefined,
     policyType: owner.policyType,
     mvType: owner.mvType,
-    renewalType: (i % 4 === 0 ? '3 Years' : '1 Year') as '1 Year' | '3 Years',
+    renewalType,
     clientType: 'Individual' as const,
     ownerFirstName: owner.firstName,
     ownerMiddleName: 'M',
@@ -513,9 +524,9 @@ const initialCtplMockData: CtplApplication[] = Array.from({ length: 10 }).map((_
     motorNumber: `HJDK${(100000 + i).toString().padStart(6, '0')}`,
     authorizedCapacity: '5',
     unladenWeight: '1200',
-    requiresCOV: i % 5 === 0,
+    requiresCOV,
     forPublicUse: false,
-    premium: `₱${owner.premium.toFixed(2)}`,
+    premium: `₱${(basePremium + (requiresCOV ? getCtplCovFee(INITIAL_PREMIUM_RATES) : 0)).toFixed(2)}`,
     dateReceived: `09/${day.toString().padStart(2, '0')}/2026`,
     status,
     screenedBy: ['Juan Dela Cruz', 'Pedro Rodrigo', 'Oliver Rodrigo'][i % 3],
@@ -1205,6 +1216,7 @@ export default function App() {
       mvType: app.mvType,
       renewalType: toApiCtplRenewalType(app.renewalType),
       clientType: toApiCtplClientType(app.clientType),
+      corporateName: app.corporateName,
       ownerFirstName: app.ownerFirstName,
       ownerMiddleName: app.ownerMiddleName,
       ownerSurname: app.ownerSurname,
@@ -1451,6 +1463,7 @@ export default function App() {
           ) : (
             <CtplApplicationList
               data={ctplApplications}
+              rates={premiumRates}
               onCreateNew={() => setIsCreatingCtplApp(true)}
               viewingId={viewingCtplId}
               onView={setViewingCtplId}

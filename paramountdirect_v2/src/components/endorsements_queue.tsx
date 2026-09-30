@@ -20,7 +20,11 @@ interface Props {
 const TABS: ('Awaiting Action' | EndorsementStatusApi | 'All')[] = ['Awaiting Action', 'Pending', 'Reviewed', 'Approved', 'Denied', 'All'];
 
 const insuredName = (e: EndorsementApi) =>
-  e.ctplApplication ? `${e.ctplApplication.ownerFirstName} ${e.ctplApplication.ownerSurname}` : '—';
+  e.ctplApplication
+    ? `${e.ctplApplication.ownerFirstName} ${e.ctplApplication.ownerSurname}`
+    : e.ofwApplication
+      ? `${e.ofwApplication.firstName} ${e.ofwApplication.lastName}`
+      : '—';
 
 export default function EndorsementsQueue({ product, currentUserRole, onPolicyChanged }: Props) {
   const [endorsements, setEndorsements] = useState<EndorsementApi[]>([]);

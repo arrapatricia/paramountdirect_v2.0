@@ -22,11 +22,11 @@ const TEMPLATES_DIR = path.join(__dirname, '..', 'templates', 'ofw');
 // Ofw::Application::DocStamp in the legacy model).
 const OFW_DOC_STAMP = 0.6;
 
-function formatUsd(amount: number): string {
+export function formatUsd(amount: number): string {
   return `USD ${amount.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 }
 
-function formatDate(date: Date | null): string {
+export function formatDate(date: Date | null): string {
   if (!date) return '';
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
 }
@@ -71,7 +71,7 @@ const FIXED_FONT_SIZE_FIELDS: Record<string, number> = {
   EffectiveDate_SVI: 10, // matches this template's other fields' own default appearance (/Helv 10 Tf)
 };
 
-async function fillFields(templateFile: string, values: Record<string, string>): Promise<Buffer> {
+export async function fillFields(templateFile: string, values: Record<string, string>): Promise<Buffer> {
   const bytes = readFileSync(path.join(TEMPLATES_DIR, templateFile));
   const pdf = await PDFDocument.load(bytes);
   const form = pdf.getForm();

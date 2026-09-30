@@ -455,6 +455,9 @@ model CtplApplication {
   renewalType CtplRenewalType
 
   clientType         CtplClientType
+  // Only present for the two Corporate client types - see the frontend
+  // CtplApplication type's comment on this same field.
+  corporateName      String?
   ownerFirstName     String
   ownerMiddleName    String
   ownerSurname       String
@@ -804,6 +807,10 @@ enum EndorsementType {
   Term_Extension
   Cancellation_Flat
   Cancellation_Pro_Rata
+  // OFW cancellation refund isn't split Flat/Pro Rata like CTPL's - it's one
+  // formula (remaining whole months at the $2.90/month rate, capped at the
+  // original premium), so it gets its own single type.
+  Cancellation
 }
 
 // Non-financial endorsements are auto-approved on submit. Financial ones go

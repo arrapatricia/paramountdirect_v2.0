@@ -8,6 +8,10 @@ export interface CtplApplication {
   renewalType: '1 Year' | '3 Years';
 
   clientType: 'Individual' | 'Corporate without assignee' | 'Corporate with assignee';
+  // Only present for the two Corporate client types. "Corporate without
+  // assignee" has no individual name on file at all (just this); "Corporate
+  // with assignee" has both this and an owner/assignee name below.
+  corporateName?: string;
   ownerFirstName: string;
   ownerMiddleName: string;
   ownerSurname: string;
@@ -38,7 +42,7 @@ export interface CtplApplication {
   authorizedCapacity: string;
   unladenWeight: string;
 
-  requiresCOV: boolean; // Certificate of Validation - additional COV_FEE via DBP-DCI
+  requiresCOV: boolean; // Certificate of Validation - additional COV fee (PremiumRate 'covFee') via DBP-DCI
 
   // Motorcycle-only: for-hire/public utility motorcycle (e.g. habal-habal) -
   // gets its own policy number series (LCOC-) instead of the regular MCOC-.
@@ -65,12 +69,6 @@ export interface CtplApplication {
 }
 
 export const CTPL_POLICY_TYPES = ['Private Car', 'Commercial Vehicle', 'Motorcycle'] as const;
-
-// Certificate of Validation verification fee, collected via DBP-DCI on top
-// of the base CTPL premium when requested - added to Other Fees/Charges on
-// the Service Invoice (see premium_rates.ts for the full 1-year premium
-// computation this is part of).
-export const COV_FEE = 60;
 
 export type CtplStatus = 'Completed' | 'Spoiled' | 'Duplicate' | 'Reversed' | 'Cancelled';
 

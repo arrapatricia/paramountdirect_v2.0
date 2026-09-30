@@ -15,6 +15,15 @@ function rate(rates: Map<string, number>, key: string, fallback = 0): number {
   return rates.get(key) ?? fallback;
 }
 
+// Premium amounts must come from the PremiumRate table (maintained in Premium
+// Maintenance) - a missing row is a configuration error, never silently
+// priced at some hardcoded default.
+function requireRate(rates: Map<string, number>, product: string, key: string): number {
+  const v = rates.get(key);
+  if (v === undefined) throw new Error(`Premium rate "${key}" is not configured for ${product} (see Premium Maintenance)`);
+  return v;
+}
+
 // PremiumRate keys are stored in the frontend's display format (e.g.
 // "Private Car", "1 Year" - see premium_rates.ts's CTPL keys), but the
 // application row itself stores the Prisma enum form ("Private_Car",
@@ -44,9 +53,9 @@ export async function computeCtplPremium(
   // mvType is already required by the caller's zod schema by this point, so
   // (unlike the frontend's live-editing form) there's no "not selected yet"
   // case to fall back to 0 for here.
-  const base = rate(rates, `${policyTypeLabel}|${mvType}|${renewalTypeLabel}`, rate(rates, 'default', 666));
-  const covFee = rate(rates, 'covFee', 60);
-  return base + (requiresCOV ? covFee : 0);
+  const base = requireRate(rates, 'CTPL', `${policyTypeLabel}|${mvType}|${renewalTypeLabel}`);
+  const covFee = requiresCOV ? requireRate(rates, 'CTPL', 'covFee') : 0;
+  return base + covFee;
 }
 
 export interface CtplTaxParams {
@@ -67,11 +76,11 @@ export interface CtplTaxParams {
 export async function getCtplTaxParams(): Promise<CtplTaxParams> {
   const rates = await ratesFor('CTPL');
   return {
-    dstAmountPerUnit: rate(rates, 'dstAmountPerUnit', 0.5),
-    lgtPercent: rate(rates, 'lgtPercent', 0.75),
-    vatPercent: rate(rates, 'vatPercent', 12),
-    otherFees: rate(rates, 'otherFees', 46),
-    covFee: rate(rates, 'covFee', 60),
+    dstAmountPerUnit: requireRate(rates, 'CTPL', 'dstAmountPerUnit'),
+    lgtPercent: requireRate(rates, 'CTPL', 'lgtPercent'),
+    vatPercent: requireRate(rates, 'CTPL', 'vatPercent'),
+    otherFees: requireRate(rates, 'CTPL', 'otherFees'),
+    covFee: requireRate(rates, 'CTPL', 'covFee'),
   };
 }
 
@@ -100,9 +109,12 @@ export async function computeCtplBreakdown(base: number): Promise<CtplBreakdown>
 // Mirrors ofw_create_application.tsx: monthly rate x full calendar months
 // between the contract's start/end dates (no minimum enforced server-side,
 // same as the frontend - the 6-month minimum there is a UI warning only).
+export async function getOfwMonthlyRate(): Promise<number> {
+  return requireRate(await ratesFor('OFW'), 'OFW', 'monthlyRate');
+}
+
 export async function computeOfwPremium(contractStart: Date, contractEnd: Date): Promise<number> {
-  const rates = await ratesFor('OFW');
-  const monthlyRate = rate(rates, 'monthlyRate', 2.9);
+  const monthlyRate = await getOfwMonthlyRate();
   let months = (contractEnd.getFullYear() - contractStart.getFullYear()) * 12 + (contractEnd.getMonth() - contractStart.getMonth());
   if (contractEnd.getDate() < contractStart.getDate()) months -= 1;
   months = Math.max(0, months);
@@ -147,8 +159,8 @@ export async function computeGtpPremium(params: {
       : rate(rates, `${params.planVariant === 'Multi_Trip_90' ? 'Multi-Trip 90' : 'Multi-Trip 180'}|${category}`);
 
   const addOnFee = basePremium * (
-    (params.cruiseCoverage ? rate(rates, 'cruiseCoveragePercent', 21.9) : 0) +
-    (params.hazardousSportsCoverage ? rate(rates, 'hazardousSportsCoveragePercent', 126.3) : 0)
+    (params.cruiseCoverage ? requireRate(rates, 'GTP', 'cruiseCoveragePercent') : 0) +
+    (params.hazardousSportsCoverage ? requireRate(rates, 'GTP', 'hazardousSportsCoveragePercent') : 0)
   ) / 100;
 
   return Number((basePremium + addOnFee).toFixed(2));
