@@ -4,11 +4,21 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/errorHandler';
 import { requireAuth } from '../middleware/auth';
 import { recordAudit } from '../utils/audit';
-import { Prisma, type PdLifeStatus } from '@prisma/client';
+import { Prisma, type PdLifeApplication, type PdLifeStatus } from '@prisma/client';
 import { submitNewBusinessToIpeak } from '../services/ipeak/submitNewBusiness';
 import { updateIpeakStatus } from '../services/ipeak/updateStatus';
+import { getMissingNewBusinessFields } from '../services/ipeak/validateNewBusiness';
 
 const router = Router();
+
+// Tells the UI up front which required fields an application is still
+// missing for iPeak, so the screener is warned before changing its status
+// rather than after. Empty once a policy number exists (it's only assigned
+// after the data passed validation and was submitted).
+const withIpeakReadiness = <T extends PdLifeApplication>(application: T) => ({
+  ...application,
+  ipeakMissing: application.policyNumber ? [] : getMissingNewBusinessFields({ beneficiaries: [], ...application }),
+});
 router.use(requireAuth);
 
 router.get(
@@ -19,7 +29,7 @@ router.get(
       where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
     });
-    res.json(applications);
+    res.json(applications.map(withIpeakReadiness));
   })
 );
 
@@ -28,7 +38,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const application = await prisma.pdLifeApplication.findUnique({ where: { id: req.params.id } });
     if (!application) throw new HttpError(404, 'Application not found');
-    res.json(application);
+    res.json(withIpeakReadiness(application));
   })
 );
 
@@ -57,7 +67,7 @@ router.post(
     });
 
     await recordAudit(req, { action: 'CREATE', module: 'Application Screening', details: `Created PD Life application ${application.id} (${application.payor})` });
-    res.status(201).json(application);
+    res.status(201).json(withIpeakReadiness(application));
   })
 );
 
@@ -99,7 +109,7 @@ router.patch(
     if (count > 0) {
       await recordAudit(req, { action: 'UPDATE', module: 'Application Screening', details: `${screenerName} claimed PD Life application ${application.id} (${application.payor})` });
     }
-    res.json(application);
+    res.json(withIpeakReadiness(application));
   })
 );
 
@@ -133,6 +143,7 @@ router.patch(
         // Idempotent: an application already submitted is never re-sent, and
         // one with missing data is skipped (and retried on the next change).
         const submission = await submitNewBusinessToIpeak(application, processorEmail);
+        console.log(`[iPeak] application ${application.id} -> ${status}:`, 'skipped' in submission ? `SKIPPED, missing ${submission.missing.join(', ')}` : `NewBusiness success=${submission.success} policy=${submission.policyNumber} error=${submission.errorMessage ?? '-'}`);
         if ('skipped' in submission) {
           ipeakWarning = `Not sent to iPeak - incomplete data. Missing: ${submission.missing.join(', ')}.`;
         } else if (status === 'Issued' && submission.success) {
@@ -146,7 +157,10 @@ router.patch(
       console.error('iPeak transmission failed for PD Life application', application.id, err);
     }
 
-    res.json({ ...application, ipeakWarning });
+    // Re-read so the response carries the policy number assigned during the
+    // iPeak submission above (the row fetched earlier predates it).
+    const latest = await prisma.pdLifeApplication.findUnique({ where: { id: application.id }, include: { beneficiaries: true } });
+    res.json({ ...withIpeakReadiness(latest ?? application), ipeakWarning });
   })
 );
 

@@ -96,6 +96,9 @@ export interface ScreeningItem {
   // applications still at "Received". `id` (the internal database id) is
   // never meant for display - see renderApplicationDetail in App.tsx.
   policyNumber?: string | null;
+  // Required iPeak fields still missing (server-computed) - shown before a
+  // status change so the screener isn't surprised by a skipped transmission.
+  ipeakMissing?: string[];
   payor: string;
   planCode: string;
   planDesc: string;
@@ -131,6 +134,7 @@ function mapApiToScreeningItem(api: PdLifeApplicationApi): ScreeningItem {
     id: api.id,
     applicationId: sourceApplicationId ?? formatApplicationId(api.applicationSeq),
     policyNumber: api.policyNumber,
+    ipeakMissing: api.ipeakMissing,
     payor: api.payor,
     planCode: api.planCode,
     planDesc: api.planDesc,
@@ -1090,7 +1094,6 @@ export default function App() {
       .updateStatus(selectedApp.id, toApiPdLifeStatus(newStatus))
       .then((updated) => {
         setScreeningData(prev => prev.map(app => (app.id === updated.id ? mapApiToScreeningItem(updated) : app)));
-        if (updated.ipeakWarning) setPdLifeLoadError(updated.ipeakWarning);
       })
       .catch((err) => {
         setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to update status.');
@@ -1328,6 +1331,7 @@ export default function App() {
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,
+      ipeakMissing: currentApp?.ipeakMissing ?? [],
       // Only the "Signed" branch needs to do anything - signedFollowUpIds
       // already treats absence as unsigned, which is the default for a
       // freshly issued application.

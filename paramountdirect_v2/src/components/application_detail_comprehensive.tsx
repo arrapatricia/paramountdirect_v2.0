@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ClipboardList, UserCircle2, MapPin, Briefcase, Users, ShieldQuestion, FileWarning, ListChecks, Wallet, Stethoscope } from 'lucide-react';
 import {
-  NotificationBanner, DetailHeader, StatusControl, IssueConfirmModal, Section, Field, FieldGrid, AddRowButton,
+  NotificationBanner, DetailHeader, StatusControl, IssueConfirmModal, IpeakMissingModal, IpeakMissingNotice, Section, Field, FieldGrid, AddRowButton,
   editInputClass, editSelectClass, type NotificationState,
 } from './application_detail_ui';
 import {
@@ -14,6 +14,8 @@ interface Props {
   planCode: string;
   initialStatus: string;
   onUpdateStatus: (status: string) => void;
+  // Fields iPeak needs that this application still lacks (from the server).
+  ipeakMissing?: string[];
   // Reported once the screener confirms whether the client's application
   // form was already signed at the moment of issuance - see IssueConfirmModal.
   onIssueDecision?: (signed: boolean) => void;
@@ -36,6 +38,7 @@ export default function ApplicationDetailComprehensive({
   planCode,
   initialStatus,
   onUpdateStatus,
+  ipeakMissing = [],
   onIssueDecision,
   onBack,
   readOnly = false,
@@ -73,6 +76,7 @@ export default function ApplicationDetailComprehensive({
   // this instead of committing immediately; the status change and the
   // signed/unsigned decision are only applied together on confirm.
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [pendingMissingStatus, setPendingMissingStatus] = useState<string | null>(null);
   const [pendingIssueSigned, setPendingIssueSigned] = useState<boolean | null>(null);
 
   // Edit Mode Tracking
@@ -120,8 +124,13 @@ export default function ApplicationDetailComprehensive({
   };
 
   // Immediate Status Update & Notification Trigger Handler
-  const handleSelectStatus = (newStatus: string) => {
+  const handleSelectStatus = (newStatus: string, missingAcknowledged = false) => {
     setIsStatusMenuOpen(false);
+
+    if (ipeakMissing.length > 0 && newStatus !== 'Received' && !missingAcknowledged) {
+      setPendingMissingStatus(newStatus);
+      return;
+    }
 
     if (newStatus === 'Issued') {
       // Deferred to confirmIssue - the screener must record Signed/Unsigned
@@ -165,7 +174,7 @@ export default function ApplicationDetailComprehensive({
     onIssueDecision?.(pendingIssueSigned);
     setNotification({
       type: 'success',
-      message: 'The application has been successfully issued and transmitted to iPeak'
+      message: 'The application has been successfully issued' + (ipeakMissing.length > 0 ? ' (not sent to iPeak - incomplete data)' : ' and transmitted to iPeak')
     });
     setTimeout(() => setNotification(null), 5000);
   };
@@ -174,6 +183,21 @@ export default function ApplicationDetailComprehensive({
     <div className="p-4 md:p-6 space-y-4 max-w-[1200px] mx-auto font-sans text-slate-800 dark:text-slate-200">
 
       <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} />
+
+      {!readOnly && ipeakMissing.length > 0 && <IpeakMissingNotice missing={ipeakMissing} />}
+
+      {pendingMissingStatus && (
+        <IpeakMissingModal
+          missing={ipeakMissing}
+          newStatus={pendingMissingStatus}
+          onConfirm={() => {
+            const next = pendingMissingStatus;
+            setPendingMissingStatus(null);
+            handleSelectStatus(next, true);
+          }}
+          onCancel={() => setPendingMissingStatus(null)}
+        />
+      )}
 
       {showIssueModal && (
         <IssueConfirmModal

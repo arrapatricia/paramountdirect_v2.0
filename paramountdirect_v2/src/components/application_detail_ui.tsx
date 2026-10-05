@@ -103,6 +103,48 @@ export function StatusControl({ status, savedStatus, isMenuOpen, setIsMenuOpen, 
   );
 }
 
+// Shown before ANY status change away from Received when the application is
+// missing data iPeak requires - the server won't transmit it in that state,
+// so the screener is told up front instead of finding out afterwards.
+export function IpeakMissingNotice({ missing }: { missing: string[] }) {
+  return (
+    <div className="flex items-start space-x-2.5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-300 text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300">
+      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+      <span>Incomplete data - this application won't be sent to iPeak until it's completed. Missing: {missing.join(', ')}.</span>
+    </div>
+  );
+}
+
+export function IpeakMissingModal({ missing, newStatus, onConfirm, onCancel }: { missing: string[]; newStatus: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+      <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 font-sans dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex items-center space-x-2 border-b pb-3 border-slate-200 dark:border-slate-800">
+          <AlertCircle className="w-4 h-4 text-amber-600" />
+          <h2 className="text-sm font-bold text-slate-900 uppercase dark:text-white">Incomplete Data</h2>
+        </div>
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          This application is missing data iPeak requires, so it will <span className="font-black">not</span> be transmitted to iPeak:
+        </p>
+        <ul className="list-disc pl-5 text-xs font-bold text-slate-900 space-y-0.5 dark:text-white">
+          {missing.map((m) => <li key={m}>{m}</li>)}
+        </ul>
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          You can still change the status to {newStatus}; it will be sent once the data is completed and the status is changed again.
+        </p>
+        <div className="flex justify-end space-x-3 pt-2">
+          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="px-5 py-2 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md">
+            Change to {newStatus} anyway
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface IssueConfirmModalProps {
   signed: boolean | null;
   onSelectSigned: (signed: boolean) => void;

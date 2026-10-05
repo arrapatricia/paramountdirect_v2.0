@@ -89,6 +89,7 @@ export interface PdLifeApplicationApi {
   screenedBy: string | null;
   status: string;
   details: Record<string, unknown>;
+  ipeakMissing?: string[];
 }
 
 // Wire-format mismatches between the frontend's display strings and the
