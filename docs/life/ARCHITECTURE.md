@@ -44,13 +44,14 @@ Screener changes status
         ▼
 PATCH /api/applications/pd-life/:id/status  (applications.pdlife.ts)
         │
-        ├─ existing.status === 'Received' && new status !== 'Received'
+        ├─ new status !== 'Received'
         │        │
         │        ▼
         │   submitNewBusinessToIpeak(application, processorEmail)
         │        │  (server/src/services/ipeak/submitNewBusiness.ts)
+        │        ├─ validate required fields (validateNewBusiness.ts) - missing data => skip + ipeakWarning, nothing sent
         │        ├─ assign policyNumber if missing (policyNumber.ts, atomic per-plan-code sequence)
-        │        ├─ dedupe: skip if a NewBusiness PdLifeIpeakRequest already exists for this app
+        │        ├─ dedupe: skip if a *successful* NewBusiness PdLifeIpeakRequest already exists for this app (failed ones are retried)
         │        ├─ buildLifeNbPolicyPayload(application, email)  (payloadBuilder.ts)
         │        ├─ callIpeak<number>('/lifemb/newbusiness', payload)  (client.ts)
         │        └─ persist PdLifeIpeakRequest{method:'NewBusiness', success, responseBody, ...}

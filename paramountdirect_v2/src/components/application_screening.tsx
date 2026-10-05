@@ -40,7 +40,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
 
   // 1. Filter Data
   const matchesFilterBar = (item: ScreeningItem) => {
-    const matchesSearch = item.payor.toLowerCase().includes(searchTerm.toLowerCase()) || item.id.includes(searchTerm);
+    const matchesSearch = item.payor.toLowerCase().includes(searchTerm.toLowerCase()) || (item.applicationId ?? '').includes(searchTerm) || (item.policyNumber ?? '').includes(searchTerm);
     const matchesSource = selectedSource === 'All' || item.source === selectedSource;
     const matchesProduct = selectedProduct === 'All' || item.planCode === selectedProduct;
 
@@ -106,7 +106,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
   };
 
   const showAccessWarning = (row: ScreeningItem, screenedBy: string) => {
-    setAccessWarning(`Access Restricted: Application #${row.policyNumber || row.applicationId || row.id} is assigned to Issuer "${screenedBy}".`);
+    setAccessWarning(`Access Restricted: Application #${row.policyNumber || row.applicationId || '-'} is assigned to Issuer "${screenedBy}".`);
     setTimeout(() => setAccessWarning(null), 4000);
   };
 
@@ -349,7 +349,7 @@ export default function ApplicationScreening({ data, onSelectApplication, curren
                           )}
                         </button>
                       </td>
-                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.applicationId || row.id}</td>
+                      <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.applicationId || '-'}</td>
                       <td className="py-3.5 px-2 font-bold text-slate-900 dark:text-white">{row.policyNumber || '-'}</td>
                       <td className="py-3.5 px-2 font-bold text-slate-900 text-xs dark:text-white">{row.payor}</td>
                       <td className="py-3.5 px-2">

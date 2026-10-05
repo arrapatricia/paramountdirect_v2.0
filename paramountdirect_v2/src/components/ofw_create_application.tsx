@@ -5,7 +5,7 @@ import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 
 interface Props {
-  onCreate: (app: OfwApplication) => void;
+  onCreate: (app: OfwApplication) => Promise<OfwApplication>;
   onBack: () => void;
   currentUser: string;
   rates: PremiumRate[];
@@ -147,6 +147,8 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
   const [submittedApp, setSubmittedApp] = useState<OfwApplication | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit =
     lastName && firstName && phAddress && birthdate && placeOfBirth && phone && email &&
@@ -193,11 +195,21 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleConfirmSubmit = () => {
+  // Waits for the real server record so the confirmation screen shows its
+  // reference number, and a failed create stays on the review step with an
+  // error instead of showing a success screen for an unsaved application.
+  const handleConfirmSubmit = async () => {
     const newApp = buildApplication();
-    onCreate(newApp);
-    setSubmittedApp(newApp);
-    setStep('confirmed');
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      setSubmittedApp(await onCreate(newApp));
+      setStep('confirmed');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit the application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const DocUploadField = ({ label, docKey }: { label: string; docKey: keyof typeof documents }) => (
@@ -225,7 +237,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
             {submittedApp.firstName} {submittedApp.lastName}'s OFW application has been added to the screening queue.
           </p>
           <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
-            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
+            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.referenceNo ?? '-'}</span></span>
             <span>Coverage <span className="font-black text-slate-900 dark:text-white">{submittedApp.coverageType}</span></span>
             <span>Premium <span className="font-black text-[#002f6c] dark:text-[#49b1ea]">{submittedApp.premium}</span></span>
           </div>
@@ -292,6 +304,8 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
           documentsUploadedCount={documentsUploadedCount}
           onEdit={() => setStep('form')}
           onConfirm={handleConfirmSubmit}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
         />
       ) : (
       <form onSubmit={handleReview} className="space-y-6 pb-10">
@@ -535,7 +549,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
 function OfwReviewSummary({
   lastName, firstName, middleName, gender, civilStatus, birthdate, phAddress, phRegion, phCity, phBarangay, phone, email,
   natureOfEmployment, coverageType, occupation, passportNumber, salaryAmount, salaryCurrency, employerName, employerCountry,
-  contractStart, contractEnd, contractMonths, insuranceStart, beneficiaries, premiumValue, documentsUploadedCount, onEdit, onConfirm,
+  contractStart, contractEnd, contractMonths, insuranceStart, beneficiaries, premiumValue, documentsUploadedCount, onEdit, onConfirm, isSubmitting, submitError,
 }: {
   lastName: string;
   firstName: string;
@@ -566,6 +580,8 @@ function OfwReviewSummary({
   documentsUploadedCount: number;
   onEdit: () => void;
   onConfirm: () => void;
+  isSubmitting: boolean;
+  submitError: string | null;
 }) {
   const row = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -622,12 +638,18 @@ function OfwReviewSummary({
         </div>
       </div>
 
+      {submitError && (
+        <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300">
+          {submitError} The application was not saved — please try again.
+        </div>
+      )}
+
       <div className="flex flex-wrap justify-end gap-3 pt-2">
-        <button type="button" onClick={onEdit} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+        <button type="button" onClick={onEdit} disabled={isSubmitting} className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed">
           Back to Edit
         </button>
-        <button type="button" onClick={onConfirm} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
-          Confirm &amp; Submit
+        <button type="button" onClick={onConfirm} disabled={isSubmitting} className="px-6 py-2.5 rounded-xl bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          {isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
         </button>
       </div>
     </div>

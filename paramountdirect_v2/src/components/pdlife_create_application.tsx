@@ -340,7 +340,7 @@ function PdLifeCategoryForm({
             {submittedApp.payor}'s {category} application has been added to the screening queue.
           </p>
           <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
-            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
+            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.applicationId ?? '-'}</span></span>
             <span>Plan <span className="font-black text-slate-900 dark:text-white">{submittedApp.planDesc} ({submittedApp.planCode})</span></span>
             <span>Premium <span className="font-black text-[#d0112b]">{submittedApp.premium}</span></span>
           </div>

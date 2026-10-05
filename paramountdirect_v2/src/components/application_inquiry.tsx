@@ -41,14 +41,13 @@ export default function ApplicationInquiry({ data, onSelectApplication, onCreate
   // application first transmits to iPeak; before that, the sequential
   // Application ID (e.g. "0000001"); the internal id is a last-resort
   // fallback only for entirely local/mock rows.
-  const formatPolicyNumber = (item: ScreeningItem) => item.policyNumber || item.applicationId || item.id;
+  const formatPolicyNumber = (item: ScreeningItem) => item.policyNumber || item.applicationId || '-';
 
   // 1. Filter Records
   const matchesFilterBar = (item: ScreeningItem) => {
     const formattedNumber = formatPolicyNumber(item);
     const matchesSearch =
       item.payor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.includes(searchTerm) ||
       formattedNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
     const paymentStatus = getPaymentStatus(item.status);

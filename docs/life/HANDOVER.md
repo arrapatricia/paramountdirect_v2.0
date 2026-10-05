@@ -43,7 +43,7 @@ Three pages drive the workflow, sharing one UI kit:
 Lives entirely in `server/src/services/ipeak/` and is PD-Life-only. See `server/src/services/ipeak/README.md` (also reproduced/expanded here since it's the most detailed source in the repo).
 
 **Trigger points** (`applications.pdlife.ts`'s `PATCH /:id/status`):
-- `Received → anything else` fires `submitNewBusinessToIpeak()` (Insert New Business).
+- Any status other than `Received` fires `submitNewBusinessToIpeak()` (Insert New Business). It first validates the payload (`validateNewBusiness.ts`) — an application missing name, birthdate, gender, address, contact, plan code or premium is **not** sent (no policy number burned) and the PATCH returns an `ipeakWarning`. It is retried on the next status change; only a *successful* prior submission blocks a re-send, so a failed/unconfigured attempt is retried too.
 - `→ Issued` fires `updateIpeakStatus(..., 'APR')` (Update Status) — **currently broken**, see below.
 
 Both calls are `await`ed inside a try/catch that only logs on unexpected throw — a transmission failure (bad HTTP status, network error, missing config) is captured as a `PdLifeIpeakRequest` row with `success: false` and never blocks the screener's status update from committing.

@@ -6,7 +6,7 @@ import { getPremiumRate, getCtplCovFee, type PremiumRate } from './premium_rates
 import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
 
 interface Props {
-  onCreate: (app: CtplApplication) => void | Promise<void>;
+  onCreate: (app: CtplApplication) => Promise<CtplApplication>;
   onBack: () => void;
   currentUser: string;
   rates: PremiumRate[];
@@ -119,8 +119,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      await onCreate(newApp);
-      setSubmittedApp(newApp);
+      setSubmittedApp(await onCreate(newApp));
       setStep('confirmed');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to submit the application. Please try again.');
@@ -139,7 +138,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             {submittedApp.ownerFirstName} {submittedApp.ownerSurname}'s CTPL application has been added to the queue.
           </p>
           <div className="mt-6 inline-flex flex-col items-start space-y-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-5 py-4">
-            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.id}</span></span>
+            <span>Reference No. <span className="font-black text-slate-900 dark:text-white">{submittedApp.referenceNo ?? '-'}</span></span>
             <span>Policy <span className="font-black text-slate-900 dark:text-white">{submittedApp.policyType} ({submittedApp.mvType})</span></span>
             <span>Premium <span className="font-black text-[#002f6c] dark:text-[#49b1ea]">{submittedApp.premium}</span></span>
           </div>

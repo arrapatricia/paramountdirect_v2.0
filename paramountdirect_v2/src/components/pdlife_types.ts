@@ -166,7 +166,9 @@ export interface PdLifeApplicationDetails {
 // Matches App.tsx's ScreeningItem field-for-field (so this is a valid
 // ScreeningItem) plus the PD-Life-only planCategory/details extension.
 export interface PdLifeApplication {
+  // Internal database key - never display it; show applicationId instead.
   id: string;
+  applicationId?: string;
   payor: string;
   planCode: string;
   planDesc: string;

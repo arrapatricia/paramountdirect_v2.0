@@ -1144,17 +1144,17 @@ export default function App() {
     });
     const mapped = mapApiToScreeningItem(created);
     setScreeningData(prev => [mapped, ...prev]);
-    return { ...app, id: created.id, dateReceived: mapped.dateReceived, dateScreened: mapped.dateScreened, status: mapped.status };
+    return { ...app, id: created.id, applicationId: mapped.applicationId, dateReceived: mapped.dateReceived, dateScreened: mapped.dateScreened, status: mapped.status };
   };
 
   // Same pattern as handleCreatePdLifeApp above, one per product line - the
   // create-application wizard already builds a fully-formed local record
   // with a placeholder id; when connected, that placeholder is discarded in
   // favor of the real server record (real id/dateReceived/etc).
-  const handleCreateOfwApp = async (app: OfwApplication) => {
+  const handleCreateOfwApp = async (app: OfwApplication): Promise<OfwApplication> => {
     if (!ofwConnected) {
       setOfwApplications(prev => [app, ...prev]);
-      return;
+      return app;
     }
     const created = await ofwApi.create({
       lastName: app.lastName,
@@ -1196,7 +1196,9 @@ export default function App() {
       isPaid: app.isPaid,
       beneficiaries: app.beneficiaries.map((b) => ({ fullName: b.fullName, relationship: b.relationship, birthdate: new Date(b.birthdate).toISOString() })),
     });
-    setOfwApplications(prev => [mapApiToOfwApplication(created), ...prev]);
+    const mapped = mapApiToOfwApplication(created);
+    setOfwApplications(prev => [mapped, ...prev]);
+    return mapped;
   };
 
   const handleUpdateOfwApp = (id: string, patch: Partial<OfwApplication>) => {
@@ -1207,10 +1209,10 @@ export default function App() {
     });
   };
 
-  const handleCreateCtplApp = async (app: CtplApplication) => {
+  const handleCreateCtplApp = async (app: CtplApplication): Promise<CtplApplication> => {
     if (!ctplConnected) {
       setCtplApplications(prev => [app, ...prev]);
-      return;
+      return app;
     }
     const created = await ctplApi.create({
       policyType: toApiCtplPolicyType(app.policyType),
@@ -1251,7 +1253,9 @@ export default function App() {
       screenedBy: app.screenedBy,
       isPaid: app.isPaid,
     });
-    setCtplApplications(prev => [mapApiToCtplApplication(created), ...prev]);
+    const mapped = mapApiToCtplApplication(created);
+    setCtplApplications(prev => [mapped, ...prev]);
+    return mapped;
   };
 
   const handleUpdateCtplApp = (id: string, patch: Partial<CtplApplication>) => {
@@ -1262,10 +1266,10 @@ export default function App() {
     });
   };
 
-  const handleCreateGtpApp = async (app: GtpApplication) => {
+  const handleCreateGtpApp = async (app: GtpApplication): Promise<GtpApplication> => {
     if (!gtpConnected) {
       setGtpApplications(prev => [app, ...prev]);
-      return;
+      return app;
     }
     const created = await gtpApi.create({
       travelType: app.travelType,
@@ -1293,7 +1297,9 @@ export default function App() {
       screenedBy: app.screenedBy,
       isPaid: app.isPaid,
     });
-    setGtpApplications(prev => [mapApiToGtpApplication(created), ...prev]);
+    const mapped = mapApiToGtpApplication(created);
+    setGtpApplications(prev => [mapped, ...prev]);
+    return mapped;
   };
 
   const handleUpdateGtpApp = (id: string, patch: Partial<GtpApplication>) => {
@@ -1318,7 +1324,7 @@ export default function App() {
       // Show the real iPeak policy number once assigned, not the internal
       // database id - the id is only meaningful for API calls (see
       // handleUpdateStatus, which keys off selectedApp.id, unaffected by this).
-      applicationId: currentApp?.policyNumber || currentApp?.applicationId || selectedApp.id,
+      applicationId: currentApp?.policyNumber || currentApp?.applicationId || '-',
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,

@@ -24,8 +24,10 @@ export async function submitNewBusinessToIpeak(application: ApplicationWithBenef
     application = { ...application, policyNumber };
   }
 
+  // Only a successful submission counts - a failed attempt (iPeak error,
+  // not configured) is retried on the next status change.
   const alreadySubmitted = await prisma.pdLifeIpeakRequest.findFirst({
-    where: { applicationId: application.id, method: 'NewBusiness' },
+    where: { applicationId: application.id, method: 'NewBusiness', success: true },
   });
   if (alreadySubmitted) return alreadySubmitted;
 
