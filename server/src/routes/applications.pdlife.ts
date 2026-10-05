@@ -41,7 +41,8 @@ const createApplicationSchema = z.object({
   source: z.string().min(1),
   dateReceived: z.coerce.date(),
   dateScreened: z.coerce.date().optional(),
-  screenedBy: z.string().optional(),
+  // null = unassigned; the first issuer to open it claims it (PATCH /:id/claim).
+  screenedBy: z.string().nullish(),
   status: z.enum(['Received', 'For_Verification', 'For_Evaluation', 'Paid', 'Issued']).default('Received'),
   details: z.record(z.string(), z.unknown()).default({}),
 });
