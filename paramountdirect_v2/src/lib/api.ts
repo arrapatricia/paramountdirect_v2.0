@@ -153,7 +153,7 @@ export const pdLifeApi = {
   claim: (id: string) =>
     apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}/claim`, { method: 'PATCH' }),
   updateStatus: (id: string, status: string) =>
-    apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}/status`, {
+    apiFetch<PdLifeApplicationApi & { ipeakWarning?: string }>(`/api/applications/pd-life/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),

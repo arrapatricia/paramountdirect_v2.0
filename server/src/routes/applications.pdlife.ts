@@ -127,12 +127,17 @@ router.patch(
     await recordAudit(req, { action: 'UPDATE', module: 'Application Screening', details: `Updated status of PD Life application ${application.id} to ${status}` });
 
     const processorEmail = req.user?.email ?? 'unknown';
+    let ipeakWarning: string | undefined;
     try {
-      if (existing.status === 'Received' && status !== 'Received') {
-        await submitNewBusinessToIpeak(application, processorEmail);
-      }
-      if (status === 'Issued') {
-        await updateIpeakStatus(application, 'APR', processorEmail);
+      if (status !== 'Received') {
+        // Idempotent: an application already submitted is never re-sent, and
+        // one with missing data is skipped (and retried on the next change).
+        const submission = await submitNewBusinessToIpeak(application, processorEmail);
+        if ('skipped' in submission) {
+          ipeakWarning = `Not sent to iPeak - incomplete data. Missing: ${submission.missing.join(', ')}.`;
+        } else if (status === 'Issued' && submission.success) {
+          await updateIpeakStatus(application, 'APR', processorEmail);
+        }
       }
     } catch (err) {
       // Transmission to iPeak must never block the screener's status
@@ -141,7 +146,7 @@ router.patch(
       console.error('iPeak transmission failed for PD Life application', application.id, err);
     }
 
-    res.json(application);
+    res.json({ ...application, ipeakWarning });
   })
 );
 

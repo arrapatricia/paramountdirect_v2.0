@@ -1090,6 +1090,7 @@ export default function App() {
       .updateStatus(selectedApp.id, toApiPdLifeStatus(newStatus))
       .then((updated) => {
         setScreeningData(prev => prev.map(app => (app.id === updated.id ? mapApiToScreeningItem(updated) : app)));
+        if (updated.ipeakWarning) setPdLifeLoadError(updated.ipeakWarning);
       })
       .catch((err) => {
         setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to update status.');

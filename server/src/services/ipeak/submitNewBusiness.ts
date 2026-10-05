@@ -7,11 +7,17 @@ import { prisma } from '../../lib/prisma';
 import { callIpeak, ipeakConfigured } from './client';
 import { buildLifeNbPolicyPayload } from './payloadBuilder';
 import { generatePolicyNumber } from './policyNumber';
+import { getMissingNewBusinessFields } from './validateNewBusiness';
 import { Prisma, type PdLifeApplication, type PdLifeBeneficiary } from '@prisma/client';
 
 type ApplicationWithBeneficiaries = PdLifeApplication & { beneficiaries: PdLifeBeneficiary[] };
 
+export type SkippedSubmission = { skipped: true; missing: string[] };
+
 export async function submitNewBusinessToIpeak(application: ApplicationWithBeneficiaries, createdByEmail: string) {
+  const missing = getMissingNewBusinessFields(application);
+  if (missing.length > 0) return { skipped: true, missing } satisfies SkippedSubmission;
+
   const policyNumber = application.policyNumber ?? (await generatePolicyNumber(application.planCode));
   if (!application.policyNumber) {
     await prisma.pdLifeApplication.update({ where: { id: application.id }, data: { policyNumber } });
