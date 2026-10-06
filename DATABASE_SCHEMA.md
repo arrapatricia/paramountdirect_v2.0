@@ -24,7 +24,6 @@ erDiagram
     PDLIFE_APPLICATION ||--o{ PDLIFE_BENEFICIARY : "names"
     PDLIFE_APPLICATION ||--o{ PDLIFE_IPEAK_REQUEST : "logs"
     PDLIFE_APPLICATION ||--o| LIFE_PAYMENT_TRANSACTION : "billed as"
-    LIFE_PAYMENT_TRANSACTION ||--o{ PAYMENT_LEDGER_ITEM : "installments"
 
     OFW_APPLICATION ||--o{ NONLIFE_PAYMENT_TRANSACTION : "paid via"
     OFW_APPLICATION ||--o{ OFW_BENEFICIARY : "names"
@@ -44,6 +43,20 @@ erDiagram
         string invoiceNumber UK
     }
 ```
+
+## iPeak as a data source (assumed)
+
+iPeak / AS400 (LEAP Services) is the system of record for issued policies and their payment
+history. PD 2.0 talks to it two ways:
+
+| Direction | Method | Status | Where it lands |
+|---|---|---|---|
+| PD → iPeak | `NewBusiness`, `UpdateStatus` | **Verified** live against UAT | logged in `PdLifeIpeakRequest` |
+| iPeak → PD | `PolicyInquiry` (policy snapshot + `PayHistory`, coverages, beneficiaries, loans) | **Assumed** — contract transcribed from the "API FOR IPEAK TO PD" spec; no live endpoint yet (404 on UAT), never run against a real server | `LifePaymentTransaction` (snapshot) + `PdLifeIpeakRequest.responseBody` (full response) |
+
+Tables below marked *iPeak-sourced (assumed)* are expected to be populated from Policy
+Inquiry responses rather than entered in PD 2.0. Treat their column mapping as unconfirmed
+until the endpoint is live and tested; columns with no field in the spec are placeholder-defaulted.
 
 ## Users & Roles
 
@@ -136,7 +149,7 @@ Audit/retry trail for every call made to iPeak (LEAP Services).
 | `id` PK | String (cuid) | |
 | `applicationId` FK | String | → `PdLifeApplication.id` |
 | `policyNumber` | String | |
-| `method` | enum | `NewBusiness` \| `UpdateStatus` |
+| `method` | enum | `NewBusiness` \| `UpdateStatus` \| `PolicyInquiry` (assumed — see iPeak data source above) |
 | `requestPayload` / `responseBody?` | Json | |
 | `statusCode?` / `success` / `errorMessage?` / `retryCount` | Int? / Boolean / String? / Int | |
 
@@ -234,6 +247,11 @@ PD Life bills on an installment ledger; CTPL/OFW/GTP are straight-through one-ti
 
 ### `LifePaymentTransaction` → table `life_payment_transactions`
 
+*iPeak-sourced (assumed):* one current-snapshot row per policy, upserted from a Policy Inquiry
+response (`distributePolicyInquiryToLedger`). Not yet populated by any live sync, which is why
+the Payment Transactions page is empty. `gender`, `hcrStatus`, `hcrUnit`, `payType`, `mode`,
+`accidentalBenefits` and `underpay` have no source field in the spec and are defaulted.
+
 | Field | Type | Notes |
 |---|---|---|
 | `id` PK | String (cuid) | |
@@ -242,19 +260,16 @@ PD Life bills on an installment ledger; CTPL/OFW/GTP are straight-through one-ti
 | `policyStatus` | enum | `Inforced` \| `Lapsed` \| `Terminated` \| `Matured` \| `Involuntary` \| `Voluntary` \| `Surrender` |
 | `premium`, `hcrPremium`, `deposit`, `underpay`, `cashValue`, `lifeBenefits`, `accidentalBenefits` | Float | |
 | `dueDate`, `issueDate`, `effectivityDate`, `policyDate`, `expiryDate` | DateTime | |
-| `planCode` / `planDesc` / `orDate?` / `orNumber?` | String | |
+| `planCode` / `planDesc` / `siDate?` / `siNumber?` | String | `siNumber` / `siDate` are the **Service Invoice (SI)** number and date. Life issues only a Service Invoice, never an Official Receipt |
 
-Relations: belongs to one `PdLifeApplication` (via `policyNo`); has many `PaymentLedgerItem`.
+Relations: belongs to one `PdLifeApplication` (via `policyNo`).
 
-### `PaymentLedgerItem`
+### Payment history / ledger (no table)
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` PK | String (cuid) | |
-| `paymentId` FK | String | → `LifePaymentTransaction.id`, cascade delete |
-| `yrInstal` / `dueDate` / `status` | String / DateTime / String | |
-| `uploaded` / `amountPaid` / `underpay` | Float | |
-| `orNumber` / `orDate?` | String / DateTime? | |
+The per-installment `PaymentLedgerItem` table was removed (migration
+`20260918075855_remove_payment_ledger_item`). Payment history is **assumed** to come from
+iPeak's `PayHistory` list (one row per collection/voucher) in the Policy Inquiry response, read
+back from `PdLifeIpeakRequest.responseBody` rather than kept as a second copy in PD 2.0.
 
 ### `NonLifePaymentTransaction` → table `non_life_payment_transactions` (CTPL / OFW / GTP)
 

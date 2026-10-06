@@ -109,7 +109,7 @@ If either var is unset, `callIpeak()` (`client.ts`) never fires an HTTP request 
 ### `LifePaymentTransaction` (the real, backend-persisted PD Life ledger/billing model)
 - `policyNo` (`@unique`, FK to `PdLifeApplication.policyNumber`) — can only exist once an application has actually been issued a policy number by iPeak.
 - Insured/contact fields (`title`, `firstName`/`middleName`/`lastName`, `birthdate`, `gender`, `currentAge`, `issueAge`, `address`, `mobileNumber`, `telephoneNumber`, `emailAddress`).
-- Policy/ledger fields: `policyStatus` (`PolicyStatus` enum), `hcrStatus`, `hcrUnit`, `premium`, `hcrPremium`, `deposit`, `underpay`, `dueDate`, `payType`, `cashValue`, `lifeBenefits`, `accidentalBenefits`, `mode`, `issueDate`, `effectivityDate`, `policyDate`, `expiryDate`, `planCode`, `planDesc`, `orDate?`, `orNumber?`.
+- Policy/ledger fields: `policyStatus` (`PolicyStatus` enum), `hcrStatus`, `hcrUnit`, `premium`, `hcrPremium`, `deposit`, `underpay`, `dueDate`, `payType`, `cashValue`, `lifeBenefits`, `accidentalBenefits`, `mode`, `issueDate`, `effectivityDate`, `policyDate`, `expiryDate`, `planCode`, `planDesc`, `siDate?`, `siNumber?` (Service Invoice date/number; Life has no Official Receipt).
 - Deliberately **no** per-installment child table — `PaymentLedgerItem` was removed; ledger/installment detail (iPeak's `PayHistory`) is read on demand from the most recent successful `PdLifeIpeakRequest{method: PolicyInquiry}` row instead of being duplicated and kept in sync.
 - Not yet wired to any frontend page — `payment_transactions.tsx` still runs on local mock data.
 

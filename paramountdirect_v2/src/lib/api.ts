@@ -475,8 +475,8 @@ export interface LifePaymentTransactionApi {
   expiryDate: string;
   planCode: string;
   planDesc: string;
-  orDate: string | null;
-  orNumber: string | null;
+  siDate: string | null;
+  siNumber: string | null;
 }
 
 export const paymentsApi = {

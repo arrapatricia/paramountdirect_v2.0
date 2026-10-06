@@ -657,8 +657,9 @@ model LifePaymentTransaction {
 
   planCode String
   planDesc String
-  orDate   DateTime?
-  orNumber String?
+  // Service Invoice (SI) date/number - Life issues only a Service Invoice.
+  siDate   DateTime?
+  siNumber String?
 
   // Ledger/installment detail (iPeak's PayHistory) is NOT duplicated into its
   // own table - it's read on demand from the most recent successful

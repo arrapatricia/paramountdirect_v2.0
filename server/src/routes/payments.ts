@@ -79,8 +79,8 @@ const createPaymentSchema = z.object({
 
   planCode: z.string().min(1),
   planDesc: z.string().min(1),
-  orDate: z.coerce.date().optional(),
-  orNumber: z.string().optional(),
+  siDate: z.coerce.date().optional(),
+  siNumber: z.string().optional(),
 });
 
 router.post(

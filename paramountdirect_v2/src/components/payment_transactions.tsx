@@ -40,8 +40,8 @@ export interface PaymentLedgerItem {
   uploaded: number;
   amountPaid: number;
   underpay: number;
-  orNumber: string;
-  orDate: string;
+  siNumber: string;
+  siDate: string;
   status: string;
 }
 
@@ -88,8 +88,8 @@ export interface PaymentTransaction {
 
   planCode: string;
   planDesc: string;
-  orDate: string;
-  orNumber: string;
+  siDate: string;
+  siNumber: string;
 
   ledgerHistory: PaymentLedgerItem[];
 }
@@ -126,20 +126,20 @@ const computeAutomaticPremiumLoan = (
   return Math.min(total, cashValue);
 };
 
-const generateFullYearLedger = (premiumAmt: number, orNo: string, overallStatus: string): PaymentLedgerItem[] => {
+const generateFullYearLedger = (premiumAmt: number, siNo: string, overallStatus: string): PaymentLedgerItem[] => {
   const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
   return months.map((m, idx) => {
     const isFirst = idx === 0;
     let itemStatus = 'Inforced';
     let paidAmt = premiumAmt;
-    let currentOr = isFirst ? orNo : `500000000${(198 + idx).toString()}`;
-    let currentOrDate = `2026-${m}-06`;
+    let currentSi = isFirst ? siNo : `500000000${(198 + idx).toString()}`;
+    let currentSiDate = `2026-${m}-06`;
 
     if (overallStatus === 'Lapsed' && idx >= 3) {
       itemStatus = 'Lapsed';
       paidAmt = 0;
-      currentOr = '-';
-      currentOrDate = '-';
+      currentSi = '-';
+      currentSiDate = '-';
     } else if (overallStatus === 'Matured') {
       itemStatus = idx === 11 ? 'Matured' : 'Inforced';
     }
@@ -150,8 +150,8 @@ const generateFullYearLedger = (premiumAmt: number, orNo: string, overallStatus:
       uploaded: premiumAmt,
       amountPaid: paidAmt,
       underpay: overallStatus === 'Lapsed' && idx >= 3 ? premiumAmt : 0,
-      orNumber: currentOr,
-      orDate: currentOrDate,
+      siNumber: currentSi,
+      siDate: currentSiDate,
       status: itemStatus
     };
   });
@@ -180,8 +180,8 @@ const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 0 }).map
     statusType = 'Matured';
   }
 
-  const orNo = `5000000000${(198 + i).toString()}`;
-  const ledger = generateFullYearLedger(p.prem, orNo, statusType);
+  const siNo = `5000000000${(198 + i).toString()}`;
+  const ledger = generateFullYearLedger(p.prem, siNo, statusType);
   const mode = 'Monthly';
   // DM cash-value products only start accumulating Cash Value on their 2nd-4th
   // policy-year anniversary, so a couple of the Lapsed sample policies are
@@ -228,8 +228,8 @@ const INITIAL_TRANSACTIONS: PaymentTransaction[] = Array.from({ length: 0 }).map
 
     planCode: p.plan,
     planDesc: p.desc,
-    orDate: statusType === 'Lapsed' ? '04/06/2026' : '08/06/2026',
-    orNumber: statusType === 'Lapsed' ? '-' : orNo,
+    siDate: statusType === 'Lapsed' ? '04/06/2026' : '08/06/2026',
+    siNumber: statusType === 'Lapsed' ? '-' : siNo,
     ledgerHistory: ledger
   };
 });
@@ -277,8 +277,8 @@ export default function PaymentTransactions({
     policyStatus: 'Inforced' as PaymentTransaction['policyStatus'],
     dueDate: '',
     issueDate: '',
-    orNumber: '',
-    orDate: '',
+    siNumber: '',
+    siDate: '',
   });
 
   const handleCreateLifeTransaction = (e: React.FormEvent) => {
@@ -286,7 +286,7 @@ export default function PaymentTransactions({
     const premiumAmt = parseFloat(lifeDraft.premium) || 0;
     const today = new Date().toISOString().slice(0, 10);
     const issueDate = lifeDraft.issueDate || today;
-    const ledger = generateFullYearLedger(premiumAmt, lifeDraft.orNumber || '-', lifeDraft.policyStatus);
+    const ledger = generateFullYearLedger(premiumAmt, lifeDraft.siNumber || '-', lifeDraft.policyStatus);
 
     const newTransaction: PaymentTransaction = {
       policyNo: lifeDraft.policyNo.trim(),
@@ -327,8 +327,8 @@ export default function PaymentTransactions({
 
       planCode: lifeDraft.planCode.trim(),
       planDesc: lifeDraft.planDesc.trim(),
-      orDate: lifeDraft.orDate || '-',
-      orNumber: lifeDraft.orNumber.trim() || '-',
+      siDate: lifeDraft.siDate || '-',
+      siNumber: lifeDraft.siNumber.trim() || '-',
       ledgerHistory: ledger,
     };
 
@@ -360,7 +360,7 @@ export default function PaymentTransactions({
     const matchesSearch =
       t.policyNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payorFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.orNumber.includes(searchTerm);
+      t.siNumber.includes(searchTerm);
 
     const matchesStatus = selectedStatus === 'All' || t.policyStatus === selectedStatus;
     const matchesProduct = selectedProduct === 'All' || t.planCode === selectedProduct;
@@ -576,7 +576,7 @@ export default function PaymentTransactions({
               type="text"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              placeholder="Search Policy No, Payor Name, or OR No..."
+              placeholder="Search Policy No, Payor Name, or SI No..."
               className="w-full pl-9 pr-4 py-2 rounded-xl text-xs font-medium border border-slate-200 bg-white/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
@@ -704,8 +704,8 @@ export default function PaymentTransactions({
                     <td className={`py-4 px-3 font-semibold ${item.automaticPremiumLoan > 0 ? 'text-[#008cb4]' : 'text-slate-400 dark:text-slate-500'}`}>₱{item.automaticPremiumLoan.toFixed(2)}</td>
                     <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.cashValue.toFixed(2)}</td>
                     <td className="py-4 px-3">
-                      <span className="font-mono font-bold text-slate-800 block dark:text-slate-200">{item.orNumber}</span>
-                      <span className="text-[10px] text-slate-400 block dark:text-slate-500">{item.orDate}</span>
+                      <span className="font-mono font-bold text-slate-800 block dark:text-slate-200">{item.siNumber}</span>
+                      <span className="text-[10px] text-slate-400 block dark:text-slate-500">{item.siDate}</span>
                     </td>
                     <td className="py-4 px-3 font-semibold text-slate-700 dark:text-slate-300">{item.dueDate}</td>
                     <td className="py-4 px-3">
@@ -799,8 +799,8 @@ export default function PaymentTransactions({
 
                   <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
                     <Receipt className="w-4 h-4 text-slate-400 flex-shrink-0 dark:text-slate-500" />
-                    <span className="font-semibold text-slate-500 dark:text-slate-400">Invoice OR:</span>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{item.orNumber}</span>
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Service Invoice:</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{item.siNumber}</span>
                   </div>
 
                   <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
@@ -1033,20 +1033,20 @@ export default function PaymentTransactions({
               </label>
 
               <label className="space-y-1">
-                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">OR Number</span>
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">SI Number</span>
                 <input
-                  value={lifeDraft.orNumber}
-                  onChange={(e) => setLifeDraft((d) => ({ ...d, orNumber: e.target.value }))}
+                  value={lifeDraft.siNumber}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, siNumber: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                 />
               </label>
 
               <label className="space-y-1">
-                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">OR Date</span>
+                <span className="font-bold text-slate-600 uppercase tracking-wide dark:text-slate-400">SI Date</span>
                 <input
                   type="date"
-                  value={lifeDraft.orDate}
-                  onChange={(e) => setLifeDraft((d) => ({ ...d, orDate: e.target.value }))}
+                  value={lifeDraft.siDate}
+                  onChange={(e) => setLifeDraft((d) => ({ ...d, siDate: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-[#008cb4] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                 />
               </label>
@@ -1395,7 +1395,7 @@ export default function PaymentTransactions({
                       <th className="p-2 border-r border-slate-300 text-right">Deposit</th>
                       <th className="p-2 border-r border-slate-300 text-right">Underpay</th>
                       <th className="p-2 border-r border-slate-300">Code/PayForm</th>
-                      <th className="p-2 border-r border-slate-300">OR Date/Number</th>
+                      <th className="p-2 border-r border-slate-300">SI Date/Number</th>
                       <th className="p-2 text-center">Status</th>
                     </tr>
                   </thead>
@@ -1410,7 +1410,7 @@ export default function PaymentTransactions({
                         <td className="p-2 border-r border-slate-300 text-right text-slate-400">₱{leg.underpay.toFixed(2)}</td>
                         <td className="p-2 border-r border-slate-300 font-mono text-[10px]">ONLINE</td>
                         <td className="p-2 border-r border-slate-300 font-mono text-[10px]">
-                          {leg.orDate} / {leg.orNumber}
+                          {leg.siDate} / {leg.siNumber}
                         </td>
                         <td className="p-2 text-center font-bold text-emerald-700">{leg.status}</td>
                       </tr>
@@ -1489,8 +1489,8 @@ export default function PaymentTransactions({
                     <th className="py-2.5 px-3">Uploaded</th>
                     <th className="py-2.5 px-3">Amount Paid</th>
                     <th className="py-2.5 px-3">Underpay</th>
-                    <th className="py-2.5 px-3">OR Number</th>
-                    <th className="py-2.5 px-3">OR Date</th>
+                    <th className="py-2.5 px-3">SI Number</th>
+                    <th className="py-2.5 px-3">SI Date</th>
                     <th className="py-2.5 px-3">Status</th>
                     <th className="py-2.5 px-3 text-center">Service Invoice</th>
                   </tr>
@@ -1513,8 +1513,8 @@ export default function PaymentTransactions({
                       <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-300">₱{item.uploaded.toFixed(2)}</td>
                       <td className="py-3 px-3 font-extrabold text-emerald-700 dark:text-emerald-400">₱{item.amountPaid.toFixed(2)}</td>
                       <td className="py-3 px-3 text-slate-400 dark:text-slate-500">₱{item.underpay.toFixed(2)}</td>
-                      <td className="py-3 px-3 font-mono font-bold">{item.orNumber}</td>
-                      <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{item.orDate}</td>
+                      <td className="py-3 px-3 font-mono font-bold">{item.siNumber}</td>
+                      <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{item.siDate}</td>
                       <td className="py-3 px-3">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${getStatusBadgeStyle(item.status)}`}>
                           {item.status}
