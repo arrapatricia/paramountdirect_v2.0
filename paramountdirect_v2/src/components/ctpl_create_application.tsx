@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, Info } from 'lucide-react';
 import { CTPL_MV_TYPES_BY_POLICY, CTPL_POLICY_TYPES, type CtplApplication } from './ctpl_types';
 import { CTPL_VEHICLE_YEARS, CTPL_VEHICLE_MAKERS } from './ctpl_vehicle_reference';
 import { getPremiumRate, getCtplCovFee, type PremiumRate } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
+import PhAddressFields from './ph_address_fields';
 
 interface Props {
   onCreate: (app: CtplApplication) => Promise<CtplApplication>;
@@ -31,9 +31,11 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
   const [ownerMiddleName, setOwnerMiddleName] = useState('');
   const [ownerSurname, setOwnerSurname] = useState('');
   const [ownerAddress, setOwnerAddress] = useState('');
-  const [ownerRegion, setOwnerRegion] = useState(PH_REGIONS[0].name);
-  const [ownerCity, setOwnerCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
-  const [ownerBarangay, setOwnerBarangay] = useState(() => barangaysForCity(citiesForRegion(PH_REGIONS[0].name)[0])[0]);
+  const [ownerRegion, setOwnerRegion] = useState('');
+  // Narrows the city list only - CTPL stores no province for the owner.
+  const [ownerProvince, setOwnerProvince] = useState('');
+  const [ownerCity, setOwnerCity] = useState('');
+  const [ownerBarangay, setOwnerBarangay] = useState('');
   const [sameAsOwner, setSameAsOwner] = useState(true);
   const [applicantFirstName, setApplicantFirstName] = useState('');
   const [applicantSurname, setApplicantSurname] = useState('');
@@ -73,7 +75,7 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
     policyType && mvType &&
     (!showCorporateName || corporateName) &&
     (!showOwnerName || (ownerFirstName && ownerSurname)) &&
-    ownerAddress && email && mobileNumber &&
+    ownerAddress && ownerRegion && ownerCity && ownerBarangay && email && mobileNumber &&
     plateNumber && mvFileNumber && chassisNumber &&
     vehicleYear && vehicleMake && vehicleSeries &&
     (sameAsOwner || (applicantFirstName && applicantSurname));
@@ -284,38 +286,13 @@ export default function CtplCreateApplication({ onCreate, onBack, currentUser, r
             )}
 
             <div className="md:col-span-3"><label className={labelClass}>Address (House No., Street)</label><input required value={ownerAddress} onChange={(e) => setOwnerAddress(e.target.value)} className={inputClass} /></div>
-            <div>
-              <label className={labelClass}>Region</label>
-              <select
-                value={ownerRegion}
-                onChange={(e) => {
-                  const r = e.target.value;
-                  const c = citiesForRegion(r)[0];
-                  setOwnerRegion(r);
-                  setOwnerCity(c);
-                  setOwnerBarangay(barangaysForCity(c)[0]);
-                }}
-                className={inputClass}
-              >
-                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>City/Municipality</label>
-              <select
-                value={ownerCity}
-                onChange={(e) => { const c = e.target.value; setOwnerCity(c); setOwnerBarangay(barangaysForCity(c)[0]); }}
-                className={inputClass}
-              >
-                {citiesForRegion(ownerRegion).map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Barangay</label>
-              <select value={ownerBarangay} onChange={(e) => setOwnerBarangay(e.target.value)} className={inputClass}>
-                {barangaysForCity(ownerCity).map((b) => <option key={b}>{b}</option>)}
-              </select>
-            </div>
+            <PhAddressFields
+              required
+              inputClass={inputClass}
+              labelClass={labelClass}
+              value={{ region: ownerRegion, province: ownerProvince, city: ownerCity, barangay: ownerBarangay }}
+              onChange={(a) => { setOwnerRegion(a.region); setOwnerProvince(a.province); setOwnerCity(a.city); setOwnerBarangay(a.barangay); }}
+            />
 
             <div className="md:col-span-3">
               <label className={labelClass}>Is the Applicant the same as the Registered Owner?</label>

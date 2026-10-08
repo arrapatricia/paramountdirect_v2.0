@@ -4,7 +4,7 @@ import type { CtplApplication, CtplPolicyStatus } from './ctpl_types';
 import { CTPL_POLICY_TYPES, CTPL_MV_TYPES_BY_POLICY, CTPL_STATUS_DESCRIPTIONS, getCtplPolicyStatus } from './ctpl_types';
 import { PolicyDocumentsSection, PrintableDocumentModal, DocRow, type PolicyDocumentSpec } from './policy_documents';
 import { getPremiumRate, getCtplCovFee, type PremiumRate } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
+import PhAddressFields from './ph_address_fields';
 import { Section, FieldGrid, Field } from './application_detail_ui';
 import { ConsentSection, RemarksSection, UploadedDocumentsSection } from './ctpl_vvip_sections';
 
@@ -50,6 +50,9 @@ const labelClass = 'text-xs font-bold text-slate-700 block mb-1 dark:text-slate-
 
 export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: Props) {
   const [isEditing, setIsEditing] = useState(false);
+  // Narrows the city list only - CTPL stores no province for the owner; the
+  // address picker works it out from the saved city.
+  const [ownerProvince, setOwnerProvince] = useState('');
   const [form, setForm] = useState(() => ({
     clientType: app.clientType, corporateName: app.corporateName ?? '', ownerFirstName: app.ownerFirstName, ownerMiddleName: app.ownerMiddleName, ownerSurname: app.ownerSurname,
     ownerAddress: app.ownerAddress, ownerRegion: app.ownerRegion, ownerCity: app.ownerCity, ownerBarangay: app.ownerBarangay,
@@ -161,36 +164,15 @@ export default function CtplApplicationDetail({ app, onBack, onUpdate, rates }: 
               </>
             )}
             <div className="sm:col-span-2"><label className={labelClass}>Address (House No., Street)</label><input value={form.ownerAddress} onChange={(e) => setForm({ ...form, ownerAddress: e.target.value })} className={inputClass} /></div>
-            <div>
-              <label className={labelClass}>Region</label>
-              <select
-                value={form.ownerRegion}
-                onChange={(e) => {
-                  const r = e.target.value;
-                  const c = citiesForRegion(r)[0];
-                  setForm({ ...form, ownerRegion: r, ownerCity: c, ownerBarangay: barangaysForCity(c)[0] });
-                }}
-                className={inputClass}
-              >
-                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>City/Municipality</label>
-              <select
-                value={form.ownerCity}
-                onChange={(e) => { const c = e.target.value; setForm({ ...form, ownerCity: c, ownerBarangay: barangaysForCity(c)[0] }); }}
-                className={inputClass}
-              >
-                {citiesForRegion(form.ownerRegion).map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Barangay</label>
-              <select value={form.ownerBarangay} onChange={(e) => setForm({ ...form, ownerBarangay: e.target.value })} className={inputClass}>
-                {barangaysForCity(form.ownerCity).map((b) => <option key={b}>{b}</option>)}
-              </select>
-            </div>
+            <PhAddressFields
+              inputClass={inputClass}
+              labelClass={labelClass}
+              value={{ region: form.ownerRegion, province: ownerProvince, city: form.ownerCity, barangay: form.ownerBarangay }}
+              onChange={(a) => {
+                setOwnerProvince(a.province);
+                setForm({ ...form, ownerRegion: a.region, ownerCity: a.city, ownerBarangay: a.barangay });
+              }}
+            />
 
             <div className="sm:col-span-2">
               <label className={labelClass}>Is the Applicant the same as the Registered Owner?</label>

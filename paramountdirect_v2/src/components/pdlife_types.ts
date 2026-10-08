@@ -56,6 +56,9 @@ export interface ContactInfo {
   street: string;
   building: string;
   region: string;
+  // Optional: applications saved before the PSGC address lookup have none, and
+  // NCR has no provinces.
+  province?: string;
   city: string;
   barangay: string;
   zipcode: string;

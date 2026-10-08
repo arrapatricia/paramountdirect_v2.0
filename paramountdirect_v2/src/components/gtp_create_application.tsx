@@ -6,7 +6,7 @@ import {
   type GtpApplication, type GtpCompanion, type GtpCompanionRelationship,
 } from './gtp_types';
 import { getPremiumRate, getGtpSingleTripRate, getGtpMultiTripRate, type PremiumRate, type GtpDestinationCategory } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, GENERIC_BARANGAYS } from './ph_geography';
+import PhAddressFields from './ph_address_fields';
 
 interface Props {
   onCreate: (app: GtpApplication) => Promise<GtpApplication>;
@@ -58,8 +58,9 @@ const sectionHeadingClass = 'text-sm font-bold text-slate-800 border-b border-sl
 export default function GtpCreateApplication({ onCreate, onBack, currentUser, rates }: Props) {
   const [travelType, setTravelType] = useState<'International' | 'Domestic'>('International');
   const [destinations, setDestinations] = useState<string[]>([POPULAR_DESTINATIONS[0]]);
-  const [domesticRegion, setDomesticRegion] = useState(PH_REGIONS[0].name);
-  const [domesticCity, setDomesticCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
+  const [domesticRegion, setDomesticRegion] = useState('');
+  const [domesticProvince, setDomesticProvince] = useState('');
+  const [domesticCity, setDomesticCity] = useState('');
   const [departureDate, setDepartureDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [applicationType, setApplicationType] = useState<'Individual' | 'Family'>('Individual');
@@ -78,9 +79,11 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   const [passportNumber, setPassportNumber] = useState('');
   const [guardianName, setGuardianName] = useState('');
   const [phAddress, setPhAddress] = useState('');
-  const [phRegion, setPhRegion] = useState(PH_REGIONS[0].name);
-  const [phCity, setPhCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
-  const [phBarangay, setPhBarangay] = useState(GENERIC_BARANGAYS[0]);
+  const [phRegion, setPhRegion] = useState('');
+  // Narrows the city list only - GTP stores no province for the traveler.
+  const [phProvince, setPhProvince] = useState('');
+  const [phCity, setPhCity] = useState('');
+  const [phBarangay, setPhBarangay] = useState('');
 
   const [planVariant, setPlanVariant] = useState<typeof GTP_PLAN_VARIANTS[number]>('Single Trip');
   const [cruiseCoverage, setCruiseCoverage] = useState(false);
@@ -138,6 +141,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
 
   const canSubmit = Boolean(
     travelerFirstName && travelerSurname && birthdate && email && mobileNumber && phAddress &&
+    phRegion && phCity && phBarangay &&
     departureDate && (isMultiTrip || returnDate) && destinations.length > 0 &&
     !isSeniorApplicant && !exceedsSingleTripMaxDays &&
     (travelType !== 'International' || passportNumber) &&
@@ -150,6 +154,7 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
   };
 
   const addDomesticDestination = () => {
+    if (!domesticCity) return;
     const label = `${domesticCity}, ${domesticRegion}`;
     setDestinations((prev) => prev.includes(label) ? prev : [...prev, label]);
   };
@@ -373,18 +378,20 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
           ) : (
           <div className="mb-4">
             <label className={labelClass}>Domestic Destination(s)</label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <select
-                value={domesticRegion}
-                onChange={(e) => { const r = e.target.value; setDomesticRegion(r); setDomesticCity(citiesForRegion(r)[0]); }}
-                className={inputClass}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+              <PhAddressFields
+                showBarangay={false}
+                inputClass={inputClass}
+                labelClass="sr-only"
+                value={{ region: domesticRegion, province: domesticProvince, city: domesticCity, barangay: '' }}
+                onChange={(a) => { setDomesticRegion(a.region); setDomesticProvince(a.province); setDomesticCity(a.city); }}
+              />
+              <button
+                type="button"
+                onClick={addDomesticDestination}
+                disabled={!domesticCity}
+                className="px-3 py-2 rounded-lg bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
-              </select>
-              <select value={domesticCity} onChange={(e) => setDomesticCity(e.target.value)} className={inputClass}>
-                {citiesForRegion(domesticRegion).map((c) => <option key={c}>{c}</option>)}
-              </select>
-              <button type="button" onClick={addDomesticDestination} className="px-3 py-2 rounded-lg bg-[#002f6c] hover:bg-[#00224f] text-white text-xs font-bold cursor-pointer">
                 + Add Destination
               </button>
             </div>
@@ -483,37 +490,13 @@ export default function GtpCreateApplication({ onCreate, onBack, currentUser, ra
               <div><label className={labelClass}>Guardian Name</label><input required value={guardianName} onChange={(e) => setGuardianName(e.target.value)} className={inputClass} placeholder="Parent/legal guardian's full name" /></div>
             )}
             <div className="md:col-span-3"><label className={labelClass}>Philippine Address (House No., Street)</label><input required value={phAddress} onChange={(e) => setPhAddress(e.target.value)} className={inputClass} placeholder="House No., Street" /></div>
-            <div>
-              <label className={labelClass}>Region</label>
-              <select
-                value={phRegion}
-                onChange={(e) => {
-                  const r = e.target.value;
-                  const c = citiesForRegion(r)[0];
-                  setPhRegion(r);
-                  setPhCity(c);
-                }}
-                className={inputClass}
-              >
-                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>City/Municipality</label>
-              <select
-                value={phCity}
-                onChange={(e) => setPhCity(e.target.value)}
-                className={inputClass}
-              >
-                {citiesForRegion(phRegion).map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Barangay</label>
-              <select value={phBarangay} onChange={(e) => setPhBarangay(e.target.value)} className={inputClass}>
-                {GENERIC_BARANGAYS.map((b) => <option key={b}>{b}</option>)}
-              </select>
-            </div>
+            <PhAddressFields
+              required
+              inputClass={inputClass}
+              labelClass={labelClass}
+              value={{ region: phRegion, province: phProvince, city: phCity, barangay: phBarangay }}
+              onChange={(a) => { setPhRegion(a.region); setPhProvince(a.province); setPhCity(a.city); setPhBarangay(a.barangay); }}
+            />
           </div>
 
           {isSeniorApplicant && (

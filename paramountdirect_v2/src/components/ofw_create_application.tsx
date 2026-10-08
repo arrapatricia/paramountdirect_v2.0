@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, UploadCloud, FileCheck2, CheckCircle2, ShieldAlert, Plus, Trash2 } from 'lucide-react';
 import { CONFLICT_ZONE_COUNTRIES, OFW_OCCUPATIONS, type OfwApplication } from './ofw_types';
 import { getPremiumRate, type PremiumRate } from './premium_rates';
-import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
+import PhAddressFields from './ph_address_fields';
 
 interface Props {
   onCreate: (app: OfwApplication) => Promise<OfwApplication>;
@@ -68,9 +68,12 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [phAddress, setPhAddress] = useState('');
-  const [phRegion, setPhRegion] = useState(PH_REGIONS[0].name);
-  const [phCity, setPhCity] = useState(citiesForRegion(PH_REGIONS[0].name)[0]);
-  const [phBarangay, setPhBarangay] = useState(() => barangaysForCity(citiesForRegion(PH_REGIONS[0].name)[0])[0]);
+  const [phRegion, setPhRegion] = useState('');
+  // Narrows the city list only - ofwinsurance.ph and the backend store no
+  // province for OFW, so it isn't part of the submitted application.
+  const [phProvince, setPhProvince] = useState('');
+  const [phCity, setPhCity] = useState('');
+  const [phBarangay, setPhBarangay] = useState('');
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
   const [civilStatus, setCivilStatus] = useState<'Single' | 'Married' | 'Widower' | 'Separated'>('Single');
   const [birthdate, setBirthdate] = useState('');
@@ -151,7 +154,7 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit =
-    lastName && firstName && phAddress && birthdate && placeOfBirth && phone && email &&
+    lastName && firstName && phAddress && phRegion && phCity && phBarangay && birthdate && placeOfBirth && phone && email &&
     passportNumber && salaryAmount && employerName &&
     contractStart && contractEnd && insuranceStart &&
     !isContractTooShort &&
@@ -319,38 +322,13 @@ export default function OfwCreateApplication({ onCreate, onBack, currentUser, ra
             <div><label className={labelClass}>Middle Name</label><input value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={inputClass} /></div>
 
             <div className="md:col-span-3"><label className={labelClass}>Philippine Address (House No., Street)</label><input required value={phAddress} onChange={(e) => setPhAddress(e.target.value)} className={inputClass} placeholder="House No., Street" /></div>
-            <div>
-              <label className={labelClass}>Region</label>
-              <select
-                value={phRegion}
-                onChange={(e) => {
-                  const r = e.target.value;
-                  const c = citiesForRegion(r)[0];
-                  setPhRegion(r);
-                  setPhCity(c);
-                  setPhBarangay(barangaysForCity(c)[0]);
-                }}
-                className={inputClass}
-              >
-                {PH_REGIONS.map((r) => <option key={r.name}>{r.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>City/Municipality</label>
-              <select
-                value={phCity}
-                onChange={(e) => { const c = e.target.value; setPhCity(c); setPhBarangay(barangaysForCity(c)[0]); }}
-                className={inputClass}
-              >
-                {citiesForRegion(phRegion).map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Barangay</label>
-              <select value={phBarangay} onChange={(e) => setPhBarangay(e.target.value)} className={inputClass}>
-                {barangaysForCity(phCity).map((b) => <option key={b}>{b}</option>)}
-              </select>
-            </div>
+            <PhAddressFields
+              required
+              inputClass={inputClass}
+              labelClass={labelClass}
+              value={{ region: phRegion, province: phProvince, city: phCity, barangay: phBarangay }}
+              onChange={(a) => { setPhRegion(a.region); setPhProvince(a.province); setPhCity(a.city); setPhBarangay(a.barangay); }}
+            />
 
             <div>
               <label className={labelClass}>Gender</label>

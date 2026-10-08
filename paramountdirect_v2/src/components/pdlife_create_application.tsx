@@ -16,7 +16,7 @@ import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { getHcpPremium, getHcpAvailableTiers, type HcpInsuredOption } from './pdlife_rates_hcp';
 import { getHipPremium, type HipInsuredOption } from './pdlife_rates_hip';
 import { getGlaPremium, GLA_UNITS } from './pdlife_rates_gla';
-import { PH_REGION_NAMES, citiesForRegion, barangaysForCity } from './ph_geography';
+import PhAddressFields from './ph_address_fields';
 
 interface Props {
   onCreate: (app: PdLifeApplication) => Promise<PdLifeApplication>;
@@ -142,7 +142,7 @@ function PdLifeCategoryForm({
   });
   const [contact, setContact] = useState<ContactInfo>({
     houseNumber: '', street: '', building: '',
-    region: PH_REGION_NAMES[0], city: citiesForRegion(PH_REGION_NAMES[0])[0], barangay: barangaysForCity(citiesForRegion(PH_REGION_NAMES[0])[0])[0], zipcode: '',
+    region: '', province: '', city: '', barangay: '', zipcode: '',
     mobileNumber: '', telephoneNumber: '', email: '',
   });
   const [payorInfo, setPayorInfo] = useState<PayorInfo>({
@@ -230,6 +230,9 @@ function PdLifeCategoryForm({
     { label: 'Place of Birth', ok: !!owner.placeOfBirth },
     { label: 'House Number', ok: !!contact.houseNumber },
     { label: 'Street Name', ok: !!contact.street },
+    { label: 'Region', ok: !!contact.region },
+    { label: 'City/Municipality', ok: !!contact.city },
+    { label: 'Barangay', ok: !!contact.barangay },
     { label: 'Zip Code', ok: !!contact.zipcode },
     { label: 'Mobile Number', ok: !!contact.mobileNumber },
     { label: 'Email Address', ok: !!contact.email },
@@ -344,6 +347,11 @@ function PdLifeCategoryForm({
             <span>Plan <span className="font-black text-slate-900 dark:text-white">{submittedApp.planDesc} ({submittedApp.planCode})</span></span>
             <span>Premium <span className="font-black text-[#d0112b]">{submittedApp.premium}</span></span>
           </div>
+          {!submittedApp.applicationId && (
+            <p className="mt-4 text-xs font-bold text-amber-600 dark:text-amber-400 max-w-md mx-auto">
+              Not saved to the server. You are not connected to the backend, so this application exists only in this browser and will not be sent to iPeak. Log out and sign in with a backend account (for example admin@paramount.com.ph), then submit again.
+            </p>
+          )}
           <div className="mt-8">
             <button onClick={onFinish} className="px-6 py-2.5 rounded-xl bg-[#d0112b] hover:bg-[#a80d22] text-white text-xs font-bold cursor-pointer shadow-md transition-all">
               Back to Screening
@@ -524,36 +532,13 @@ function PdLifeCategoryForm({
             <div><label className={labelClass}>Street Name</label><input required value={contact.street} onChange={(e) => setContact((c) => ({ ...c, street: e.target.value }))} className={inputClass} /></div>
             <div><label className={labelClass}>Building Name (optional)</label><input value={contact.building} onChange={(e) => setContact((c) => ({ ...c, building: e.target.value }))} className={inputClass} /></div>
 
-            <div>
-              <label className={labelClass}>Region</label>
-              <select
-                value={contact.region}
-                onChange={(e) => {
-                  const nextRegion = e.target.value;
-                  const nextCity = citiesForRegion(nextRegion)[0] ?? '';
-                  setContact((c) => ({ ...c, region: nextRegion, city: nextCity, barangay: barangaysForCity(nextCity)[0] }));
-                }}
-                className={inputClass}
-              >
-                {PH_REGION_NAMES.map((r) => <option key={r}>{r}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>City/Municipality</label>
-              <select
-                value={contact.city}
-                onChange={(e) => { const nextCity = e.target.value; setContact((c) => ({ ...c, city: nextCity, barangay: barangaysForCity(nextCity)[0] })); }}
-                className={inputClass}
-              >
-                {citiesForRegion(contact.region).map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Barangay</label>
-              <select value={contact.barangay} onChange={(e) => setContact((c) => ({ ...c, barangay: e.target.value }))} className={inputClass}>
-                {barangaysForCity(contact.city).map((b) => <option key={b}>{b}</option>)}
-              </select>
-            </div>
+            <PhAddressFields
+              required
+              inputClass={inputClass}
+              labelClass={labelClass}
+              value={{ region: contact.region, province: contact.province ?? '', city: contact.city, barangay: contact.barangay }}
+              onChange={(a) => setContact((c) => ({ ...c, ...a }))}
+            />
 
             <div><label className={labelClass}>Zip Code</label><input required value={contact.zipcode} onChange={(e) => setContact((c) => ({ ...c, zipcode: e.target.value }))} className={inputClass} /></div>
             <div><label className={labelClass}>Mobile Number</label><input required value={contact.mobileNumber} onChange={(e) => setContact((c) => ({ ...c, mobileNumber: e.target.value }))} className={inputClass} placeholder="09XXXXXXXXX" /></div>

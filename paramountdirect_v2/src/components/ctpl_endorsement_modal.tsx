@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { X, FilePen, CalendarPlus, Ban, ArrowLeft, AlertTriangle } from 'lucide-react';
 import type { CtplApplication } from './ctpl_types';
 import { endorsementsApi, toApiCtplClientType, ApiError, type EndorsementApi, type EndorsementPreviewApi } from '../lib/api';
-import { PH_REGIONS, citiesForRegion, barangaysForCity } from './ph_geography';
+import PhAddressFields from './ph_address_fields';
 import { CTPL_VEHICLE_YEARS, CTPL_VEHICLE_MAKERS } from './ctpl_vehicle_reference';
 import { AmountsTable, ENDORSEMENT_TYPE_LABEL, inputClass, labelClass, peso, displayDate, toDateInput } from './endorsement_shared';
 
@@ -74,6 +74,9 @@ export default function CtplEndorsementModal({ app, onClose, onSubmitted }: Prop
   const [preview, setPreview] = useState<EndorsementPreviewApi | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Narrows the city list only - never part of the endorsement itself; the
+  // address picker works it out from the saved city.
+  const [ownerProvince, setOwnerProvince] = useState('');
 
   const original = useMemo(() => {
     const values = {} as Record<EditableField, string>;
@@ -235,16 +238,15 @@ export default function CtplEndorsementModal({ app, onClose, onSubmitted }: Prop
                     {textInput('ownerMiddleName')}
                     {textInput('ownerSurname')}
                     {textInput('ownerAddress', { span: 'md:col-span-3' })}
-                    {selectInput('ownerRegion', PH_REGIONS.map((r) => r.name), {
-                      onChange: (r) => {
-                        const c = citiesForRegion(r)[0] ?? '';
-                        setForm((prev) => ({ ...prev, ownerRegion: r, ownerCity: c, ownerBarangay: barangaysForCity(c)[0] }));
-                      },
-                    })}
-                    {selectInput('ownerCity', citiesForRegion(form.ownerRegion), {
-                      onChange: (c) => setForm((prev) => ({ ...prev, ownerCity: c, ownerBarangay: barangaysForCity(c)[0] })),
-                    })}
-                    {selectInput('ownerBarangay', barangaysForCity(form.ownerCity))}
+                    <PhAddressFields
+                      inputClass={inputClass}
+                      labelClass={labelClass}
+                      value={{ region: form.ownerRegion, province: ownerProvince, city: form.ownerCity, barangay: form.ownerBarangay }}
+                      onChange={(a) => {
+                        setOwnerProvince(a.province);
+                        setForm((prev) => ({ ...prev, ownerRegion: a.region, ownerCity: a.city, ownerBarangay: a.barangay }));
+                      }}
+                    />
                     {!app.sameAsOwner && textInput('applicantFirstName')}
                     {!app.sameAsOwner && textInput('applicantSurname')}
                   </div>
