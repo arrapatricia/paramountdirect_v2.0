@@ -3,7 +3,7 @@
 // Checks the built payload (not the raw columns) so it sees exactly what
 // would go out, including values resolved from the `details` JSON fallback.
 import type { PdLifeApplication, PdLifeBeneficiary } from '@prisma/client';
-import { buildLifeNbPolicyPayload } from './payloadBuilder';
+import { buildLifeNbPolicyPayload, isCoverageResolvable } from './payloadBuilder';
 
 type ApplicationWithBeneficiaries = PdLifeApplication & { beneficiaries: PdLifeBeneficiary[] };
 
@@ -20,8 +20,10 @@ export function getMissingNewBusinessFields(application: ApplicationWithBenefici
   if (blank(p.IGender)) missing.push('Gender');
   if (blank(p.IBillingAddress)) missing.push('Address');
   if (blank(p.IMobileNo) && blank(p.IEmail)) missing.push('Mobile number or email');
-  if (!coverage || blank(coverage.CoverageType)) missing.push('Plan code');
-  if (!coverage || !(coverage.CoverageAmount > 0)) missing.push('Premium');
+  if (blank(application.planCode)) missing.push('Plan code');
+  else if (!isCoverageResolvable(application)) missing.push('Plan selection (plan, years to pay or units, and age)');
+  if (!coverage || !(coverage.CoverageModal > 0)) missing.push('Premium');
+  if (!(p.PolicyModeOfPayment > 0)) missing.push('Mode of payment');
 
   return missing;
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PAYMENT_MODES, parsePremium, recomputePremium, type PaymentMode } from './pdlife_modal_premium';
 import { ClipboardList, UserCircle2, MapPin, Users, ShieldQuestion, FileWarning, Wallet, Briefcase } from 'lucide-react';
 import {
   NotificationBanner, DetailHeader, StatusControl, IssueConfirmModal, IpeakMissingModal, IpeakMissingNotice, Section, Field, FieldGrid, AddRowButton,
@@ -27,6 +28,8 @@ interface Props {
   // PdLifeApplicationDetails.
   payor: string;
   premium: string;
+  // Called when General Details is saved with a changed payment option.
+  onSavePayment?: (paymentOption: string, premium: string) => void;
   source: string;
   planDesc: string;
   details: Record<string, unknown>;
@@ -42,6 +45,7 @@ export default function ApplicationDetailLifeAccident({
   onBack,
   readOnly = false,
   premium,
+  onSavePayment,
   source,
   planDesc,
   details,
@@ -58,6 +62,12 @@ export default function ApplicationDetailLifeAccident({
   const contact = (details?.contact ?? {}) as Partial<ContactInfo>;
   const payorInfo = (details?.payor ?? {}) as Partial<PayorInfo>;
   const cat = (details?.category ?? {}) as Partial<LifeAccidentDetails>;
+  const savedMode = (PAYMENT_MODES as readonly string[]).includes(cat.paymentOption ?? '') ? (cat.paymentOption as PaymentMode) : null;
+  const [paymentOption, setPaymentOption] = useState<PaymentMode>(savedMode ?? 'Monthly');
+  const paymentChanged = savedMode !== null && paymentOption !== savedMode;
+  const shownPremium = paymentChanged
+    ? recomputePremium({ planCode, details, savedMode, newMode: paymentOption, savedPremium: parsePremium(premium) }).toFixed(2)
+    : premium;
   const fullName = [owner.firstName, owner.middleName, owner.lastName].filter(Boolean).join(' ');
   const fullAddress = [contact.houseNumber, contact.street, contact.building, contact.barangay, contact.city, contact.region, contact.zipcode]
     .filter(Boolean).join(', ');
@@ -112,6 +122,9 @@ export default function ApplicationDetailLifeAccident({
 
   const toggleEdit = (section: string) => {
     if (readOnly) return;
+    if (section === 'general' && editingSection === 'general' && paymentChanged) {
+      onSavePayment?.(paymentOption, shownPremium);
+    }
     setEditingSection(editingSection === section ? null : section);
   };
 
@@ -204,7 +217,7 @@ export default function ApplicationDetailLifeAccident({
         applicationId={applicationId}
         productName={productName}
         planCode={planCode}
-        premium={`Premium: ₱${premium.replace(/^₱/, '')}`}
+        premium={`Premium: ₱${shownPremium.replace(/^₱/, '')}`}
         onBack={onBack}
         statusControl={
           <StatusControl
@@ -235,7 +248,7 @@ export default function ApplicationDetailLifeAccident({
             />
             <Field
               label="Payment Option" editing={editingSection === 'general'} view={cat.paymentOption ?? null}
-              edit={<select className={editSelectClass} defaultValue={cat.paymentOption}><option>Monthly</option><option>Quarterly</option><option>Semi-Annual</option><option>Annual</option></select>}
+              edit={<select className={editSelectClass} value={paymentOption} onChange={(e) => setPaymentOption(e.target.value as PaymentMode)}>{PAYMENT_MODES.map((o) => <option key={o}>{o}</option>)}</select>}
             />
           </FieldGrid>
         </Section>

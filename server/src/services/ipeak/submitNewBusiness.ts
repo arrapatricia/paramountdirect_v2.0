@@ -8,13 +8,18 @@ import { callIpeak, ipeakConfigured } from './client';
 import { buildLifeNbPolicyPayload } from './payloadBuilder';
 import { generatePolicyNumber } from './policyNumber';
 import { getMissingNewBusinessFields } from './validateNewBusiness';
+import { singleFlight } from './singleFlight';
 import { Prisma, type PdLifeApplication, type PdLifeBeneficiary } from '@prisma/client';
 
 type ApplicationWithBeneficiaries = PdLifeApplication & { beneficiaries: PdLifeBeneficiary[] };
 
 export type SkippedSubmission = { skipped: true; missing: string[] };
 
-export async function submitNewBusinessToIpeak(application: ApplicationWithBeneficiaries, createdByEmail: string) {
+export function submitNewBusinessToIpeak(application: ApplicationWithBeneficiaries, createdByEmail: string) {
+  return singleFlight(`new-business:${application.id}`, () => submitNewBusiness(application, createdByEmail));
+}
+
+async function submitNewBusiness(application: ApplicationWithBeneficiaries, createdByEmail: string) {
   const missing = getMissingNewBusinessFields(application);
   if (missing.length > 0) return { skipped: true, missing } satisfies SkippedSubmission;
 

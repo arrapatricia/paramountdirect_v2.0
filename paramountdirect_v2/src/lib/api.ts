@@ -151,6 +151,8 @@ export const pdLifeApi = {
   list: () => apiFetch<PdLifeApplicationApi[]>('/api/applications/pd-life'),
   create: (payload: Omit<PdLifeApplicationApi, 'id' | 'applicationSeq' | 'policyNumber' | 'dateScreened'> & { dateScreened?: string }) =>
     apiFetch<PdLifeApplicationApi>('/api/applications/pd-life', { method: 'POST', body: JSON.stringify(payload) }),
+  update: (id: string, patch: { premium?: string; details?: Record<string, unknown> }) =>
+    apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
   claim: (id: string) =>
     apiFetch<PdLifeApplicationApi>(`/api/applications/pd-life/${id}/claim`, { method: 'PATCH' }),
   updateStatus: (id: string, status: string) =>

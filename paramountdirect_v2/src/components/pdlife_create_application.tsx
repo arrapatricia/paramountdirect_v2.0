@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, HeartPulse, ShieldPlus, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import {
   PD_LIFE_PLAN_CODES,
@@ -16,6 +16,7 @@ import { getPremiumRate, type PremiumRate } from './premium_rates';
 import { getHcpPremium, getHcpAvailableTiers, type HcpInsuredOption } from './pdlife_rates_hcp';
 import { getHipPremium, type HipInsuredOption } from './pdlife_rates_hip';
 import { getGlaPremium, GLA_UNITS } from './pdlife_rates_gla';
+import { getGlpPremium, GLP_UNITS } from './pdlife_rates_glp';
 import PhAddressFields from './ph_address_fields';
 
 interface Props {
@@ -54,6 +55,17 @@ const PLAN_AGE_RANGE: Partial<Record<string, { min: number; max: number }>> = {
   HCP: { min: 20, max: 50 },
   HIP: { min: 20, max: 64 },
   GLA: { min: 40, max: 75 },
+  GLP: { min: 40, max: 75 },
+};
+
+// Plan numbers (and years to pay) for products whose coverage is set by the
+// plan the applicant picks - mirrors the "PD Prod coverage" sheet and the
+// paramountdirect.com apply pages.
+const range = (from: number, to: number, step: number) => Array.from({ length: (to - from) / step + 1 }, (_, i) => from + i * step);
+const VARIANT_PLANS: Record<string, { years?: number[]; plans: (years?: number) => number[] }> = {
+  GPR: { years: [10, 20], plans: (y) => (y === 20 ? range(100, 800, 100) : range(100, 600, 100)) },
+  SSP: { years: [5, 10], plans: (y) => (y === 5 ? [100, 150, 200, 250] : range(100, 500, 100)) },
+  PHP: { plans: () => range(50, 400, 50) },
 };
 
 const calculateAge = (dobString: string) => {
@@ -157,6 +169,8 @@ function PdLifeCategoryForm({
   // Life & Accident / Comprehensive shared
   const [paymentOption, setPaymentOption] = useState<(typeof PAYMENT_OPTIONS)[number]>('Monthly');
   const [units, setUnits] = useState(1);
+  const [planNumber, setPlanNumber] = useState('');
+  const [yearsToPay, setYearsToPay] = useState('');
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [nonForfeitureOption, setNonForfeitureOption] = useState<NonForfeitureOption>('Cash Surrender');
   const [hasExistingPolicy, setHasExistingPolicy] = useState(false);
@@ -178,6 +192,11 @@ function PdLifeCategoryForm({
   const [awareOfImpairment, setAwareOfImpairment] = useState(false);
   const [medicalDetails, setMedicalDetails] = useState('');
 
+
+  const variant = VARIANT_PLANS[planCode];
+  const variantPlans = variant ? variant.plans(yearsToPay ? Number(yearsToPay) : undefined) : [];
+  useEffect(() => { setPlanNumber(''); setYearsToPay(''); }, [planCode]);
+  useEffect(() => { setPlanNumber(''); }, [yearsToPay]);
 
   const age = calculateAge(owner.birthdate);
   const planName = planOptions.find((p) => p.code === planCode)?.name ?? '';
@@ -208,6 +227,8 @@ function PdLifeCategoryForm({
       ? getHipPremium(insuredOption as HipInsuredOption, age, benefitTier, paymentOption)
       : planCode === 'GLA'
       ? getGlaPremium(units, paymentOption)
+      : planCode === 'GLP'
+      ? getGlpPremium(units, paymentOption)
       : getPremiumRate(rates, 'PD Life', planCode, 500);
 
   const [step, setStep] = useState<'form' | 'review' | 'confirmed'>('form');
@@ -224,6 +245,8 @@ function PdLifeCategoryForm({
   // explanation.
   const requiredFieldChecks: { label: string; ok: boolean }[] = [
     { label: 'Plan', ok: !!planCode },
+    ...(variant ? [{ label: 'Plan Number', ok: !!planNumber }] : []),
+    ...(variant?.years ? [{ label: 'Years to Pay', ok: !!yearsToPay }] : []),
     { label: 'First Name', ok: !!owner.firstName },
     { label: 'Last Name', ok: !!owner.lastName },
     { label: 'Birthdate', ok: !!owner.birthdate },
@@ -268,15 +291,18 @@ function PdLifeCategoryForm({
     const fullName = `${owner.firstName} ${owner.lastName}`;
 
     const baseDetails = { policyOwner: owner, contact, payor: payorInfo };
+    const variantDetails = variant
+      ? { benefitTier: Number(planNumber), ...(variant.years ? { yearsToPay: Number(yearsToPay) } : {}) }
+      : {};
     const categoryDetails =
       category === 'Health'
         ? { insuredOption, paymentOption, hasLegalSpouse, children }
         : category === 'Life & Accident'
-        ? { units, paymentOption, beneficiaries, nonForfeitureOption, hasExistingPolicy, existingPolicyDetails }
+        ? { ...(planCode === 'GPR' ? {} : { units }), ...variantDetails, paymentOption, beneficiaries, nonForfeitureOption, hasExistingPolicy, existingPolicyDetails }
         : {
-            weightKg: Number(weightKg), heightCm: Number(heightCm), occupation, specificDuties,
+            paymentOption, weightKg: Number(weightKg), heightCm: Number(heightCm), occupation, specificDuties,
             officeAddress, officeZipcode, officeTelephone, sourceOfFunds, tin, gsisOrSss,
-            beneficiaries, nonForfeitureOption, hasExistingPolicy, existingPolicyDetails,
+            ...variantDetails, beneficiaries, nonForfeitureOption, hasExistingPolicy, existingPolicyDetails,
             medicalQuestionnaire: {
               consultedDoctorPast5Years: consultedDoctor,
               advisedOfSeriousCondition: advisedCondition,
@@ -445,13 +471,33 @@ function PdLifeCategoryForm({
               </div>
             )}
 
-            {category === 'Life & Accident' && (
+            {category === 'Life & Accident' && planCode !== 'GPR' && (
               <div>
                 <label className={labelClass}>Units</label>
                 <select value={units} onChange={(e) => setUnits(Number(e.target.value))} className={inputClass}>
-                  {(planCode === 'GLA' ? GLA_UNITS : [1, 2, 3, 5, 7, 10, 15, 20]).map((u) => (
+                  {(planCode === 'GLA' ? GLA_UNITS : GLP_UNITS).map((u) => (
                     <option key={u} value={u}>{u} Unit(s)</option>
                   ))}
+                </select>
+              </div>
+            )}
+
+            {variant?.years && (
+              <div>
+                <label className={labelClass}>Years to Pay</label>
+                <select required value={yearsToPay} onChange={(e) => setYearsToPay(e.target.value)} className={inputClass}>
+                  <option value="">-- Select --</option>
+                  {variant.years.map((y) => <option key={y} value={y}>{y} years to pay</option>)}
+                </select>
+              </div>
+            )}
+
+            {variant && (
+              <div>
+                <label className={labelClass}>Plan Number</label>
+                <select required value={planNumber} onChange={(e) => setPlanNumber(e.target.value)} disabled={!!variant.years && !yearsToPay} className={inputClass}>
+                  <option value="">-- Select --</option>
+                  {variantPlans.map((n) => <option key={n} value={n}>Plan {n}</option>)}
                 </select>
               </div>
             )}

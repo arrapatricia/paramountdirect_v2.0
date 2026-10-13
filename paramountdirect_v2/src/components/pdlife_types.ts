@@ -136,6 +136,7 @@ export interface LifeAccidentDetails {
 // included since it's part of every real comprehensive application form but
 // wasn't previously captured anywhere in this codebase.
 export interface ComprehensiveDetails {
+  paymentOption: 'Monthly' | 'Quarterly' | 'Semi-Annual' | 'Annual';
   weightKg: number;
   heightCm: number;
   occupation: string;

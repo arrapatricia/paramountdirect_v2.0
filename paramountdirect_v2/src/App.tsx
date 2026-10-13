@@ -721,6 +721,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(initialNav.tab);
   const [activeSubTab, setActiveSubTab] = useState(initialNav.subTab);
   const [selectedApp, setSelectedApp] = useState<{ id: string; planCode: string } | null>(null);
+  // Application number from the URL (/application-screening/0000060) waiting
+  // for the PD Life list to load so it can be opened - see the effect below.
+  const [pendingPdLifeId, setPendingPdLifeId] = useState<string | null>(() => {
+    const parsed = parsePath(window.location.pathname);
+    return parsed?.tab === 'screening' || parsed?.tab === 'inquiry' ? parsed.recordId ?? null : null;
+  });
   const [darkMode, setDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -834,6 +840,8 @@ export default function App() {
     const recordId =
       activeTab === 'ofw-applications' ? viewingOfwId ?? undefined :
       activeTab === 'ctpl-applications' ? viewingCtplId ?? undefined :
+      activeTab === 'screening' || activeTab === 'inquiry'
+        ? (selectedApp ? screeningData.find((a) => a.id === selectedApp.id)?.applicationId : pendingPdLifeId) ?? undefined :
       undefined;
     const path = buildPath(activeTab, activeSubTab, recordId);
     if (window.location.pathname !== path) {
@@ -844,7 +852,7 @@ export default function App() {
       }
     }
     hasSyncedUrlRef.current = true;
-  }, [activeTab, activeSubTab, viewingOfwId, viewingCtplId]);
+  }, [activeTab, activeSubTab, viewingOfwId, viewingCtplId, selectedApp, pendingPdLifeId, screeningData]);
 
   // Supports the browser's Back/Forward buttons for the URLs above.
   useEffect(() => {
@@ -856,6 +864,7 @@ export default function App() {
       setIsCreatingGtpApp(false);
       setIsCreatingPdLifeApp(false);
       const parsed = parsePath(window.location.pathname);
+      setPendingPdLifeId(parsed?.tab === 'screening' || parsed?.tab === 'inquiry' ? parsed.recordId ?? null : null);
       if (parsed) {
         // Maintenance URLs don't carry a product - stay on the current one.
         if (parsed.tab !== 'maintenance') setActiveProduct(parsed.product);
@@ -873,6 +882,20 @@ export default function App() {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  // Opens the application named in the URL once the list has loaded. Screening
+  // goes through the same claim-on-open path as clicking a row.
+  useEffect(() => {
+    if (!pendingPdLifeId) return;
+    const match = screeningData.find((a) => a.applicationId === pendingPdLifeId || a.policyNumber === pendingPdLifeId);
+    if (match) {
+      setPendingPdLifeId(null);
+      if (activeTab === 'screening') void handleSelectScreeningApp(match.id, match.planCode);
+      else setSelectedApp({ id: match.id, planCode: match.planCode });
+    } else if (pdLifeConnected) {
+      setPendingPdLifeId(null);
+    }
+  }, [pendingPdLifeId, screeningData, pdLifeConnected, activeTab]);
 
   // Loads real PD Life applications once there's a real backend session
   // (i.e. login actually went through the backend, not the mock fallback -
@@ -1100,6 +1123,27 @@ export default function App() {
       });
   };
 
+  // Saves a changed payment option (and the premium recalculated for it) from
+  // the detail page's General Details section.
+  const handleSavePayment = (paymentOption: string, premium: string) => {
+    if (!selectedApp) return;
+    const current = screeningData.find(app => app.id === selectedApp.id);
+    const details = (current?.details ?? {}) as Record<string, unknown>;
+    const nextDetails = { ...details, category: { ...((details.category ?? {}) as Record<string, unknown>), paymentOption } };
+    if (!pdLifeConnected) {
+      setScreeningData(prev => prev.map(app => (app.id === selectedApp.id ? { ...app, premium, details: nextDetails } : app)));
+      return;
+    }
+    pdLifeApi
+      .update(selectedApp.id, { premium, details: nextDetails })
+      .then((updated) => {
+        setScreeningData(prev => prev.map(app => (app.id === updated.id ? mapApiToScreeningItem(updated) : app)));
+      })
+      .catch((err) => {
+        setPdLifeLoadError(err instanceof Error ? err.message : 'Failed to save the payment option.');
+      });
+  };
+
   // Opening an unassigned application from Application Screening claims it
   // for the current user. Resolves to the other issuer's name if someone
   // else claimed it first, so the screening list can show its lock warning.
@@ -1131,6 +1175,7 @@ export default function App() {
   const handleCreatePdLifeApp = async (app: PdLifeApplication): Promise<PdLifeApplication> => {
     if (!pdLifeConnected) {
       setScreeningData(prev => [{ ...app, details: app.details as unknown as Record<string, unknown> }, ...prev]);
+      setPdLifeLoadError('Not connected to the backend - this application was saved in this browser only and will not be sent to iPeak. Log out and sign in with a backend account.');
       return app;
     }
     const created = await pdLifeApi.create({
@@ -1331,6 +1376,7 @@ export default function App() {
       planCode: selectedApp.planCode,
       initialStatus,
       onUpdateStatus: handleUpdateStatus,
+      onSavePayment: handleSavePayment,
       ipeakMissing: currentApp?.ipeakMissing ?? [],
       // Only the "Signed" branch needs to do anything - signedFollowUpIds
       // already treats absence as unsigned, which is the default for a

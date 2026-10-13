@@ -58,13 +58,15 @@ export interface ParsedRoute {
   subTab?: string;
   // Only set for 'ctpl-applications' / 'ofw-applications' - the application
   // being viewed, e.g. /ctpl/applications/cm123... (see App.tsx's
-  // viewingCtplId / viewingOfwId).
+  // viewingCtplId / viewingOfwId) - and for PD Life's 'screening' / 'inquiry',
+  // by application number, e.g. /application-screening/0000060 (see App.tsx's
+  // pendingPdLifeId).
   recordId?: string;
 }
 
 // Tabs whose URL can carry a record id as an extra path segment - see
 // buildPath/parsePath below.
-const TABS_WITH_RECORD_ID = ['ctpl-applications', 'ofw-applications'] as const;
+const TABS_WITH_RECORD_ID = ['ctpl-applications', 'ofw-applications', 'screening', 'inquiry'] as const;
 
 // Builds the URL for a given nav state. Only 'maintenance' has a
 // browser-visible sub-page per subTab; the tabs above can carry a record id

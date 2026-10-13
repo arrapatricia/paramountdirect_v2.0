@@ -4,8 +4,17 @@ import { prisma } from '../../lib/prisma';
 import { callIpeak, ipeakConfigured } from './client';
 import { Prisma, type PdLifeApplication } from '@prisma/client';
 import type { LifeLeap, LifeLeapStatusCode } from './types';
+import { singleFlight } from './singleFlight';
 
-export async function updateIpeakStatus(
+export function updateIpeakStatus(
+  application: PdLifeApplication,
+  statusCode: LifeLeapStatusCode,
+  processorEmail: string
+) {
+  return singleFlight(`update-status:${application.id}:${statusCode}`, () => sendUpdateStatus(application, statusCode, processorEmail));
+}
+
+async function sendUpdateStatus(
   application: PdLifeApplication,
   statusCode: LifeLeapStatusCode,
   processorEmail: string
