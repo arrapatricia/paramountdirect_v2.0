@@ -2,7 +2,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import type { Attachment } from 'nodemailer/lib/mailer';
 
 // ZeptoMail SMTP wrapper. Mirrors the legacy Rails mailers' behaviour:
-// - "[TEST ENV] " subject prefix outside production
+// - "[TEST ENV] " subject prefix on every email unless MAIL_ENV=production
 // - MAIL_REDIRECT_TO reroutes everything to a dev inbox (legacy StagingEmailInterceptor)
 // - attachments over 15 MB are dropped (legacy VVIP guard) - mail servers reject larger.
 
@@ -44,7 +44,10 @@ const list = (a?: MailAddress): string[] => (a === undefined ? [] : Array.isArra
   .map((s) => s.trim())
   .filter(Boolean);
 
-const isProd = () => process.env.NODE_ENV === 'production';
+// Deliberately NOT NODE_ENV: the deployed dev site runs a production build, so
+// keying off NODE_ENV would silently drop the "[TEST ENV]" prefix there. Every
+// environment is a test environment unless MAIL_ENV=production is set on purpose.
+const isProd = () => process.env.MAIL_ENV === 'production';
 
 export async function sendMail(input: SendMailInput): Promise<{ messageId: string }> {
   let to = list(input.to);

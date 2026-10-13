@@ -40,6 +40,7 @@ import Maintenance from './components/maintenance';
 import UserRoleManagement, { INITIAL_USERS, type UserAccount } from './components/user_role_management';
 import AuditLogs from './components/audit_logs';
 import { canManageUsers } from './lib/roles';
+import ChangePassword from './components/change_password';
 // Premium Maintenance removed from nav per request - see the commented-out
 // render branch below and sidebar.tsx's commented-out 'premiums' nav entry.
 // import PremiumMaintenance from './components/premium_maintenance';
@@ -728,6 +729,7 @@ export default function App() {
     return parsed?.tab === 'screening' || parsed?.tab === 'inquiry' ? parsed.recordId ?? null : null;
   });
   const [darkMode, setDarkMode] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [screeningData, setScreeningData] = useState<ScreeningItem[]>(initialMockData);
@@ -831,7 +833,25 @@ export default function App() {
   // /application-inquiry - instead of everything living at '/'.
   const isPoppingRef = useRef(false);
   const hasSyncedUrlRef = useRef(false);
+
+  // Opening /logout (typed, bookmarked, or a link) signs the user out.
+  const loggingOutViaUrlRef = useRef(false);
   useEffect(() => {
+    if (isAuthenticated && window.location.pathname === '/logout') {
+      loggingOutViaUrlRef.current = true;
+      handleLogout();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Nothing to sync while the login screen is up (it may be sitting on
+    // /logout), or while a /logout visit is still signing the user out.
+    if (!isAuthenticated) {
+      loggingOutViaUrlRef.current = false;
+      return;
+    }
+    if (loggingOutViaUrlRef.current) return;
     if (isPoppingRef.current) {
       isPoppingRef.current = false;
       hasSyncedUrlRef.current = true;
@@ -852,7 +872,7 @@ export default function App() {
       }
     }
     hasSyncedUrlRef.current = true;
-  }, [activeTab, activeSubTab, viewingOfwId, viewingCtplId, selectedApp, pendingPdLifeId, screeningData]);
+  }, [isAuthenticated, activeTab, activeSubTab, viewingOfwId, viewingCtplId, selectedApp, pendingPdLifeId, screeningData]);
 
   // Supports the browser's Back/Forward buttons for the URLs above.
   useEffect(() => {
@@ -926,17 +946,27 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated || !getAuthToken()) return;
     let cancelled = false;
-    Promise.all([usersApi.list(), rolesApi.list()])
-      .then(([apiUsers, apiRoles]) => {
-        if (cancelled) return;
-        setBackendRoles(apiRoles);
-        setUsers(apiUsers.map(mapApiToUserAccount));
-        setUsersConnected(true);
-      })
-      .catch(() => {
-        // Stay on the local INITIAL_USERS mock if the backend/users API
-        // isn't reachable - same fallback behavior as every other product.
-      });
+    const loadUsers = (attempt: number) => {
+      Promise.all([usersApi.list(), rolesApi.list()])
+        .then(([apiUsers, apiRoles]) => {
+          if (cancelled) return;
+          setBackendRoles(apiRoles);
+          setUsers(apiUsers.map(mapApiToUserAccount));
+          setUsersConnected(true);
+        })
+        .catch(() => {
+          // A page load fires every product's requests at once, and a busy
+          // database can time a few of them out (HTTP 500). Giving up on the
+          // first failure left Users & Roles stuck on the offline demo list
+          // - where "created" users are never saved or emailed - until a
+          // manual reload, so retry a few times with a growing delay first.
+          // Still unreachable after that: stay on the local INITIAL_USERS
+          // mock, same fallback behavior as every other product.
+          if (cancelled || attempt >= 3) return;
+          window.setTimeout(() => { if (!cancelled) loadUsers(attempt + 1); }, 1500 * 2 ** attempt);
+        });
+    };
+    loadUsers(0);
     return () => {
       cancelled = true;
     };
@@ -1094,7 +1124,7 @@ export default function App() {
     // deep link (e.g. /ctpl/applications/2600139120) right through the
     // login screen - not a security issue (the isAuthenticated guard above
     // already forces Login regardless of path), but confusing and wrong.
-    window.history.replaceState(null, '', '/');
+    window.history.replaceState(null, '', '/logout');
   };
 
   if (!isAuthenticated) {
@@ -1407,7 +1437,10 @@ export default function App() {
 
   return (
     <div className={`flex flex-col lg:flex-row h-screen overflow-hidden font-sans transition-colors duration-200 ${darkMode ? 'bg-slate-950' : 'bg-gray-50'}`}>
-      
+      {showChangePassword && (
+        <ChangePassword onDone={() => setShowChangePassword(false)} onCancel={() => setShowChangePassword(false)} />
+      )}
+
       {/* Mobile Top Header */}
       <div className={`lg:hidden flex items-center justify-between px-4 py-3 border-b z-30 ${darkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center space-x-3">
@@ -1435,6 +1468,7 @@ export default function App() {
         activeSubTab={activeSubTab} 
         setActiveSubTab={setActiveSubTab} 
         onLogout={handleLogout}
+        onChangePassword={getAuthToken() ? () => setShowChangePassword(true) : undefined}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentUserName={currentUserName}

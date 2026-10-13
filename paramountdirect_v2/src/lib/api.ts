@@ -64,10 +64,13 @@ export interface LoginResponse {
     firstName: string;
     lastName: string;
     role: { name: string } | null;
+    mustChangePassword?: boolean;
   };
 }
 
 export const authApi = {
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
   login: (email: string, password: string) =>
     apiFetch<LoginResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 };
@@ -403,6 +406,8 @@ export interface UserApi {
   updatedAt: string;
   role: { id: string; name: string; productScope: string } | null;
   branch: { id: string; city: string } | null;
+  // Only present on the create response: whether the "Login Credentials" email went out.
+  welcomeEmailSent?: boolean;
 }
 
 export interface UserUpsertPayload {
@@ -418,10 +423,14 @@ export interface UserUpsertPayload {
 
 export const usersApi = {
   list: () => apiFetch<UserApi[]>('/api/users'),
-  create: (payload: UserUpsertPayload & { password: string }) =>
+  // password optional: when omitted the server generates a temporary one; either way it is emailed to the user.
+  create: (payload: UserUpsertPayload) =>
     apiFetch<UserApi>('/api/users', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id: string, payload: Partial<UserUpsertPayload>) =>
     apiFetch<UserApi>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  // Emails a NEW temporary password (the old one can't be recovered) and forces a change at next login.
+  resendCredentials: (id: string) =>
+    apiFetch<{ sent: boolean; email: string }>(`/api/users/${id}/resend-credentials`, { method: 'POST' }),
 };
 
 export const gtpApi = {

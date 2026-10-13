@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Lock, Mail, Sun, Moon, AlertCircle } from 'lucide-react';
 import ForgotPassword from './forgot_password';
 import type { UserAccount } from './user_role_management';
-import { authApi, setAuthToken } from '../lib/api';
+import ChangePassword from './change_password';
+import { authApi, setAuthToken, clearAuthToken } from '../lib/api';
 
 // Import light and dark logos
 import pdLogoFullColor from '../assets/PD Logo_full color.png';
@@ -24,6 +25,7 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [pendingPasswordChange, setPendingPasswordChange] = useState<{ role: string; name: string; email: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +43,14 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
     try {
       const { token, user } = await authApi.login(email, password);
       setAuthToken(token, rememberMe);
-      onLoginSuccess(rememberMe, user.role?.name ?? 'System Admin', `${user.firstName} ${user.lastName}`.trim(), user.email);
+      const session = { role: user.role?.name ?? 'System Admin', name: `${user.firstName} ${user.lastName}`.trim(), email: user.email };
+      if (user.mustChangePassword) {
+        // Still on the admin-issued temporary password - hold the user here
+        // until they pick a permanent one.
+        setPendingPasswordChange(session);
+        return;
+      }
+      onLoginSuccess(rememberMe, session.role, session.name, session.email);
       return;
     } catch {
       // Not a real backend account (or backend unreachable) - fall through
@@ -228,6 +237,19 @@ export default function Login({ onLoginSuccess, darkMode, setDarkMode, users }: 
           </button>
         </form>
       </div>
+
+      {pendingPasswordChange && (
+        <ChangePassword
+          forced
+          knownCurrentPassword={password}
+          onDone={() => onLoginSuccess(rememberMe, pendingPasswordChange.role, pendingPasswordChange.name, pendingPasswordChange.email)}
+          onCancel={() => {
+            clearAuthToken();
+            setPendingPasswordChange(null);
+            setPassword('');
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className={`absolute bottom-6 left-6 text-xs z-20 font-medium ${

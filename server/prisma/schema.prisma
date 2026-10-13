@@ -32,6 +32,9 @@ model User {
   lastName         String
   email            String     @unique
   passwordHash     String
+  // True while the account still has an admin-issued temporary password;
+  // the login flow forces a change before the user gets into the app.
+  mustChangePassword Boolean  @default(false)
   status           UserStatus @default(Active)
   // Product lines this user's account can switch into, e.g. ["PD Life", "OFW"].
   assignedProducts String[]

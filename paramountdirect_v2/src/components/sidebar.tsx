@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronLeft,
   LogOut,
+  KeyRound,
   Building2,
   Globe,
   BarChart3,
@@ -62,6 +63,8 @@ interface SidebarProps {
   activeSubTab?: string;
   setActiveSubTab?: (subTab: string) => void;
   onLogout: () => void;
+  // Opens the self-service Change Password dialog; omitted for mock-only sessions.
+  onChangePassword?: () => void;
   isOpen?: boolean;
   onClose?: () => void;
   currentUserName?: string;
@@ -79,6 +82,7 @@ export default function Sidebar({
   activeSubTab,
   setActiveSubTab,
   onLogout,
+  onChangePassword,
   isOpen = false,
   onClose,
   currentUserName = 'Juan Dela Cruz',
@@ -550,6 +554,16 @@ export default function Sidebar({
                 <p className="text-xs font-bold text-slate-800 truncate dark:text-slate-100">{currentUserName}</p>
                 <p className="text-[10px] text-slate-400 truncate dark:text-slate-500">{currentUserEmail}</p>
               </div>
+            )}
+
+            {!isCollapsed && onChangePassword && (
+              <button
+                onClick={onChangePassword}
+                className="p-1.5 text-slate-400 hover:text-[#d0112b] rounded-lg hover:bg-red-50 transition-colors cursor-pointer dark:hover:bg-red-950/30"
+                title="Change Password"
+              >
+                <KeyRound className="w-4 h-4" />
+              </button>
             )}
 
             {!isCollapsed && (

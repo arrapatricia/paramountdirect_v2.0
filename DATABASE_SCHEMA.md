@@ -68,6 +68,7 @@ until the endpoint is live and tested; columns with no field in the spec are pla
 | `firstName` / `lastName` | String | |
 | `email` UK | String | |
 | `passwordHash` | String | bcrypt |
+| `mustChangePassword` | Boolean | default `false`; `true` while the password is an admin-issued temporary one (set on user create / admin password set / "Resend credentials"). Login still works but the user must pick a permanent password first (`POST /api/auth/change-password` clears it). Migration `20261013000000_add_user_must_change_password` |
 | `status` | enum | `Active` \| `Inactive` |
 | `assignedProducts` | String[] | e.g. `["PD Life", "OFW"]` — which product tabs this account can open |
 | `lastLoginAt` | DateTime? | |

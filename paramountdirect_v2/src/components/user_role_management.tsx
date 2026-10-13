@@ -16,6 +16,8 @@ import {
   FolderTree,
   CheckCheck,
   Ban,
+  Mail,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   ROLE_DEFINITIONS,
@@ -76,6 +78,22 @@ const AVATAR_PALETTE = [
   'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300',
 ];
 
+// Readable temporary password: no look-alike characters (0/O, 1/l/I), always
+// has a letter and a number so it satisfies the change-password rules.
+function generateTempPassword(length = 12): string {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const all = letters + digits;
+  const rand = (max: number) => crypto.getRandomValues(new Uint32Array(1))[0] % max;
+  const chars = [letters[rand(letters.length)], digits[rand(digits.length)]];
+  while (chars.length < length) chars.push(all[rand(all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = rand(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
 function avatarStyleFor(id: string): string {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % AVATAR_PALETTE.length;
@@ -130,9 +148,9 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
   const [view, setView] = useState<'users' | 'roles'>('users');
   const [notification, setNotification] = useState<string | null>(null);
 
-  const triggerBanner = (msg: string) => {
+  const triggerBanner = (msg: string, ms = 4000) => {
     setNotification(msg);
-    setTimeout(() => setNotification(null), 4000);
+    setTimeout(() => setNotification(null), ms);
   };
 
   // ---- Users tab state ----
@@ -144,6 +162,30 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
   const [formData, setFormData] = useState<Partial<UserAccount>>({});
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleGeneratePassword = () => {
+    const generated = generateTempPassword();
+    setFormData((prev) => ({ ...prev, password: generated }));
+    setConfirmPassword(generated);
+    setPasswordError(null);
+    setShowPassword(true);
+    setPasswordCopied(false);
+  };
+
+  const handleCopyPassword = async () => {
+    if (!formData.password) return;
+    try {
+      await navigator.clipboard.writeText(formData.password);
+      setPasswordCopied(true);
+      setTimeout(() => setPasswordCopied(false), 2000);
+    } catch {
+      // Clipboard blocked - the password is visible in the field to copy by hand.
+    }
+  };
   // Role rows created mid-session (e.g. the first time someone is assigned a
   // role added to ROLE_DEFINITIONS but not yet provisioned in the backend).
   // Merged with the `backendRoles` prop so a lookup never has to wait for
@@ -211,7 +253,38 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
     triggerBanner(`${user.firstName} ${user.lastName} is now ${nextStatus}.`);
   };
 
+  // Another account already uses this address (case-insensitive). Checked here
+  // for instant feedback and for the offline list; the server enforces it too.
+  const isEmailTaken = (email: string, exceptId?: string) =>
+    users.some((u) => u.id !== exceptId && u.email.trim().toLowerCase() === email.trim().toLowerCase());
+
+  // Emails a NEW temporary password (the old one can't be recovered) to an
+  // existing user - e.g. after their email was corrected, or when the first
+  // message never arrived. They must change it at next login.
+  const handleResendCredentials = async (user: UserAccount, opts: { skipConfirm?: boolean } = {}) => {
+    if (!usersConnected) {
+      triggerBanner('Not connected to the server - reload the page, then try again.');
+      return;
+    }
+    if (
+      !opts.skipConfirm &&
+      !window.confirm(`Email new login credentials to ${user.email}?\n\nThis generates a new temporary password and replaces ${user.firstName}'s current one.`)
+    ) {
+      return;
+    }
+    setResendingId(user.id);
+    try {
+      await usersApi.resendCredentials(user.id);
+      triggerBanner(`New login credentials were sent to ${user.email}.`, 8000);
+    } catch (err) {
+      triggerBanner(err instanceof ApiError ? err.message : 'Failed to resend credentials.');
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const handleOpenCreate = () => {
+    setEmailError(null);
     setIsCreating(true);
     setFormData({
       id: `USR-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -223,7 +296,7 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
       assignedProducts: productsForRole(DEFAULT_NEW_USER_ROLE),
       status: 'Active',
     });
-    setConfirmPassword('');
+    setConfirmPassword(''); setShowPassword(false);
     setPasswordError(null);
   };
 
@@ -247,41 +320,64 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
     if (!formData.firstName || !formData.lastName || !formData.email) return;
 
     if (isCreating) {
-      if (!formData.password || formData.password.length < 8) {
-        setPasswordError('Password must be at least 8 characters.');
-        return;
-      }
-      if (formData.password !== confirmPassword) {
-        setPasswordError('Passwords do not match.');
-        return;
-      }
-      setPasswordError(null);
-
-      let newUser = { ...formData, lastLogin: 'Never' } as UserAccount;
-
-      if (usersConnected) {
-        try {
-          const created = await usersApi.create({
-            firstName: newUser.firstName,
-            lastName: newUser.lastName,
-            email: newUser.email,
-            password: newUser.password!,
-            roleId: await resolveRoleId(newUser.role),
-            assignedProducts: newUser.assignedProducts,
-            status: newUser.status,
-          });
-          // The backend generates the real id - swap in place of the
-          // locally-invented USR-#### placeholder so later edits/status
-          // toggles hit the real record.
-          newUser = { ...newUser, id: created.id };
-        } catch (err) {
-          triggerBanner(err instanceof ApiError ? err.message : 'Failed to create user.');
+      // Blank is fine on create: the server then generates a temporary
+      // password. Whatever ends up as the password is emailed to the user
+      // ("Login Credentials") and must be replaced at first login.
+      if (formData.password) {
+        if (formData.password.length < 8) {
+          setPasswordError('Password must be at least 8 characters.');
+          return;
+        }
+        if (formData.password !== confirmPassword) {
+          setPasswordError('Passwords do not match.');
           return;
         }
       }
+      setPasswordError(null);
+
+      if (isEmailTaken(formData.email)) {
+        setEmailError('A user with this email address already exists.');
+        return;
+      }
+      setEmailError(null);
+
+      // Creating an account is what triggers the credentials email, and that
+      // only happens on the server. Without a server session (the offline demo
+      // list) a "created" row would be fake: never saved, never emailed.
+      if (!usersConnected) {
+        triggerBanner('Not connected to the server, so the account was NOT created and no credentials email was sent. Reload the page, or sign out and sign in again, then retry.', 9000);
+        return;
+      }
+
+      let newUser = { ...formData, lastLogin: 'Never' } as UserAccount;
+      let created;
+      try {
+        created = await usersApi.create({
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          email: newUser.email,
+          password: newUser.password || undefined,
+          roleId: await resolveRoleId(newUser.role),
+          assignedProducts: newUser.assignedProducts,
+          status: newUser.status,
+        });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409) setEmailError(err.message);
+        triggerBanner(err instanceof ApiError ? err.message : 'Failed to create user.');
+        return;
+      }
+      // The backend generates the real id - swap in place of the
+      // locally-invented USR-#### placeholder so later edits/status
+      // toggles hit the real record.
+      newUser = { ...newUser, id: created.id };
 
       setUsers([newUser, ...users]);
-      triggerBanner(`User ${newUser.firstName} ${newUser.lastName} created successfully.`);
+      triggerBanner(
+        created.welcomeEmailSent
+          ? `User ${newUser.firstName} ${newUser.lastName} created. Login credentials were sent to ${newUser.email}.`
+          : `User ${newUser.firstName} ${newUser.lastName} created, but the credentials email could not be sent to ${newUser.email}. Use the envelope button on the user to resend it.`,
+        8000,
+      );
     } else {
       // Password is optional on edit - only touch it if the admin actually
       // typed a new one, so leaving both fields blank keeps the current
@@ -301,6 +397,14 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
       }
       setPasswordError(null);
 
+      if (isEmailTaken(patch.email ?? '', formData.id)) {
+        setEmailError('A user with this email address already exists.');
+        return;
+      }
+      setEmailError(null);
+      const emailChanged =
+        !!activeModalUser && (patch.email ?? '').trim().toLowerCase() !== activeModalUser.email.trim().toLowerCase();
+
       if (usersConnected) {
         try {
           await usersApi.update(formData.id!, {
@@ -313,25 +417,38 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
             status: patch.status,
           });
         } catch (err) {
+          if (err instanceof ApiError && err.status === 409) setEmailError(err.message);
           triggerBanner(err instanceof ApiError ? err.message : 'Failed to update user.');
           return;
         }
       }
 
-      setUsers(users.map((u) => u.id === formData.id ? ({ ...u, ...patch } as UserAccount) : u));
+      const updatedUser = { ...users.find((u) => u.id === formData.id), ...patch } as UserAccount;
+      setUsers(users.map((u) => u.id === formData.id ? updatedUser : u));
       triggerBanner(`User account ${formData.id} updated.`);
+
+      // The new address has never received a login - offer to send one. Runs
+      // after the modal has closed (below), and only with a live backend.
+      if (emailChanged && usersConnected) {
+        window.setTimeout(() => {
+          if (window.confirm(`Email changed to ${updatedUser.email}.\n\nSend login credentials to the new address now? (This generates a new temporary password.)`)) {
+            void handleResendCredentials(updatedUser, { skipConfirm: true });
+          }
+        }, 50);
+      }
     }
 
     setActiveModalUser(null);
     setIsCreating(false);
-    setConfirmPassword('');
+    setConfirmPassword(''); setShowPassword(false);
   };
 
   const closeUserModal = () => {
     setActiveModalUser(null);
     setIsCreating(false);
-    setConfirmPassword('');
+    setConfirmPassword(''); setShowPassword(false);
     setPasswordError(null);
+    setEmailError(null);
   };
 
   // ---- Role Access Matrix tab state ----
@@ -459,6 +576,18 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
 
       {view === 'users' ? (
         <>
+          {/* Without a server session this page shows the built-in demo list:
+              nothing here is saved and no credentials email is ever sent. */}
+          {!usersConnected && (
+            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-medium dark:bg-amber-950/30 dark:border-amber-700/50 dark:text-amber-200">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Not connected to the server - showing the offline demo list.</strong> Users can't be created or emailed their credentials from here.
+                Reload the page, or sign out and sign in again with your account, to load the real users.
+              </span>
+            </div>
+          )}
+
           {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="Total Users" value={users.length} />
@@ -583,11 +712,25 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                     <td className="py-4 px-3">
                       <div className="flex items-center justify-center space-x-1.5">
                         <button
-                          onClick={() => { setIsCreating(false); setActiveModalUser(user); setFormData({ ...user }); setConfirmPassword(''); setPasswordError(null); }}
+                          onClick={() => { setIsCreating(false); setActiveModalUser(user); setFormData({ ...user }); setConfirmPassword(''); setShowPassword(false); setPasswordError(null); setEmailError(null); }}
                           title="Edit user"
                           className="p-2 rounded-xl bg-slate-100 hover:bg-[#008cb4] hover:text-white text-slate-700 transition-all cursor-pointer dark:bg-slate-800 dark:text-slate-300"
                         >
                           <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleResendCredentials(user)}
+                          disabled={!usersConnected || user.status !== 'Active' || resendingId === user.id}
+                          title={
+                            !usersConnected
+                              ? 'Reload the page to connect to the server before resending credentials'
+                              : user.status !== 'Active'
+                                ? 'Activate the user before resending credentials'
+                                : 'Resend login credentials (emails a new temporary password)'
+                          }
+                          className="p-2 rounded-xl bg-slate-100 hover:bg-[#d0112b] hover:text-white text-slate-700 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:disabled:hover:bg-slate-800"
+                        >
+                          <Mail className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleToggleStatus(user)}
@@ -618,7 +761,7 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                       <ShieldCheck className="w-5 h-5 text-[#008cb4]" />
                     </div>
                     <div>
-                      <h2 className="text-base font-bold uppercase text-slate-800 dark:text-white">{isCreating ? 'Provision User' : 'Edit User'}</h2>
+                      <h2 className="text-base font-bold uppercase text-slate-800 dark:text-white">{isCreating ? 'Create User' : 'Edit User'}</h2>
                       {!isCreating && <p className="text-[10px] text-slate-400 dark:text-slate-500">{formData.email}</p>}
                     </div>
                   </div>
@@ -660,10 +803,13 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                       type="email"
                       required
                       value={formData.email || ''}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                      onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setEmailError(null); }}
+                      className={`w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:text-white ${emailError ? 'border-rose-500 dark:border-rose-500' : 'dark:border-slate-700'}`}
                       placeholder="juan.delacruz@paramount.com.ph"
                     />
+                    {emailError && (
+                      <p className="mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">{emailError}</p>
+                    )}
                   </div>
 
                   {/* Password - required when provisioning new access; optional
@@ -671,23 +817,29 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="font-bold text-slate-700 block mb-1 dark:text-slate-300">
-                        {isCreating ? 'Password' : 'New Password'}
+                        {isCreating ? 'Temporary Password' : 'New Temporary Password'}
                       </label>
                       <input
-                        type="password"
-                        required={isCreating}
+                        type={showPassword ? 'text' : 'password'}
                         minLength={8}
                         value={formData.password || ''}
                         onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setPasswordError(null); }}
                         className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                        placeholder={isCreating ? 'Min. 8 characters' : 'Leave blank to keep current'}
+                        placeholder={isCreating ? 'Leave blank to auto-generate' : 'Leave blank to keep current'}
                       />
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] font-bold">
+                        <button type="button" onClick={handleGeneratePassword} className="text-[#d0112b] hover:underline cursor-pointer">Generate</button>
+                        <button type="button" onClick={() => setShowPassword((v) => !v)} className="text-slate-500 hover:underline cursor-pointer dark:text-slate-400">{showPassword ? 'Hide' : 'Show'}</button>
+                        {formData.password && (
+                          <button type="button" onClick={handleCopyPassword} className="text-slate-500 hover:underline cursor-pointer dark:text-slate-400">{passwordCopied ? 'Copied' : 'Copy'}</button>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="font-bold text-slate-700 block mb-1 dark:text-slate-300">Confirm Password</label>
                       <input
-                        type="password"
-                        required={isCreating || !!formData.password}
+                        type={showPassword ? 'text' : 'password'}
+                        required={!!formData.password}
                         value={confirmPassword}
                         onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }}
                         className="w-full p-2.5 rounded-xl border bg-slate-50 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-white"
@@ -696,6 +848,11 @@ export default function UserRoleManagement({ users, setUsers, usersConnected = f
                     </div>
                     {passwordError && (
                       <p className="col-span-2 text-[11px] font-bold text-rose-600 dark:text-rose-400">{passwordError}</p>
+                    )}
+                    {isCreating && (
+                      <p className="col-span-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        Login credentials (email address and temporary password) are emailed to the user when you save. Leave the password blank to auto-generate one; they must change it at first login.
+                      </p>
                     )}
                   </div>
 

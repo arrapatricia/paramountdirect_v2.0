@@ -87,7 +87,7 @@ All routes except `POST /api/auth/login` require `Authorization: Bearer <token>`
 | Resource | Base path |
 |---|---|
 | Auth | `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/logout` |
-| Users | `/api/users` |
+| Users | `/api/users` (`POST` emails the new user a "Login Credentials" message with a temporary password; `password` is optional, blank = server-generated; email must be unique, case-insensitive, else 409; `POST /api/users/:id/resend-credentials` emails a new temporary password) |
 | Roles | `/api/roles` |
 | Branches | `/api/branches` |
 | PD Life applications | `/api/applications/pd-life` (+ `PATCH /:id/status`) |
